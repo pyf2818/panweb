@@ -1429,6 +1429,13 @@ def cmd_install_app(args):
     src = os.path.dirname(os.path.realpath(__file__))
     macos = os.path.join(app, "Contents", "MacOS")
     res = os.path.join(app, "Contents", "Resources")
+    # 结束正在运行的本 App 实例（内置 cloudflared 被占用时无法覆盖）
+    subprocess.run(["pkill", "-f", os.path.join(app, "Contents", "Resources")],
+                   capture_output=True)
+    time.sleep(0.6)
+    if os.path.isdir(app):
+        subprocess.run(["chmod", "-R", "u+w", app], capture_output=True)
+        shutil.rmtree(app)
     os.makedirs(macos, exist_ok=True)
     os.makedirs(res, exist_ok=True)
     for d in ("ui", "skill"):
@@ -1438,6 +1445,7 @@ def cmd_install_app(args):
         shutil.copytree(os.path.join(src, d), dst)
     shutil.copy2(os.path.realpath(__file__), os.path.join(res, "panweb"))
     shutil.copy2(cf, os.path.join(res, "cloudflared"))
+    os.chmod(os.path.join(res, "cloudflared"), 0o755)
     launcher = os.path.join(macos, "panweb-launcher")
     with open(launcher, "w", encoding="utf-8") as f:
         f.write("""#!/bin/bash
@@ -1476,10 +1484,14 @@ open "http://127.0.0.1:7788"
   <key>CFBundleIdentifier</key><string>com.panweb.console</string>
   <key>CFBundleExecutable</key><string>panweb-launcher</string>
   <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleIconFile</key><string>panweb</string>
   <key>CFBundleShortVersionString</key><string>%s</string>
   <key>LSMinimumSystemVersion</key><string>11.0</string>
   <key>NSHighResolutionCapable</key><true/>
 </dict></plist>""" % PANWEB_VERSION)
+    icns = os.path.join(src, "assets", "icon.icns")
+    if os.path.isfile(icns):
+        shutil.copy2(icns, os.path.join(res, "panweb.icns"))
     subprocess.run(["codesign", "--force", "--deep", "-s", "-", app],
                    capture_output=True)  # ad-hoc 签名，减少 Gatekeeper 提示
     size = dir_size(app)
@@ -2367,6 +2379,22 @@ class UiHandler(BaseHTTPRequestHandler):
         try:
             if path in ("/", "/index.html"):
                 return self.serve_index()
+            if path == "/favicon.png":
+                fp = os.path.join(os.path.dirname(ui_index_path() or ""),
+                                  "favicon.png")
+                if os.path.isfile(fp):
+                    with open(fp, "rb") as f:
+                        data = f.read()
+                    self.send_response(200)
+                    self.send_header("Content-Type", "image/png")
+                    self.send_header("Cache-Control", "max-age=86400")
+                    self.send_header("Content-Length", str(len(data)))
+                    self.end_headers()
+                    self.wfile.write(data)
+                    return
+                self.send_response(404)
+                self.end_headers()
+                return
             if path == "/api/state":
                 apps = core_list()
                 for e in apps:
