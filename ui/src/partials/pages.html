@@ -112,6 +112,38 @@
     </div>
   </section>
 
+  <!-- ======= 页面：终端（与本机 Agent 对话，让它替你部署） ======= -->
+  <section class="page" id="page-term">
+    <div class="card section-card">
+      <div class="sc-title">选一个 Agent，说人话，它替你部署</div>
+      <div class="sc-sub">这里不做大模型，只是把你本机已经装好的 Agent 命令行接进控制台：启动它、选它、跟它对话。它已经装着 panweb 技能，会自己执行 <code>panweb publish / pages / run / check</code> 这些命令。</div>
+      <div class="tm-pick">
+        <div class="tm-agents" id="tm-agents"><div class="feed-empty">检测本机 Agent…</div></div>
+        <div class="tm-row">
+          <input id="tm-cwd" placeholder="工作目录（默认这台电脑的主目录）" autocomplete="off" spellcheck="false">
+          <button class="btn btn-sm" onclick="tmStart()">启动终端</button>
+        </div>
+        <div class="tm-note" id="tm-note"></div>
+      </div>
+    </div>
+    <div class="card tm-card">
+      <div class="tm-head">
+        <span class="tm-led" id="tm-led"></span>
+        <b id="tm-title">还没启动</b>
+        <span class="tm-state" id="tm-state"></span>
+        <button class="btn btn-sm ghost" id="tm-stop" onclick="tmStop()" disabled>停止这一轮</button>
+        <button class="btn btn-sm ghost" onclick="tmClear()">清屏</button>
+      </div>
+      <div class="tm-out" id="tm-out"><div class="feed-empty">启动后在这里对话。回车发送，Shift+回车换行。</div></div>
+      <div class="tm-quick" id="tm-quick"></div>
+      <div class="tm-input">
+        <span class="tm-caret">&gt;</span>
+        <textarea id="tm-text" rows="2" placeholder="例如：看看这台电脑上有哪些能发的应用，挑一个发布，给我一个手机上能打开的网址"></textarea>
+        <button class="btn" id="tm-send" onclick="tmSend()">发送</button>
+      </div>
+    </div>
+  </section>
+
   <!-- ======= 页面：系统与数据 ======= -->
   <section class="page" id="page-system">
     <div class="feed-stats">

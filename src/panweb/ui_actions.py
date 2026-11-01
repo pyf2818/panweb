@@ -7,6 +7,8 @@ import time
 import urllib.parse
 
 from . import runtime, ui_context
+from .agentchat import (core_agent_list, core_agent_output, core_agent_send,
+                        core_agent_sessions, core_agent_start, core_agent_stop)
 from .agents import (AGENT_GUIDE, core_agent_connect, core_agent_disconnect,
                      core_agents, skill_source_dir)
 from .browser import open_browser
@@ -104,6 +106,16 @@ def handle_get(handler, path):
     if path == "/api/agents":
         return handler.send_json({"ok": True, "data": {
             "agents": core_agents()}}) or True
+    if path == "/api/agent/agents":
+        return handler.send_json({"ok": True, "data": {
+            "agents": core_agent_list()}}) or True
+    if path == "/api/agent/sessions":
+        return handler.send_json({"ok": True, "data": {
+            "sessions": core_agent_sessions()}}) or True
+    if path == "/api/agent/output":
+        query = _query(handler)
+        return handler.send_json({"ok": True, "data": core_agent_output(
+            _first(query, "id"), _first(query, "after") or 0)}) or True
     if path == "/api/compat":
         return handler.send_json({"ok": True, "data": core_compat(
             _first(_query(handler), "id"))}) or True
@@ -177,6 +189,16 @@ def handle_post(handler, path, body):
         save_meta(meta)
         return handler.send_json({"ok": True, "data": {
             "owner": True}}) or True
+    if path == "/api/agent/start":
+        return handler.send_json({"ok": True, "data": core_agent_start(
+            body.get("agent"), cwd=body.get("cwd") or "",
+            text=body.get("text") or "", name=body.get("name") or "")}) or True
+    if path == "/api/agent/send":
+        return handler.send_json({"ok": True, "data": core_agent_send(
+            body.get("id"), body.get("text"))}) or True
+    if path == "/api/agent/stop":
+        return handler.send_json({"ok": True, "data": core_agent_stop(
+            body.get("id"))}) or True
     if path == "/api/agents/connect":
         return handler.send_json({"ok": True, "data": core_agent_connect(
             body.get("id"))}) or True

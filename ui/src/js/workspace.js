@@ -36,6 +36,7 @@ const PAGE_META = {
   apps: ["我的发布台", null],
   feed: ["动态与提醒", "发布、停止与通道事件都会记录在这里"],
   agents: ["连接 Agent", "让 Agent 替你发布这台电脑上的应用 —— 装好技能，一句话就发布"],
+  term: ["终端", "启动本机 Agent、选一个连好的 Agent 对话 —— 说人话，它替你部署"],
   system: ["系统与数据", "版本、存储、运行状态与管理操作 —— 数据全部在本机"],
 };
 function updateSub() {
@@ -63,6 +64,7 @@ function switchPage(page) {
   updateSub();
   document.getElementById("topbar-pub").style.display = page === "agents" ? "none" : "";
   if (page === "agents") loadAgents();
+  if (page === "term") tmInitPage(); else tmStopPolling();
   if (page === "system") { loadSystem(); loadDomain(); }
 }
 
@@ -171,6 +173,7 @@ function paletteCommands() {
     {t: "启动项目并发布…", k: "发布", f: () => openPublish("project")},
     {t: "查看动态与提醒", k: "页面", f: () => switchPage("feed")},
     {t: "连接 Agent", k: "页面", f: () => switchPage("agents")},
+    {t: "终端 · 让 Agent 替你部署", k: "页面", f: () => switchPage("term")},
     {t: "系统与数据", k: "页面", f: () => switchPage("system")},
     {t: "切换主题", k: "界面", f: cycleTheme},
     {t: "刷新", k: "界面", f: () => refresh(true)},

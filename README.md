@@ -102,13 +102,14 @@ src/panweb/             # 按职责分包，单文件均 < 500 行
   proxy/forwarder       # 内置代理、预热隧道池
   publish/entries       # 发布、自动启动、生命周期
   upstream/healthcheck  # 上游兼容层（Host 模式/凭据注入）、访客视角自检
+  agentchat             # 控制台驱动本机 Agent CLI 的终端会话
   supervisor/domain     # 自愈、固定域名
   hosting/convert       # GitHub Pages、Markdown/Excel 转换
   ui_server/ui_actions  # 控制台 HTTP 与 API
   licensing             # 离线买断许可
   cli/cli_commands      # 参数解析与调度 / 命令输出渲染
   mcp_server            # MCP stdio（复用同一批 core_* 函数）
-ui/src/                 # 前端源码：4 个 CSS、7 个 JS、2 个 partials + index + manifest
+ui/src/                 # 前端源码：4 个 CSS、8 个 JS、2 个 partials + index + manifest
 ui/index.html           # tools/build_ui.py 组装的单文件产物（文件头标注「请勿直接编辑」）
 site/                   # 项目介绍页：独立静态站（index + 3 CSS + 4 JS），`panweb pages site` 即可发布
 tools/build_ui.py       # 前端组装 / --check
@@ -125,7 +126,7 @@ docs/licensing.md       # 许可运营手册
 ## 控制台（`panweb ui`）
 
 对标 UUMit 桌面端的完整 Web 控制台，仅绑定 127.0.0.1（只有本机能打开）。
-**布局**：左侧边栏选择模块（我的应用 / 动态与提醒 / 连接 Agent / 系统与数据，侧栏可拖拽调宽），选中模块在主区**整幅展示**；四个页面各自独立成篇，互不挤压。
+**布局**：左侧边栏选择模块（我的应用 / 动态与提醒 / 连接 Agent / 终端 / 系统与数据，侧栏可拖拽调宽），选中模块在主区**整幅展示**；五个页面各自独立成篇，互不挤压。
 
 - **我的应用**：空态全屏 Hero 引导；应用卡自包含（网址/内嵌二维码/口令标记/访客数/分享链接/详情抽屉）
 - **动态与提醒**：发布/停止/自愈统计卡 + **访客动态（实时）** + 全宽事件时间线
@@ -181,6 +182,7 @@ CLI 现在由 `main()` 统一捕获业务错误；`--json` 模式下 stderr 最�
 - **无密码服务高危**：Ollama、ComfyUI、数据库、管理后台这类没有登录的服务，发出去=任何人可用你的算力/数据。
 - **文件夹只读但有边界**：`pages` 不会改动原文件，但文件夹内**非隐藏文件**都可被下载；隐藏文件/目录、指向发布根之外的符号链接会被拒绝。`/`、用户主目录、`/Volumes` 等系统根目录禁止直接发布。
 - **控制台不会被发布**：`discover` 与 `publish` 会识别并拒绝 panweb 自己的控制台/代理端口（`internal_port`），避免把本机管理权限暴露到公网。
+- **终端页会真的动手**：那里的 Agent 以你本人的身份执行命令——能改本机文件、能发布出公网网址。二进制只从固定白名单按 PATH 解析（界面传不进路径），命令不经过 shell，并发 2 个、每轮 600 秒超时、可随时停止；但请把这次对话当成「你把终端交给了它」来对待。
 - **口令是哈希存储**：口令文件为 600 权限、加盐哈希，登录失败 10 分钟内 8 次后限流；Cookie 带 `Secure; HttpOnly; SameSite=Lax`。
 - **panweb 口令 ≠ 应用登录**：口令只决定"能不能打开这个网址"。应用自己要的账号（Jupyter/Grafana/n8n…）是另一道门，分享页会明确告诉访客进去还要登录；要么访客向主人索取账号，要么主人用 `compat` 代填一份凭据。
 - **代填的凭据只在本机**：`compat` 存的 bearer/basic/自定义头写在 `~/.panweb/secrets/<id>.auth.json`（600），只有本机代理进程读取；状态文件、控制台接口、CLI、MCP 与分享页最多出现"已设置哪种凭据"的掩码标签，永不回显密钥；头部名称与值经 RFC 7230 校验，拒绝 CR/LF 注入，也不允许覆盖 `Host`/`Connection`/`Upgrade`/`Content-Length`。
@@ -267,6 +269,7 @@ panweb status            # 查看运行状态（含后台 pid）
 | 🌓 深色模式 | 墨青暗色主题，跟随系统 + 手动切换，记忆偏好 |
 | 🗂 详情抽屉 | 网址/统计/改名/口令/实时日志一站式管理 |
 | 🤖 Agent 连接器 | 检测本机 Agent（Claude Code/Codex/ZCode/通用目录/OpenCode），一键安装 panweb 技能（只写技能目录）；装好用「把 3000 端口发出去」对话即发布；支持复制安装说明接入任意 Agent |
+| 💻 终端 | 控制台里直接启动本机 Agent 命令行（Claude Code / Codex / OpenCode），选一个连好的 Agent 对话，让它替你 discover → publish → check 完成部署。输出按块回流、可中途停止；它拥有你本人的权限，所以提示词里写明了高危先说风险、不许翻口令文件 |
 | 📐 三栏工作台 | 左（导航）/中（应用）/右（动态·连接器）三栏，拖拽手柄手动伸缩，宽度记忆 |
 
 安全架构：设置口令或分享页的发布经由 panweb 内置代理（口令校验 + 访问统计 + WebSocket 透传），隧道只指向本机 127.0.0.1，源站永不直接暴露；无口令/分享的发布默认直连（零开销）。控制台启动时自动清理孤儿代理/预热隧道并恢复池化通道；退出时回收预热池。
@@ -311,9 +314,9 @@ make test                          # 等价于上面两步
 make dmg                           # macOS 安装包 → dist/panweb-<版本>-<架构>.dmg
 ```
 
-- `tests/` 现为分包结构：路径/状态/访问/许可/管道单元测试、CLI 合约、代理分享页/PIN/过期、WebSocket 透传、上游兼容（转发头构造、凭据归一化与注入拒绝）、访客自检（结论判定/资源抽样/裸 TLS WebSocket/Host 取证修正）、控制台安全、前端构建与模块体积约束、子进程代理集成（真实拉起 `_spawn_proxy` 后转发/分享页/口令/代填凭据）。
+- `tests/` 现为分包结构：路径/状态/访问/许可/管道单元测试、CLI 合约、代理分享页/PIN/过期、WebSocket 透传、上游兼容（转发头构造、凭据归一化与注入拒绝）、访客自检（结论判定/资源抽样/裸 TLS WebSocket/Host 取证修正）、隧道传输（QUIC 探测与 http2 回退）、Agent 终端（假 Agent 回显 argv，验证命令行构造、会话生命周期与并发上限）、控制台安全、前端构建与模块体积约束、子进程代理集成（真实拉起 `_spawn_proxy` 后转发/分享页/口令/代填凭据）。
 - 状态目录可用 `PANWEB_HOME` 隔离（测试与便携模式）；panweb 拉起的代理/控制台子进程会继承它。
-- CI：`.github/workflows/test.yml` 在 Python 3.9/3.11/3.12 上跑语法编译、112 项测试、前端产物一致性检查与 zipapp 构建。
+- CI：`.github/workflows/test.yml` 在 Python 3.9/3.11/3.12 上跑语法编译、127 项测试、前端产物一致性检查与 zipapp 构建。
 - 第三方组件与许可证：见 `THIRD_PARTY_NOTICES.md`（cloudflared Apache-2.0、QR 库 MIT）。
 - 打包自包含 App：`panweb install-app`（复制包、UI、技能、第三方声明与可选许可公钥）。
 - 打包单文件分发：`python3 tools/build_zipapp.py` → `dist/panweb.pyz`（含 UI/技能/公钥，可独立运行）。

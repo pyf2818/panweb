@@ -12,6 +12,7 @@
     "js/license.js",
     "js/workspace.js",
     "js/diagnose.js",
+    "js/agentterm.js",
     "js/boot.js"
   ],
   "partials": {
