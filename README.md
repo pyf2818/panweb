@@ -54,6 +54,11 @@ brew install cloudflared                  # 唯一外部依赖（install.sh 会�
 panweb doctor                             # 自检
 ```
 
+**不想碰终端**：在 macOS 上运行 `make dmg` 得到 `dist/panweb-<版本>-<架构>.dmg`——
+双击安装的自包含 App（内置 cloudflared，无需 brew/终端/python 环境配置），
+打开后是本机控制台 <http://127.0.0.1:7788>。App 为 ad-hoc 签名、未走苹果公证，
+首次打开请右键 →「打开」。
+
 如果从非 git 渠道拿到文件后提示没有执行权限，先运行 `chmod +x panweb install.sh`。
 `doctor` 会同时检查 curl / lsof / gh / npm 等可选工具。
 
@@ -106,6 +111,7 @@ src/panweb/             # 按职责分包，单文件均 < 500 行
 ui/src/                 # 前端源码：4 个 CSS、7 个 JS、2 个 partials + index + manifest
 ui/index.html           # tools/build_ui.py 组装的单文件产物（文件头标注「请勿直接编辑」）
 tools/build_ui.py       # 前端组装 / --check
+tools/build_dmg.py      # macOS 安装包（install-app 造 App → hdiutil 打 dmg）
 tools/license_tool.py   # 卖家侧离线签发许可
 docs/architecture.md    # 分层、状态机、安全边界、许可与打包
 docs/licensing.md       # 许可运营手册
@@ -300,6 +306,7 @@ python3 tools/build_ui.py          # ui/src + QR 库 → ui/index.html
 python3 tools/build_ui.py --check  # CI：检查产物是否最新
 python3 -m unittest discover -s tests -v
 make test                          # 等价于上面两步
+make dmg                           # macOS 安装包 → dist/panweb-<版本>-<架构>.dmg
 ```
 
 - `tests/` 现为分包结构：路径/状态/访问/许可/管道单元测试、CLI 合约、代理分享页/PIN/过期、WebSocket 透传、上游兼容（转发头构造、凭据归一化与注入拒绝）、访客自检（结论判定/资源抽样/裸 TLS WebSocket/Host 取证修正）、控制台安全、前端构建与模块体积约束、子进程代理集成（真实拉起 `_spawn_proxy` 后转发/分享页/口令/代填凭据）。

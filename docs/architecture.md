@@ -62,6 +62,7 @@ ui/index.html               # 构建产物（文件头有「请勿直接编辑�
 ui/vendor/                  # 第三方前端库（qrcode.js，原样引入不拆改）
 tools/build_ui.py           # 组装前端为单文件
 tools/build_zipapp.py       # 构建单文件分发 dist/panweb.pyz
+tools/build_dmg.py          # macOS 安装包：调用 install-app 造 App，再 hdiutil 打成 dmg
 tools/license_tool.py       # 卖家侧离线许可签发
 tests/                      # 单元、CLI、代理、子进程集成、控制台安全、许可、构建与体积守卫
 docs/architecture.md        # 本文
@@ -240,6 +241,10 @@ ui/src/manifest.json       # 组装顺序
 - **源码运行**：`./panweb` 薄启动器 + `src/panweb` + `ui/index.html`。
 - **自包含 App**：`panweb install-app` 复制 `src/panweb`、`ui`、`skill`、`assets`、cloudflared，
   生成 `~/Applications/panweb.app`；launcher 设置 `PANWEB_RESOURCE_ROOT` 与入口路径。
+- **macOS 安装包**：`python3 tools/build_dmg.py`（`make dmg`）先用同一条 `install-app` 命令在临时
+  目录造 App，再用 `hdiutil` 打成 `dist/panweb-<版本>-<架构>.dmg`（UDZO，内含拖拽用的
+  `Applications` 软链与安装说明）。安装包只是构建产物，`dist/`、`*.dmg` 与 `keys/` 都在
+  `.gitignore` 里；App 为 ad-hoc 签名、未公证，首次打开需要右键「打开」。
 - **单文件 zipapp（可选）**：`tools/build_zipapp.py` 生成 `dist/panweb.pyz`；
   `runtime.read_resource()` 支持从 zip 读取 UI/模板，技能目录回退到已安装副本。
 - 运行期不需要 pip 依赖；Python 标准库 + cloudflared 即可。
