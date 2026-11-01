@@ -13,6 +13,7 @@
     "js/workspace.js",
     "js/diagnose.js",
     "js/agentterm.js",
+    "js/picker.js",
     "js/boot.js"
   ],
   "partials": {

@@ -39,6 +39,7 @@ src/panweb/
   upstream.py               # 上游兼容层：Host 模式、代访客注入凭据、转发头构造
   healthcheck.py            # 发布后的访客视角自检（首页/资源/WebSocket）与取证自动修正
   agentchat.py              # 控制台驱动本机 Agent CLI 的会话（argv 白名单、增量输出、可停止）
+  folders.py                # 本机目录浏览：控制台「选文件夹」的数据源（只列目录，不读内容）
   publish.py                # 发布端口/静态页/自动启动项目、代理子进程
   discovery.py              # 可发布应用发现、doctor
   supervisor.py             # 健康巡检、隧道/代理自愈、启动清理
@@ -58,7 +59,7 @@ src/panweb/
   licensing.py              # 买断制离线许可（试用/激活/设备/更新权益）
   cli_commands.py           # 各命令的输出渲染（JSON / 人类可读）
   cli.py                    # argparse 定义与调度（唯一入口 main）
-ui/src/                     # 前端源码：4 CSS + 8 JS + 2 partials + index + manifest
+ui/src/                     # 前端源码：4 CSS + 9 JS + 2 partials + index + manifest
 ui/index.html               # 构建产物（文件头有「请勿直接编辑」横幅）
 ui/vendor/                  # 第三方前端库（qrcode.js，原样引入不拆改）
 site/                       # 项目介绍页（独立静态站：index + 3 CSS + 4 JS，可用 panweb pages 发布）
@@ -84,6 +85,7 @@ docs/licensing.md           # 许可运营手册
                  │      └── pins.py / share.py
                  ├── discovery.py
                  ├── agentchat.py ── agents.py
+                 ├── folders.py ── safety.py
                  ├── hosting.py ── convert.py
                  ├── agents.py / menubar.py
                  ├── proxy.py（独立子进程入口）
@@ -204,6 +206,7 @@ panweb (CLI / App)
 | 上游凭据 | 只落 `secrets/<id>.auth.json`（600），代理进程内读取；`state.json`/`/api/state`/CLI/菜单栏/分享页只出现 `auth_kind` 与掩码标签，永不回显密钥；头名/值经 RFC 7230 校验，拒绝 CR/LF 与控制字符，禁止覆盖 Host/Connection/Upgrade/Content-Length |
 | 隧道 | 只出站连接到 Cloudflare；本地源站绑定 127.0.0.1。QUIC（UDP 443）被网络静默丢包时会自动改走 `--protocol http2`，避免"网址拿到了但永远 530" |
 | 子进程 | argv 数组，不经过 shell；PID + 命令行双重校验后终止 |
+| 目录选择器 | 只列目录、不列文件与隐藏项、不跟随符号链接、单次上限 400 条；路径由本机 realpath 解析，界面传不进任意读文件的能力（读内容仍走静态发布那套边界） |
 | 本机 Agent 终端 | 只有回环控制台能调用；Agent 二进制按固定白名单从 PATH 解析，界面传不进路径；工作目录必须是已存在的目录；并发 2 个、每轮 600 秒超时、输出 200KB 截尾、主人可随时停止；提示词里带着"高危先说风险、不要读 secrets"的规则，但 Agent 仍以主人身份执行——它能动本机，这是这个功能的定义而不是漏洞 |
 | 许可 | 离线 RSA 签名；机器指纹哈希；不联网、不采集使用数据 |
 
@@ -225,6 +228,7 @@ ui/src/js/license.js       # 试用/激活/解除与状态展示
 ui/src/js/workspace.js     # 三栏伸缩、页面切换、系统、Agent、命令面板
 ui/src/js/diagnose.js      # 访客视角自检结论渲染、host_mode 与上游凭据设置
 ui/src/js/agentterm.js     # 终端页：选本机 Agent、发一轮对话、增量拉取输出与停止
+ui/src/js/picker.js        # 文件夹选择器：翻本机目录回填路径（终端 / 发布文件夹 / 启动项目）
 ui/src/js/boot.js          # 启动
 ui/src/manifest.json       # 组装顺序
 ```
@@ -294,6 +298,7 @@ ui/src/manifest.json       # 组装顺序
 | 上游兼容 | `test_upstream.py`：转发头构造（Host 模式、WebSocket 保留 Upgrade/Connection）、凭据归一化与 CR/LF 注入拒绝、密钥文件权限、真实代理子进程端到端代填 |
 | 访客自检 | `test_healthcheck.py`：结论判定（首页/资源/未编译源码）、裸 TLS WebSocket 探测、Host 取证修正与回滚；`test_selfcheck.py`：走真实代理子进程验证修正传播与结论落盘 |
 | 隧道传输 | `test_tunnel.py`：QUIC 探测结果按进程缓存、探测不通时命令行带 `--protocol http2`、`auto` 不改命令行、`PANWEB_TUNNEL_PROTOCOL` 可强制 |
+| 目录选择器 | `test_folders.py`：只列子目录（隐藏/文件/符号链接都排除）、排序与截断计数、主目录不可发布、坏路径与 NUL 拒绝；`test_ui.py`：`/api/folders` 需要本机 Host，缺 Host 直接 403 |
 | Agent 终端 | `test_agentchat.py`：用假 Agent 回显 argv，验证自动批准开关、工作目录、`--` 分隔、上下文规则与多轮历史；停止后状态不被收尾盖掉、并发上限、坏目录/未知 Agent 拒绝、输出游标与截尾、后台钩子占住管道时仍能收工 |
 | 控制台 | Host/Origin 拒绝、JSON Content-Type、自身端口拒绝发布、旧应用补分享令牌、`/api/compat` 不回显密钥、`/api/check` 落盘 |
 | 构建 | `build_ui.py --check` 产物一致、生成物横幅、模块体积上限、全模块可导入、zipapp 可执行 |

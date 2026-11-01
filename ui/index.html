@@ -2976,6 +2976,37 @@ html[data-theme="light"] .tm-out { background: #16211f; color: #e6efeb; }
   .spin { animation: spin 1s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ---------- 文件夹选择器 ---------- */
+.fk-quick { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.fk-chip {
+  padding: 5px 11px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--border); background: var(--surface-2); color: var(--muted);
+  font: 500 12px var(--sans); transition: color .2s, border-color .2s;
+}
+.fk-chip:hover { color: var(--accent-deep); border-color: var(--accent); }
+.fk-crumbs { display: flex; align-items: center; gap: 9px; margin-bottom: 8px; }
+.fk-crumbs code {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  padding: 6px 10px; border-radius: 8px; background: var(--surface-2);
+  border: 1px solid var(--border); font-size: 11.5px; color: var(--ink);
+}
+.fk-list {
+  height: clamp(200px, 38vh, 340px); overflow: auto; margin: 0 -4px;
+  padding: 0 4px; border-radius: 10px; border: 1px solid var(--border);
+}
+.fk-row {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 8px 11px; border: 0; border-bottom: 1px solid var(--border);
+  background: none; color: var(--ink); cursor: pointer; text-align: left;
+  font: 400 13px var(--sans); transition: background .15s, color .15s;
+}
+.fk-row:last-child { border-bottom: 0; }
+.fk-row:hover { background: var(--accent-soft); color: var(--accent-deep); }
+.fk-ic { color: var(--faint); font-size: 11px; }
+.fk-hint { margin-top: 9px; font-size: 12px; color: var(--muted); }
+.fk-hint.ok { color: var(--accent-deep); }
+.fk-hint.bad { color: var(--gold); }
+
   @media (max-width: 1080px) {
     .feed-stats { grid-template-columns: 1fr; }
     .sidebar, .drag-h { display: none; }
@@ -3153,6 +3184,7 @@ html[data-theme="light"] .tm-out { background: #16211f; color: #e6efeb; }
         <div class="tm-agents" id="tm-agents"><div class="feed-empty">检测本机 Agent…</div></div>
         <div class="tm-row">
           <input id="tm-cwd" placeholder="工作目录（默认这台电脑的主目录）" autocomplete="off" spellcheck="false">
+          <button class="btn btn-sm ghost" onclick="openFolderPicker('tm-cwd')">选择…</button>
           <button class="btn btn-sm" onclick="tmStart()">启动终端</button>
         </div>
         <div class="tm-note" id="tm-note"></div>
@@ -3261,7 +3293,10 @@ html[data-theme="light"] .tm-out { background: #16211f; color: #e6efeb; }
 
     <div id="pane-pages" style="display:none">
       <div class="field"><label>文件夹路径（将作为只读网页发布）</label>
-        <input type="text" id="in-folder" placeholder="/Users/you/项目/dist 或 ~/Documents/周报">
+        <div class="field-inline">
+          <input type="text" id="in-folder" placeholder="例如 项目 dist 或 Documents/周报">
+          <button class="btn" onclick="openFolderPicker('in-folder')">选择…</button>
+        </div>
       </div>
     </div>
 
@@ -3274,14 +3309,18 @@ html[data-theme="light"] .tm-out { background: #16211f; color: #e6efeb; }
         <input type="file" id="in-files" multiple style="font-size:12.5px">
       </div>
       <div class="field"><label>或本地文件夹 / 单文件路径（整站上传）</label>
-        <input type="text" id="in-cloudfolder" placeholder="/Users/you/项目/dist">
+        <div class="field-inline">
+          <input type="text" id="in-cloudfolder" placeholder="例如 项目 dist">
+          <button class="btn" onclick="openFolderPicker('in-cloudfolder')">选择…</button>
+        </div>
       </div>
     </div>
 
     <div id="pane-project" style="display:none">
       <div class="field"><label>项目文件夹（panweb 自动识别并启动）</label>
         <div class="field-inline">
-          <input type="text" id="in-project" placeholder="/Users/you/我的项目">
+          <input type="text" id="in-project" placeholder="例如 我的项目">
+          <button class="btn" onclick="openFolderPicker('in-project')">选择…</button>
           <button class="btn" onclick="detectProject()">识别</button>
         </div>
       </div>
@@ -3314,6 +3353,25 @@ html[data-theme="light"] .tm-out { background: #16211f; color: #e6efeb; }
     <div class="modal-foot">
       <button class="btn" onclick="closePublish()">取消</button>
       <button class="btn btn-primary" id="pub-btn" onclick="doPublish()">发布</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======= 文件夹选择器 ======= -->
+<div class="overlay" id="folder-overlay">
+  <div class="modal" style="width:560px">
+    <div class="modal-title">选择文件夹</div>
+    <div class="modal-sub">在这台电脑上翻 —— 只列目录，不列文件，隐藏目录不显示</div>
+    <div class="fk-quick" id="fk-quick"></div>
+    <div class="fk-crumbs">
+      <button class="btn btn-sm ghost" id="fk-up" onclick="fkGoUp()">↑ 上一层</button>
+      <code id="fk-path">~</code>
+    </div>
+    <div class="fk-list" id="fk-list"><div class="feed-empty">读取中…</div></div>
+    <div class="fk-hint" id="fk-hint"></div>
+    <div class="modal-foot">
+      <button class="btn" onclick="fkClose()">取消</button>
+      <button class="btn btn-primary" onclick="fkChoose()">选这里</button>
     </div>
   </div>
 </div>
@@ -4995,6 +5053,67 @@ function tmFill(btn) {
   const box = document.getElementById("tm-text");
   box.value = btn.dataset.t;
   box.focus();
+}
+
+// ---------- 文件夹选择器：浏览器拿不到绝对路径，所以由本机这一侧列目录 ----------
+let fkTarget = null;      // 要回填的输入框 id
+let fkPath = "";          // 当前浏览到的目录
+let fkParent = "";        // 上一层（由后端给出，不自己截字符串）
+
+async function fkLoad(path) {
+  const list = document.getElementById("fk-list");
+  list.innerHTML = '<div class="feed-empty">读取中…</div>';
+  const d = await api("/api/folders?path=" + encodeURIComponent(path || ""));
+  if (!d.ok) {
+    list.innerHTML = '<div class="feed-empty">' + esc(d.error.message) + '</div>';
+    const hint = document.getElementById("fk-hint");
+    hint.textContent = d.error.hint || "";
+    return;
+  }
+  const r = d.data;
+  fkPath = r.path;
+  fkParent = r.parent || "";
+  document.getElementById("fk-path").textContent = r.path;
+  document.getElementById("fk-up").disabled = !r.parent;
+  document.getElementById("fk-quick").innerHTML = (r.quick || []).map(q =>
+    '<button class="fk-chip" onclick="fkGo(\'' + esc(q.path) + '\')">' +
+    esc(q.label) + '</button>').join("");
+  if (!r.entries.length) {
+    list.innerHTML = '<div class="feed-empty">这里没有子文件夹 · 可以直接「选这里」</div>';
+  } else {
+    list.innerHTML = r.entries.map(e =>
+      '<button class="fk-row" onclick="fkGo(\'' + esc(e.path) + '\')" title="' +
+      esc(e.path) + '"><span class="fk-ic">▸</span>' + esc(e.name) + '</button>').join("") +
+      (r.truncated ? '<div class="feed-empty">还有 ' + r.truncated + ' 个没显示，先往下层找</div>' : "");
+  }
+  const hint = document.getElementById("fk-hint");
+  hint.className = "fk-hint" + (r.publishable.ok ? " ok" : " bad");
+  hint.textContent = r.publishable.ok
+    ? "这个目录可以直接发布成只读网页"
+    : "这个目录不适合直接发布：" + r.publishable.reason;
+}
+
+function fkGo(path) { fkLoad(path); }
+function fkGoUp() { if (fkParent) fkLoad(fkParent); }
+
+function openFolderPicker(inputId) {
+  fkTarget = inputId;
+  const current = (document.getElementById(inputId).value || "").trim();
+  document.getElementById("folder-overlay").classList.add("show");
+  fkLoad(current);
+}
+
+function fkClose() { document.getElementById("folder-overlay").classList.remove("show"); }
+
+function fkChoose() {
+  if (!fkTarget || !fkPath) return toast("先翻到一个目录", false);
+  const box = document.getElementById(fkTarget);
+  box.value = fkPath;
+  fkClose();
+  toast("已选中目录");
+  // 启动项目那栏选中后顺手识别一次，省一次点击
+  if (fkTarget === "in-project" && typeof detectProject === "function") detectProject();
+  box.dispatchEvent(new Event("change", {bubbles: true}));
 }
 
 // ---------- 启动 ----------

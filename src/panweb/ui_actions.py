@@ -19,6 +19,7 @@ from .domain import (core_domain_bind, core_domain_login,
 from .entries import (core_compat, core_list, core_stats, core_stop,
                       stop_entry)
 from .errors import PanwebError
+from .folders import core_folders
 from .healthcheck import core_check
 from .hosting import core_host, core_host_redeploy, load_hosted
 from .installer import core_install_cf, core_install_cf_status
@@ -116,6 +117,9 @@ def handle_get(handler, path):
         query = _query(handler)
         return handler.send_json({"ok": True, "data": core_agent_output(
             _first(query, "id"), _first(query, "after") or 0)}) or True
+    if path == "/api/folders":
+        return handler.send_json({"ok": True, "data": core_folders(
+            _first(_query(handler), "path"))}) or True
     if path == "/api/compat":
         return handler.send_json({"ok": True, "data": core_compat(
             _first(_query(handler), "id"))}) or True

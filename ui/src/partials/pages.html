@@ -121,6 +121,7 @@
         <div class="tm-agents" id="tm-agents"><div class="feed-empty">检测本机 Agent…</div></div>
         <div class="tm-row">
           <input id="tm-cwd" placeholder="工作目录（默认这台电脑的主目录）" autocomplete="off" spellcheck="false">
+          <button class="btn btn-sm ghost" onclick="openFolderPicker('tm-cwd')">选择…</button>
           <button class="btn btn-sm" onclick="tmStart()">启动终端</button>
         </div>
         <div class="tm-note" id="tm-note"></div>

@@ -25,7 +25,10 @@
 
     <div id="pane-pages" style="display:none">
       <div class="field"><label>文件夹路径（将作为只读网页发布）</label>
-        <input type="text" id="in-folder" placeholder="/Users/you/项目/dist 或 ~/Documents/周报">
+        <div class="field-inline">
+          <input type="text" id="in-folder" placeholder="例如 项目 dist 或 Documents/周报">
+          <button class="btn" onclick="openFolderPicker('in-folder')">选择…</button>
+        </div>
       </div>
     </div>
 
@@ -38,14 +41,18 @@
         <input type="file" id="in-files" multiple style="font-size:12.5px">
       </div>
       <div class="field"><label>或本地文件夹 / 单文件路径（整站上传）</label>
-        <input type="text" id="in-cloudfolder" placeholder="/Users/you/项目/dist">
+        <div class="field-inline">
+          <input type="text" id="in-cloudfolder" placeholder="例如 项目 dist">
+          <button class="btn" onclick="openFolderPicker('in-cloudfolder')">选择…</button>
+        </div>
       </div>
     </div>
 
     <div id="pane-project" style="display:none">
       <div class="field"><label>项目文件夹（panweb 自动识别并启动）</label>
         <div class="field-inline">
-          <input type="text" id="in-project" placeholder="/Users/you/我的项目">
+          <input type="text" id="in-project" placeholder="例如 我的项目">
+          <button class="btn" onclick="openFolderPicker('in-project')">选择…</button>
           <button class="btn" onclick="detectProject()">识别</button>
         </div>
       </div>
@@ -78,6 +85,25 @@
     <div class="modal-foot">
       <button class="btn" onclick="closePublish()">取消</button>
       <button class="btn btn-primary" id="pub-btn" onclick="doPublish()">发布</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======= 文件夹选择器 ======= -->
+<div class="overlay" id="folder-overlay">
+  <div class="modal" style="width:560px">
+    <div class="modal-title">选择文件夹</div>
+    <div class="modal-sub">在这台电脑上翻 —— 只列目录，不列文件，隐藏目录不显示</div>
+    <div class="fk-quick" id="fk-quick"></div>
+    <div class="fk-crumbs">
+      <button class="btn btn-sm ghost" id="fk-up" onclick="fkGoUp()">↑ 上一层</button>
+      <code id="fk-path">~</code>
+    </div>
+    <div class="fk-list" id="fk-list"><div class="feed-empty">读取中…</div></div>
+    <div class="fk-hint" id="fk-hint"></div>
+    <div class="modal-foot">
+      <button class="btn" onclick="fkClose()">取消</button>
+      <button class="btn btn-primary" onclick="fkChoose()">选这里</button>
     </div>
   </div>
 </div>

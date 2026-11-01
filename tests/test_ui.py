@@ -3,6 +3,7 @@ import os
 import shutil
 import threading
 import unittest
+import urllib.parse
 from http.client import HTTPConnection
 from http.server import ThreadingHTTPServer
 
@@ -52,6 +53,28 @@ class UiSecurityTests(unittest.TestCase):
             "Host": "evil.example"})[0], 403)
         self.assertEqual(self.request("GET", "/api/state", headers={
             **good, "Origin": "http://evil.example"})[0], 403)
+
+    def test_folder_picker_lists_directories_only_for_local_hosts(self):
+        good = {"Host": "127.0.0.1:%d" % self.port}
+        tree = os.path.join(self.home, "pick-me")
+        os.makedirs(os.path.join(tree, "dist"))
+        os.makedirs(os.path.join(tree, ".cache"))
+        with open(os.path.join(tree, "index.html"), "w", encoding="utf-8") as f:
+            f.write("<p>x</p>")
+        status, data = self.request(
+            "GET", "/api/folders?path=" + urllib.parse.quote(tree), headers=good)
+        payload = json.loads(data)
+        self.assertEqual(status, 200)
+        self.assertTrue(payload["ok"], payload)
+        self.assertEqual([e["name"] for e in payload["data"]["entries"]], ["dist"])
+        self.assertEqual(payload["data"]["parent"], os.path.realpath(self.home))
+        # 没有本机 Host 就一份目录清单都拿不到
+        self.assertEqual(self.request("GET", "/api/folders", headers={
+            "Host": "evil.example"})[0], 403)
+        status, data = self.request("GET", "/api/folders?path=/nope/nope",
+                                    headers=good)
+        self.assertFalse(json.loads(data)["ok"])
+        self.assertEqual(json.loads(data)["error"]["type"], "not_found")
 
     def test_requires_json_content_type_and_valid_json(self):
         good = {"Host": "127.0.0.1:%d" % self.port}
