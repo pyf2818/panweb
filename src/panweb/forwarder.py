@@ -8,7 +8,7 @@ import time
 import uuid
 
 from . import runtime
-from .processes import free_port, kill_process, stop_process
+from .processes import free_port, kill_process, pid_alive, stop_process
 from .store import save_json
 from .tunnel import start_tunnel
 
@@ -146,11 +146,18 @@ class TunnelPool:
         threading.Thread(target=worker, daemon=True).start()
 
     def acquire(self):
+        """取一条预热隧道。进程已经不在了就顺手回收，别把坏隧道发给发布。"""
         with self.lock:
-            if self.items:
+            while self.items:
                 item = self.items.pop(0)
-                self._persist()
-                return item
+                if pid_alive(item.get("pid")):
+                    self._persist()
+                    return item
+                kill_process(item.get("pid"), ("cloudflared",))
+                fw = item.get("forwarder")
+                if fw:
+                    fw.stop()
+            self._persist()
         return None
 
     def shutdown(self):

@@ -5,7 +5,7 @@ import time
 
 from . import domain, forwarder, runtime
 from .entries import write_menubar_state
-from .errors import PanwebError
+from .errors import PanwebError, TunnelError
 from .lifecycle import prune_dead_entries, sweep_expired
 from .models import entry_local_port
 from .pins import migrate_legacy_pins
@@ -14,10 +14,25 @@ from .processes import (cleanup_orphan_proxies, find_cloudflared, kill_process,
 from .publish import _spawn_proxy
 from .store import (ensure_private_dirs, load_domain, load_state, log_activity,
                     save_state, state_lock)
-from .tunnel import public_status, start_tunnel
+from .tunnel import pinned_status, public_status, start_tunnel
 
 RESTART_LOCK = threading.Lock()
 HEALTH_FAILS = {}
+RETRY_WAIT = 2.0
+
+
+def _tunnel_serving(url, tries=3):
+    """这条隧道真的在响应吗。
+
+    只看"进程还活着"不够：网络吃掉 QUIC 时 cloudflared 会连着又断，池里那些网址
+    全都是死隧道。恢复前先按边缘 IP 直连问一次，问不通就别宣称"已自动恢复"。
+    """
+    for attempt in range(tries):
+        if pinned_status(url, 6) not in (0, 530):
+            return True
+        if attempt + 1 < tries:
+            time.sleep(RETRY_WAIT)
+    return False
 
 
 def restart_entry_tunnel(entry):
@@ -47,6 +62,14 @@ def _restart_entry_tunnel(entry):
         log_path = os.path.join(runtime.LOG_DIR, "%s.log" % entry["id"])
         url, proc = start_tunnel(cf, port, log_path)
         pid = proc.pid
+    if not _tunnel_serving(url):
+        # 拿到的是一条死隧道：清干净并报错，让巡检说明白"没恢复成"，
+        # 而不是写下新网址、报一句"已自动恢复"，60 秒后再来一遍
+        kill_process(pid, ("cloudflared",))
+        dead_fw = forwarder.FORWARDERS.pop(entry["id"], None)
+        if dead_fw:
+            dead_fw.stop()
+        raise TunnelError("新隧道没有响应（本机到 Cloudflare 可能不通）：%s" % url)
     still_there = False
     with state_lock():
         entries = load_state()
