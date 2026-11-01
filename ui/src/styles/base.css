@@ -1,0 +1,70 @@
+  :root {
+    --bg: #f7f6f2;
+    --surface: #ffffff;
+    --ink: #22312e;
+    --muted: #8a968f;
+    --faint: #b3bdb7;
+    --accent: #33796b;
+    --accent-deep: #2a6558;
+    --accent-soft: #e9f2ee;
+    --gold: #b9975b;
+    --gold-soft: #f4ecdd;
+    --danger: #b4544a;
+    --danger-soft: #f7ecea;
+    --border: #e9e6de;
+    --radius: 16px;
+    --shadow: 0 1px 2px rgba(34,49,46,.04), 0 10px 28px -18px rgba(34,49,46,.16);
+    --shadow-lift: 0 2px 4px rgba(34,49,46,.05), 0 18px 40px -18px rgba(34,49,46,.22);
+    --serif: "Noto Serif SC", "Songti SC", "STSong", serif;
+    --sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif;
+    --mono: "SF Mono", ui-monospace, Menlo, monospace;
+  }
+  /* ---------- 暗色主题（墨青） ---------- */
+  html[data-theme="dark"] {
+    --bg: #141a18;
+    --surface: #1c2422;
+    --ink: #e4ebe7;
+    --muted: #8fa39c;
+    --faint: #5d6b65;
+    --accent: #4da08f;
+    --accent-deep: #6cb8a7;
+    --accent-soft: #233330;
+    --gold: #c9a86a;
+    --gold-soft: #2b2620;
+    --danger: #c96b60;
+    --danger-soft: #33231f;
+    --border: #2a332f;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 28px -18px rgba(0,0,0,.5);
+    --shadow-lift: 0 2px 4px rgba(0,0,0,.35), 0 18px 40px -18px rgba(0,0,0,.6);
+  }
+  html[data-theme="dark"] body {
+    background:
+      radial-gradient(900px 500px at 85% -10%, rgba(77,160,143,.08), transparent 60%),
+      radial-gradient(700px 420px at -10% 100%, rgba(201,168,106,.05), transparent 60%),
+      var(--bg);
+  }
+  html[data-theme="dark"] .sidebar { background: rgba(28,36,34,.6); }
+  html[data-theme="dark"] .tabs { background: #232c29; }
+  html[data-theme="dark"] .field input,
+  html[data-theme="dark"] .url-row,
+  html[data-theme="dark"] .qr-panel,
+  html[data-theme="dark"] .cand,
+  html[data-theme="dark"] .public-note,
+  html[data-theme="dark"] .kind-badge { background: #232c29; }
+  html[data-theme="dark"] .brand-mark { box-shadow: 0 6px 14px -6px rgba(0,0,0,.6); }
+  html[data-theme="dark"] .qr-panel .q svg { background: #fff; border-radius: 6px; padding: 4px; }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: var(--sans);
+    background:
+      radial-gradient(900px 500px at 85% -10%, rgba(51,121,107,.07), transparent 60%),
+      radial-gradient(700px 420px at -10% 100%, rgba(185,151,91,.06), transparent 60%),
+      var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+  }
+  ::selection { background: var(--accent-soft); }
+

@@ -1,0 +1,77 @@
+  /* ================= 拖拽手柄（三栏伸缩） ================= */
+  :root { --side-w: 212px; --rail-w: 322px; }
+  .drag-h {
+    flex-shrink: 0; width: 6px; cursor: col-resize; position: relative; z-index: 5;
+    display: grid; place-items: center;
+  }
+  .drag-h::before {
+    content: ""; width: 2px; height: 44px; border-radius: 2px;
+    background: var(--border); transition: all .2s;
+  }
+  .drag-h:hover::before, .drag-h.on::before { background: var(--accent); height: 70px; }
+  .drag-h.on { background: rgba(51,121,107,.06); }
+
+  /* ================= 侧栏 ================= */
+  .sidebar {
+    width: var(--side-w); flex-shrink: 0;
+    padding: 26px 18px 20px;
+    display: flex; flex-direction: column;
+    border-right: 1px solid var(--border);
+    background: rgba(255,255,255,.6);
+    backdrop-filter: blur(6px);
+    position: sticky; top: 0; height: 100vh;
+    overflow: hidden;
+  }
+  .brand { display: flex; align-items: center; gap: 11px; padding: 0 8px 26px; }
+  .brand-mark {
+    width: 38px; height: 38px; border-radius: 12px;
+    background: linear-gradient(135deg, var(--accent) 0%, #4c9285 100%);
+    display: grid; place-items: center; color: #fff;
+    box-shadow: 0 6px 14px -6px rgba(51,121,107,.55);
+    flex-shrink: 0;
+  }
+  .brand-name { font-family: var(--serif); font-size: 20px; letter-spacing: .04em; font-weight: 600; }
+  .brand-sub { font-size: 10.5px; color: var(--muted); letter-spacing: .12em; margin-top: 1px; }
+  .nav { display: flex; flex-direction: column; gap: 3px; }
+  .nav a {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border-radius: 10px;
+    color: #5c6b65; text-decoration: none; font-size: 13.5px;
+    transition: all .2s ease;
+  }
+  .nav a svg { width: 16px; height: 16px; opacity: .75; }
+  .nav a:hover { background: var(--accent-soft); color: var(--accent-deep); }
+  .sidebar-env {
+    margin-top: auto; padding: 13px 13px 0;
+    border-top: 1px solid var(--border);
+    font-size: 11.5px; color: var(--muted); line-height: 2;
+  }
+  .env-line { display: flex; align-items: center; gap: 7px; }
+  .mini-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+  .mini-dot.bad { background: var(--danger); }
+  .env-ver { font-family: var(--mono); font-size: 10.5px; color: var(--faint); }
+
+  /* ================= 主区 ================= */
+  .main { flex: 1; min-width: 0; padding: 26px 34px 56px; max-width: 1220px; }
+
+  /* 顶栏：标题 + 折叠统计 + 动作，一行式 */
+  .topbar {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 16px;
+    padding-bottom: 18px; border-bottom: 1px solid var(--border); margin-bottom: 22px;
+  }
+  .topbar h1 { font-family: var(--serif); font-size: 22px; font-weight: 600; letter-spacing: .02em; white-space: nowrap; }
+  .topbar > div:first-child { flex: 1 1 200px; min-width: 0; }
+  .topbar-sub { font-size: 12.5px; color: var(--muted); margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .topbar-sub .warn-text { color: var(--danger); }
+  .topbar-actions { display: flex; gap: 9px; align-items: center; flex-shrink: 0; }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: 12px; color: var(--muted);
+    border: 1px solid var(--border); border-radius: 999px;
+    padding: 6px 13px; background: var(--surface);
+    white-space: nowrap;
+  }
+  .pill b { color: var(--ink); font-weight: 600; }
+  .pill.warn { border-color: #ecd5d2; color: var(--danger); background: var(--danger-soft); }
+

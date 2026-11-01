@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- 生成文件，请勿直接编辑：由 tools/build_ui.py 从 ui/src/ 组装；改样式或脚本请动 ui/src/，然后运行 python3 tools/build_ui.py -->
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -2433,11 +2434,12 @@ var qrcode = function() {
 
   /* 顶栏：标题 + 折叠统计 + 动作，一行式 */
   .topbar {
-    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 16px;
     padding-bottom: 18px; border-bottom: 1px solid var(--border); margin-bottom: 22px;
   }
-  .topbar h1 { font-family: var(--serif); font-size: 22px; font-weight: 600; letter-spacing: .02em; }
-  .topbar-sub { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+  .topbar h1 { font-family: var(--serif); font-size: 22px; font-weight: 600; letter-spacing: .02em; white-space: nowrap; }
+  .topbar > div:first-child { flex: 1 1 200px; min-width: 0; }
+  .topbar-sub { font-size: 12.5px; color: var(--muted); margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .topbar-sub .warn-text { color: var(--danger); }
   .topbar-actions { display: flex; gap: 9px; align-items: center; flex-shrink: 0; }
 
@@ -2578,6 +2580,13 @@ var qrcode = function() {
     font-size: 11px; color: var(--danger); background: var(--danger-soft);
     padding: 4px 9px; border-radius: 8px; line-height: 1.55;
   }
+  .check-badge {
+    font-size: 10.5px; padding: 2px 8px; border-radius: 999px; flex-shrink: 0;
+    border: 1px solid var(--border); background: #fcfbf9; color: var(--muted);
+  }
+  .check-badge.ok { color: var(--accent-deep); background: var(--accent-soft); border-color: var(--accent); }
+  .check-badge.warn { color: var(--gold); background: var(--gold-soft); border-color: var(--gold); }
+  .check-badge.blocked { color: var(--danger); background: var(--danger-soft); border-color: var(--danger); }
   .url-row {
     display: flex; align-items: center; gap: 7px;
     font-family: var(--mono); font-size: 11px; color: var(--accent-deep);
@@ -2647,6 +2656,45 @@ var qrcode = function() {
   .chip:hover { border-color: var(--accent); color: var(--accent-deep); background: var(--accent-soft); transform: translateY(-1px); }
   .hero-env { font-size: 11.5px; color: var(--faint); margin-top: 10px; }
   .hero-env.bad { color: var(--danger); }
+
+
+  /* ---------- 买断许可 ---------- */
+  .env-license {
+    margin-top: 8px; width: 100%; padding: 6px 9px;
+    border: 1px solid var(--border); border-radius: 8px;
+    background: var(--surface); color: var(--muted);
+    font-family: var(--mono); font-size: 10.5px; text-align: left;
+    cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .env-license:hover { border-color: var(--accent); color: var(--accent-deep); }
+  .env-license.warn { color: var(--danger); border-color: #ecd5d2; background: var(--danger-soft); }
+  .license-banner {
+    display: flex; align-items: center; justify-content: space-between; gap: 14px;
+    margin: -6px 0 18px; padding: 11px 14px;
+    border: 1px solid #efd6d2; border-radius: 12px;
+    background: var(--danger-soft); color: var(--danger);
+    font-size: 12.5px; line-height: 1.5;
+  }
+  .license-banner b { margin-right: 8px; }
+  .license-current {
+    margin: 0 0 14px; padding: 11px 13px;
+    border: 1px solid var(--border); border-radius: 10px;
+    background: var(--bg-soft); color: var(--muted);
+    font-family: var(--mono); font-size: 11px; line-height: 1.7;
+    white-space: pre-wrap; word-break: break-all;
+  }
+  .license-current:empty { display: none; }
+  .license-key {
+    width: 100%; min-height: 92px; resize: vertical;
+    padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px;
+    background: var(--surface); color: var(--ink);
+    font-family: var(--mono); font-size: 11px; line-height: 1.6;
+    word-break: break-all; outline: none;
+  }
+  .license-key:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  @media (max-width: 760px) {
+    .license-banner { align-items: flex-start; flex-direction: column; }
+  }
 
   /* ---------- 时效 / 通知 / 命令面板 / 分享卡 / 域名向导 ---------- */
   .field select {
@@ -2807,13 +2855,45 @@ var qrcode = function() {
   .v-row { display: flex; gap: 9px; padding: 6px 0; border-bottom: 1px dashed var(--border); font-family: var(--mono); font-size: 11px; align-items: baseline; }
   .v-row:last-child { border-bottom: none; }
   .v-time { color: var(--faint); flex-shrink: 0; }
+  .v-kind { color: var(--accent-deep); background: var(--accent-soft); border-radius: 999px; padding: 1px 6px; font-family: -apple-system, "PingFang SC", sans-serif; font-size: 10px; flex-shrink: 0; }
+  .v-kind.share { color: var(--gold); background: var(--gold-soft); }
   .v-path { color: var(--accent-deep); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .visit-feed-head { display: flex; align-items: center; gap: 8px; padding: 10px 0 4px; font-size: 12px; font-weight: 600; color: var(--ink); border-bottom: 1px dashed var(--border); }
+  .live-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 500; color: var(--accent-deep); background: var(--accent-soft); border-radius: 999px; padding: 2px 7px; }
+  .live-pill:before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px rgba(51,121,107,.12); }
+  .visit-feed-item { display: flex; gap: 10px; align-items: flex-start; padding: 11px 0; border-bottom: 1px dashed var(--border); }
+  .visit-feed-item:last-child { border-bottom: none; }
+  .visit-feed-ic { width: 30px; height: 30px; border-radius: 9px; background: var(--accent-soft); color: var(--accent-deep); display: grid; place-items: center; flex-shrink: 0; }
+  .visit-feed-ic.share { background: var(--gold-soft); color: var(--gold); }
+  .visit-feed-body { flex: 1; min-width: 0; }
+  .visit-feed-text { font-size: 13px; color: var(--ink); }
+  .visit-feed-meta { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .visit-feed-time { font-size: 10.5px; color: var(--faint); font-family: var(--mono); flex-shrink: 0; padding-top: 2px; }
   .d-field { display: flex; gap: 8px; }
   .d-field input { flex: 1; padding: 8px 12px; font-size: 13px; border: 1px solid var(--border);
                    border-radius: 9px; background: #fcfbf9; color: var(--ink); outline: none; }
   html[data-theme="dark"] .d-field input { background: #232c29; }
   .d-field input:focus { border-color: var(--accent); }
   .d-hint { font-size: 11.5px; color: var(--faint); line-height: 1.7; margin-top: 7px; }
+
+  /* ---------- 自检结论 / 上游兼容 ---------- */
+  .d-field select { flex: 1; padding: 8px 12px; font-size: 13px; border: 1px solid var(--border);
+                    border-radius: 9px; background: #fcfbf9; color: var(--ink); outline: none; }
+  html[data-theme="dark"] .d-field select { background: #232c29; }
+  .check-box { display: flex; flex-direction: column; gap: 7px; }
+  .check-verdict { display: flex; gap: 8px; align-items: baseline; font-size: 12.5px; line-height: 1.6;
+                   border-radius: 10px; padding: 9px 11px; border: 1px solid var(--border); }
+  .check-verdict b { flex-shrink: 0; font-size: 12px; }
+  .check-verdict.ok { background: var(--accent-soft); color: var(--accent-deep); border-color: var(--accent); }
+  .check-verdict.warn { background: var(--gold-soft); color: var(--gold); border-color: var(--gold); }
+  .check-verdict.blocked { background: var(--danger-soft); color: var(--danger); border-color: var(--danger); }
+  .check-fix { font-size: 11.5px; color: var(--accent-deep); background: var(--accent-soft);
+               border-radius: 8px; padding: 7px 10px; line-height: 1.6; }
+  .check-sig { font-size: 12px; color: var(--ink); border-left: 2px solid var(--border);
+               padding: 2px 0 2px 9px; line-height: 1.6; }
+  .check-sig.bad { border-left-color: var(--danger); }
+  .check-sig.warn { border-left-color: var(--gold); }
+  .check-sig .t { font-size: 11px; color: var(--muted); margin-top: 3px; line-height: 1.6; }
 
   /* ---------- Toast ---------- */
   .toasts { position: fixed; top: 22px; right: 22px; display: flex; flex-direction: column; gap: 10px; z-index: 99; }
@@ -2875,6 +2955,7 @@ var qrcode = function() {
     <div class="env-line"><span class="mini-dot" id="side-dot"></span><span id="side-state">检查中…</span></div>
     <div class="env-ver" id="side-ver"></div>
     <div class="env-ver" id="side-dir"></div>
+    <button class="env-license" id="license-btn" onclick="openLicense()">许可：读取中…</button>
   </div>
 </aside>
 
@@ -2916,6 +2997,11 @@ var qrcode = function() {
       </button>
     </div>
   </header>
+
+  <div class="license-banner" id="license-banner" style="display:none">
+    <div><b id="license-banner-title">试用已结束</b><span id="license-banner-text"></span></div>
+    <button class="btn btn-sm btn-primary" onclick="openLicense()">激活买断版</button>
+  </div>
 
   <!-- ======= 页面：我的应用 ======= -->
   <section class="page show" id="page-apps">
@@ -2964,6 +3050,7 @@ var qrcode = function() {
       <div class="card fstat"><div><div class="n" id="fs-heal">0</div><div class="l">自动恢复</div></div>
         <div class="stat-ic ic-gold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-2.64-6.36"/><path d="M21 3v6h-6"/></svg></div></div>
     </div>
+    <div class="card timeline" id="visit-feed" style="margin-bottom:14px"><div class="feed-empty">暂无访客 · 分享链接被打开后会显示在这里</div></div>
     <div class="card timeline" id="feed-list"><div class="feed-empty">暂无动态</div></div>
   </section>
 
@@ -3013,14 +3100,25 @@ var qrcode = function() {
     </div>
 
     <div class="card section-card">
+      <div class="sc-title">买断许可 <span class="row-hint" id="lic-mode">读取中…</span></div>
+      <div class="sc-sub" id="lic-detail">一次买断，永久使用；含 1 年更新。离线签名，不联网校验。</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="openLicense()">激活 / 管理许可</button>
+      </div>
+      <div class="d-hint">许可与设备绑定；换机请先在旧机解除绑定，或用同一密钥在本机重新激活。</div>
+    </div>
+
+    <div class="card section-card">
       <div class="sc-title">管理操作</div>
       <div class="sc-sub">数据都保存在本机，随时可查可备份。</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button class="btn" onclick="openDataDir()">📂 打开数据目录</button>
         <button class="btn" onclick="recoverAll()">🩺 重启全部通道</button>
+        <button class="btn" id="notify-visits-btn" onclick="toggleVisitNotify()">访客提醒：读取中…</button>
         <button class="btn btn-danger" onclick="shutdownConsole()">⏻ 停止控制台</button>
         <button class="btn" onclick="installMenubar()">🖥 安装菜单栏常驻</button>
       </div>
+      <div class="d-hint">访客打开分享页或应用时，控制台会发 macOS 系统通知（需在系统设置中允许）；控制台关闭后不再提醒。</div>
     </div>
 
     <div class="card section-card">
@@ -3095,6 +3193,11 @@ var qrcode = function() {
     <div class="field" id="pin-field"><label>访问口令（可选，打开网址需先输入）</label>
       <input type="text" id="in-pin" placeholder="留空则公开访问；例如 8668" maxlength="32">
     </div>
+    <div class="check-line" id="share-line" style="display:flex">
+      <input type="checkbox" id="in-share" checked>
+      <label for="in-share" style="margin:0;cursor:pointer">生成分享页 + 访问统计（推荐）</label>
+    </div>
+    <div class="d-hint" id="share-hint" style="margin:-4px 0 10px">分享链接会先展示应用名、说明、有效期和口令入口；取消勾选则直连发布（更快，但无统计）。</div>
     <div class="field"><label>有效期（到期自动收回，防忘记关）</label>
       <select id="in-exp">
         <option value="">永久有效</option>
@@ -3110,6 +3213,24 @@ var qrcode = function() {
     <div class="modal-foot">
       <button class="btn" onclick="closePublish()">取消</button>
       <button class="btn btn-primary" id="pub-btn" onclick="doPublish()">发布</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======= 买断许可 ======= -->
+<div class="overlay" id="license-overlay">
+  <div class="modal" style="width:540px">
+    <div class="modal-title">买断许可</div>
+    <div class="modal-sub" id="license-summary">读取中…</div>
+    <div class="license-current" id="license-current"></div>
+    <div class="field">
+      <label>许可密钥</label>
+      <textarea id="license-key" class="license-key" rows="4" placeholder="PWV1.…（购买后由卖家发送，整段粘贴）" autocomplete="off" spellcheck="false"></textarea>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeLicense()">关闭</button>
+      <button class="btn" id="license-deactivate" onclick="deactivateLicenseKey()" style="display:none">解除本机绑定</button>
+      <button class="btn btn-primary" id="license-activate" onclick="activateLicenseKey()">激活</button>
     </div>
   </div>
 </div>
@@ -3152,10 +3273,47 @@ var qrcode = function() {
       <div class="d-hint" id="dw-meta"></div>
     </div>
     <div class="d-sec">
+      <div class="d-label">访客视角自检 <span class="more" id="dw-check-ts"></span></div>
+      <div class="check-box" id="dw-check"><div class="feed-empty">还没有自检记录</div></div>
+      <div class="d-hint">隧道通了不等于应用能用。panweb 会以访客身份真打开这个公网网址：首页、首页引用的 js/css、一次 WebSocket 握手，并把结论写成能照着做的下一步。</div>
+      <div style="margin-top:9px"><button class="btn btn-sm" id="dw-check-btn" onclick="runCheck()">重新自检</button></div>
+    </div>
+    <div class="d-sec">
+      <div class="d-label">上游兼容 <span class="more">密钥只存本机</span></div>
+      <div class="d-field">
+        <select id="dw-hostmode" onchange="saveHostMode()"></select>
+      </div>
+      <div class="d-hint" id="dw-hostmode-hint"></div>
+      <div class="d-field" style="margin-top:9px">
+        <select id="dw-auth-kind" onchange="renderAuthFields()">
+          <option value="">不注入凭据</option>
+          <option value="bearer">注入 Bearer 令牌</option>
+          <option value="basic">注入 Basic 用户名/密码</option>
+          <option value="header">注入自定义请求头</option>
+        </select>
+        <button class="btn btn-sm" id="dw-auth-save" onclick="saveAuth()">保存</button>
+      </div>
+      <div id="dw-auth-fields"></div>
+      <div class="d-hint">panweb 的访问口令只守公网入口；如果被发布的应用自己还要登录，这里替访客把它的凭据带上。应用拒绝本机 Host（403）时，把上面的 Host 模式改成「公网域名」。</div>
+    </div>
+    <div class="d-sec">
       <div class="d-label">分享</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-sm" onclick="genShareCard()">🖼 生成分享图</button>
-        <button class="btn btn-sm" onclick="copyShareText()">📋 复制分享文案</button>
+      <div class="url-row" id="dw-share-row" style="display:none">
+        <span class="u" id="dw-share-url"></span>
+        <button class="cp" onclick="copyText(document.getElementById('dw-share-url').textContent)" title="复制分享链接">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg>
+        </button>
+      </div>
+      <div class="d-field" id="dw-share-desc-row" style="display:none;margin-top:9px">
+        <input type="text" id="dw-share-desc" maxlength="120" placeholder="分享页说明（可选，例如：给客户看的演示版）">
+        <button class="btn btn-sm" onclick="saveShareDesc()">保存</button>
+      </div>
+      <div class="d-hint" id="dw-share-hint"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+        <button class="btn btn-sm" id="dw-share-enable" onclick="enableShare()" style="display:none">启用分享页</button>
+        <button class="btn btn-sm" onclick="openSharePage()">预览分享页</button>
+        <button class="btn btn-sm" onclick="genShareCard()">生成分享图</button>
+        <button class="btn btn-sm" onclick="copyShareText()">复制分享文案</button>
       </div>
       <div id="share-preview" style="display:none;margin-top:10px;text-align:center">
         <img id="share-img" style="max-width:100%;border-radius:12px;border:1px solid var(--border)">
@@ -3178,6 +3336,8 @@ var qrcode = function() {
         <div class="stat-box"><div class="n" id="dw-last">—</div><div class="l">最近访问</div></div>
       </div>
       <div class="dev-chips" id="dw-devs"></div>
+      <div class="dev-chips" id="dw-sources"></div>
+      <div class="d-hint" id="dw-visit-split" style="margin-top:6px"></div>
       <div class="chart" id="dw-chart" style="margin-top:10px"></div>
       <div class="d-label" style="margin-top:12px">最近访问 <span class="more">IP 已匿名化</span></div>
       <div class="visit-list" id="dw-visits"><div class="feed-empty">暂无记录</div></div>
@@ -3250,6 +3410,11 @@ window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change",
 function esc(s) {
   return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
+// 内联事件里使用：JSON.stringify 生成双引号 JS 字符串，再做 HTML 转义，
+// 浏览器实体解码后仍是合法的双引号字符串，用户数据无法闭合引号注入代码。
+function jsq(v) {
+  return esc(JSON.stringify(String(v ?? "")));
+}
 function toast(msg, ok = true) {
   const t = document.createElement("div");
   t.className = "toast " + (ok ? "ok" : "err");
@@ -3258,15 +3423,29 @@ function toast(msg, ok = true) {
   setTimeout(() => { t.style.opacity = "0"; t.style.transition = "opacity .4s"; setTimeout(() => t.remove(), 400); }, 3600);
 }
 async function api(path, body) {
-  const opt = body ? {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)} : {};
-  const r = await fetch(path, opt);
-  return r.json();
+  try {
+    const opt = body ? {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)} : {};
+    const r = await fetch(path, opt);
+    return await r.json();
+  } catch (e) {
+    return {ok: false, error: {type: "network", message: "控制台连接失败，请确认 panweb 控制台仍在运行"}};
+  }
 }
 
 // ---------- 数据 ----------
-async function refresh(showToast = false) {
+function refresh(showToast = false) {
+  return refreshInner(showToast);
+}
+let lastApiErrorAt = 0;
+async function refreshInner(showToast = false) {
   const d = await api("/api/state");
-  if (!d.ok) { toast("读取状态失败", false); return; }
+  if (!d.ok) {
+    if (Date.now() - lastApiErrorAt > 15000) {
+      lastApiErrorAt = Date.now();
+      toast(d.error ? d.error.message : "读取状态失败", false);
+    }
+    return;
+  }
   STATE = d.data;
   render();
   checkNotifs();
@@ -3285,6 +3464,7 @@ function render() {
   document.getElementById("side-state").textContent = ready ? "通道就绪" : "通道未就绪";
   document.getElementById("side-ver").textContent = ver ? "cloudflared " + ver : "brew install cloudflared";
   document.getElementById("side-dir").textContent = doctor.state_dir;
+  renderLicense();
   const he = document.getElementById("hero-env");
   he.className = "hero-env" + (ready ? "" : " bad");
   if (ready) {
@@ -3310,6 +3490,7 @@ function render() {
   document.getElementById("fs-heal").textContent = activity.filter(f => (f.text || "").includes("自动恢复")).length;
   document.getElementById("feed-list").innerHTML =
     activity.length ? activity.map(feedItem).join("") : '<div class="feed-empty">暂无动态</div>';
+  renderVisitFeed(STATE.visits_recent || []);
 
   updateSub();
 }
@@ -3329,14 +3510,14 @@ function hostedCard(h) {
       '<div class="app-name">' + esc(h.name) + '</div>' +
       '<span class="kind-badge" style="color:var(--gold);border-color:var(--gold)">🌐 云端托管</span>' +
     '</div>' +
-    '<div class="url-row"><span class="u" onclick="openUrl(\'' + esc(h.url) + '\')" title="点击打开">' + esc(h.url) + '</span>' +
-      '<button class="cp" onclick="copyText(\'' + esc(h.url) + '\')" title="复制网址"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg></button></div>' +
+    '<div class="url-row"><span class="u" onclick="openUrl(' + jsq(h.url) + ')" title="点击打开">' + esc(h.url) + '</span>' +
+      '<button class="cp" onclick="copyText(' + jsq(h.url) + ')" title="复制网址"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg></button></div>' +
     '<div class="app-meta">' + esc(h.files) + ' 个文件 · 更新于 ' + esc(h.updated) + ' · <span style="color:var(--accent-deep)">关机可访问</span></div>' +
     '<div class="app-actions">' +
-      '<button class="btn btn-sm" onclick="openUrl(\'' + esc(h.url) + '\')">打开</button>' +
-      '<button class="btn btn-sm" onclick="copyText(\'' + esc(h.url) + '\')">复制</button>' +
+      '<button class="btn btn-sm" onclick="openUrl(' + jsq(h.url) + ')">打开</button>' +
+      '<button class="btn btn-sm" onclick="copyText(' + jsq(h.url) + ')">复制</button>' +
       '<span style="flex:1"></span>' +
-      '<button class="btn btn-sm" onclick="redeployHost(\'' + esc(h.name) + '\')">重新部署</button>' +
+      '<button class="btn btn-sm" onclick="redeployHost(' + jsq(h.name) + ')">重新部署</button>' +
     '</div></div>';
 }
 async function redeployHost(name) {
@@ -3350,6 +3531,10 @@ function appCard(a) {
   const src = a.kind === "pages" ? esc(a.target) : "127.0.0.1:" + a.target;
   const launched = a.launched ? '<span class="launched-tag">· 由 panweb 启动</span>' : "";
   const pv = a.pv || {total: 0, uv: 0};
+  const shareUrl = a.share_url || "";
+  const pvText = a.proxy_port
+    ? pv.uv + ' 位访客 · ' + pv.total + ' 次访问' + (shareUrl ? ' · 有分享页' : '')
+    : '直连发布 · 未统计 PV';
   const aliveTxt = a.alive === false ? '<span style="color:var(--danger)">· 恢复中…</span>' : "";
   return '<div class="card app-card" id="app-' + esc(a.id) + '">' +
     '<div class="app-top">' +
@@ -3358,18 +3543,20 @@ function appCard(a) {
         : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a13.5 13.5 0 010 18M12 3a13.5 13.5 0 000 18"/></svg>') + '</div>' +
       '<div class="app-name">' + esc(a.name) + '</div>' +
       '<span class="kind-badge">' + (a.kind === "pages" ? "只读网页" : "端口 " + a.target) + '</span>' +
+      checkBadge(a) +
     '</div>' +
     (a.risky ? '<div class="risky-badge">⚠ ' + esc(a.risky) + '</div>' : '') +
-    '<div class="url-row"><span class="u" onclick="openUrl(\'' + esc(a.url) + '\')" title="点击打开">' + esc(a.url) + '</span>' +
-      '<button class="cp" onclick="copyText(\'' + esc(a.url) + '\')" title="复制网址"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg></button></div>' +
-    '<div class="app-meta">访问 ' + pv.total + ' 次 · ' + (a.pinned ? "🔐 口令保护 · " : "") + (a.expires_at ? '<span class="badge-exp' + (a.expires_at - Date.now()/1000 < 3600 ? " soon" : "") + '">⏳ 剩余 ' + fmtRemain(a.expires_at) + '</span> · ' : "") + esc(a.started) + ' ' + launched + aliveTxt + '</div>' +
-    '<div class="qr-panel" id="qr-' + esc(a.id) + '"><div class="q" id="qrs-' + esc(a.id) + '"></div><div class="t">扫码打开，或复制网址发给对方</div></div>' +
+    '<div class="url-row"><span class="u" onclick="openUrl(' + jsq(a.url) + ',' + jsq(a.id) + ')" title="点击打开">' + esc(a.url) + '</span>' +
+      '<button class="cp" onclick="copyText(' + jsq(a.url) + ')" title="复制网址"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg></button></div>' +
+    '<div class="app-meta">' + pvText + ' · ' + (a.pinned ? "🔐 口令保护 · " : "") + (a.auth_kind ? "🔑 代填上游凭据 · " : "") + (a.expires_at ? '<span class="badge-exp' + (a.expires_at - Date.now()/1000 < 3600 ? " soon" : "") + '">⏳ 剩余 ' + fmtRemain(a.expires_at) + '</span> · ' : "") + esc(a.started) + ' ' + launched + aliveTxt + '</div>' +
+    '<div class="qr-panel" id="qr-' + esc(a.id) + '"><div class="q" id="qrs-' + esc(a.id) + '"></div><div class="t">扫码直达应用；给客户看请用「分享链接」</div></div>' +
     '<div class="app-actions">' +
-      '<button class="btn btn-sm" onclick="openDrawer(\'' + esc(a.id) + '\')">详情</button>' +
-      '<button class="btn btn-sm" onclick="toggleQr(\'' + esc(a.id) + '\')">二维码</button>' +
-      '<button class="btn btn-sm" onclick="openUrl(\'' + esc(a.url) + '\')">打开</button>' +
+      '<button class="btn btn-sm" onclick="openDrawer(' + jsq(a.id) + ')">详情</button>' +
+      '<button class="btn btn-sm" onclick="toggleQr(' + jsq(a.id) + ')">二维码</button>' +
+      (shareUrl ? '<button class="btn btn-sm" onclick="copyText(' + jsq(shareUrl) + ')">分享链接</button>' : '') +
+      '<button class="btn btn-sm" onclick="openUrl(' + jsq(a.url) + ',' + jsq(a.id) + ')">打开</button>' +
       '<span style="flex:1"></span>' +
-      '<button class="btn btn-sm btn-danger" onclick="askStop(\'' + esc(a.id) + '\',\'' + esc(a.name) + '\')">停止</button>' +
+      '<button class="btn btn-sm btn-danger" onclick="askStop(' + jsq(a.id) + ',' + jsq(a.name) + ')">停止</button>' +
     '</div></div>';
 }
 function toggleQr(id) {
@@ -3404,6 +3591,33 @@ function feedItem(f) {
     '<div class="feed-body"><div class="feed-text">' + esc(f.text) + '</div>' +
     (f.detail ? '<div class="feed-detail">' + esc(f.detail) + '</div>' : '') + '</div>' +
     '<div class="feed-time">' + esc(f.ts ? f.ts.slice(5, 16) : "") + '</div></div>';
+}
+const COUNTRY_NAMES = {
+  CN: "中国", HK: "中国香港", TW: "中国台湾", MO: "中国澳门",
+  US: "美国", JP: "日本", KR: "韩国", SG: "新加坡", GB: "英国",
+  DE: "德国", FR: "法国", CA: "加拿大", AU: "澳大利亚", IN: "印度",
+};
+function countryName(code) { return code ? (COUNTRY_NAMES[code] || code) : ""; }
+function renderVisitFeed(items) {
+  const el = document.getElementById("visit-feed");
+  if (!items || !items.length) {
+    el.innerHTML = '<div class="feed-empty">暂无访客 · 分享链接被打开后会显示在这里</div>';
+    return;
+  }
+  el.innerHTML = '<div class="visit-feed-head">访客动态 <span class="live-pill">实时</span></div>' +
+    items.map(v => {
+      const share = v.kind === "share";
+      const text = share
+        ? "打开了「" + esc(v.name) + "」的分享页"
+        : "正在看「" + esc(v.name) + "」";
+      const meta = [v.device, countryName(v.country), v.browser].filter(Boolean).map(esc).join(" · ");
+      const t = v.ts ? new Date(v.ts * 1000).toTimeString().slice(0, 5) : "";
+      return '<div class="visit-feed-item">' +
+        '<div class="visit-feed-ic' + (share ? " share" : "") + '">' + (share ? "↗" : "◉") + '</div>' +
+        '<div class="visit-feed-body"><div class="visit-feed-text">' + text + '</div>' +
+        (meta ? '<div class="visit-feed-meta">' + meta + '</div>' : '') + '</div>' +
+        '<div class="visit-feed-time">' + esc(t) + '</div></div>';
+    }).join("");
 }
 
 // ---------- 通知中心 ----------
@@ -3473,14 +3687,26 @@ function fallbackCopy(s, done) {
   try { document.execCommand("copy"); done(); } catch (e) { toast("复制失败，请手动选择", false); }
   ta.remove();
 }
-async function openUrl(url) {
-  window.open(url, "_blank");
-  await api("/api/open", {url});
+function openUrl(url, entryId) {
+  if (entryId) {
+    fetch("/api/owner-open", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({id: entryId}),
+      keepalive: true
+    }).catch(() => {});
+  }
+  window.open(url, "_blank", "noopener");
 }
 
 // ---------- 发布弹窗 ----------
 let pubTab = "port";
 function openPublish(tab) {
+  if (STATE && STATE.license && STATE.license.activation_required) {
+    toast("试用已结束，请先激活买断版", false);
+    openLicense();
+    return;
+  }
   pubTab = tab || "port";
   switchTab(pubTab);
   document.getElementById("in-name").value = "";
@@ -3488,6 +3714,7 @@ function openPublish(tab) {
   document.getElementById("in-folder").value = "";
   document.getElementById("in-project").value = "";
   document.getElementById("in-pin").value = "";
+  document.getElementById("in-share").checked = true;
   document.getElementById("in-exp").value = "";
   document.getElementById("in-files").value = "";
   document.getElementById("in-cloudfolder").value = "";
@@ -3497,7 +3724,8 @@ function openPublish(tab) {
   document.getElementById("pub-overlay").classList.add("show");
   if (pubTab === "port") loadCandidates();
   setTimeout(() => {
-    const el = pubTab === "port" ? "in-port" : pubTab === "pages" ? "in-folder" : "in-project";
+    const el = pubTab === "port" ? "in-port" : pubTab === "pages" ? "in-folder"
+      : pubTab === "cloud" ? "in-cloudfolder" : "in-project";
     document.getElementById(el).focus();
   }, 120);
 }
@@ -3511,6 +3739,13 @@ function switchTab(tab) {
   document.getElementById("pane-project").style.display = tab === "project" ? "" : "none";
   document.getElementById("pane-cloud").style.display = tab === "cloud" ? "" : "none";
   document.getElementById("pin-field").style.display = tab === "cloud" ? "none" : "";
+  document.getElementById("share-line").style.display = tab === "cloud" ? "none" : "flex";
+  document.getElementById("share-hint").style.display = tab === "cloud" ? "none" : "";
+  document.getElementById("in-share").disabled = tab === "pages";
+  if (tab === "pages") document.getElementById("in-share").checked = true;
+  document.getElementById("share-hint").textContent = tab === "pages"
+    ? "文件夹发布默认经由内置代理，分享页与访问统计自动开启。"
+    : "分享链接会先展示应用名、说明、有效期和口令入口；取消勾选则直连发布（更快，但无统计）。";
   document.getElementById("in-exp").closest(".field").style.display = tab === "cloud" ? "none" : "";
   document.getElementById("pub-btn").textContent =
     tab === "project" ? "启动并发布" : tab === "cloud" ? "上传并托管" : "发布";
@@ -3591,18 +3826,19 @@ async function doPublish() {
   const btn = document.getElementById("pub-btn");
   const pin = document.getElementById("in-pin").value.trim() || null;
   const expires = document.getElementById("in-exp").value || null;
+  const share = document.getElementById("in-share").checked;
   let path, body;
   if (pubTab === "port") {
     const port = parseInt(document.getElementById("in-port").value, 10);
     if (!port) return toast("请输入或选择一个端口", false);
     if (selPortRisky && String(port) === String(selPort) && !document.getElementById("risk-ack").checked)
       return toast("请先勾选「我了解风险」", false);
-    body = {port, name: document.getElementById("in-name").value.trim() || null, pin, expires};
+    body = {port, name: document.getElementById("in-name").value.trim() || null, pin, expires, share};
     path = "/api/publish";
   } else if (pubTab === "pages") {
     const folder = document.getElementById("in-folder").value.trim();
     if (!folder) return toast("请输入文件夹路径", false);
-    body = {folder, name: document.getElementById("in-name").value.trim() || null, pin, expires};
+    body = {folder, name: document.getElementById("in-name").value.trim() || null, pin, expires, share: true};
     path = "/api/pages";
   } else if (pubTab === "cloud") {
     const fileEl = document.getElementById("in-files");
@@ -3633,7 +3869,7 @@ async function doPublish() {
     if (!folder) return toast("请输入项目文件夹路径", false);
     if (detected && (detected.type === "python" || detected.type === "unknown"))
       return toast(detected.detail, false);
-    body = {folder, name: document.getElementById("in-name").value.trim() || null};
+    body = {folder, name: document.getElementById("in-name").value.trim() || null, share};
     path = "/api/run";
   }
   btn.disabled = true;
@@ -3647,7 +3883,7 @@ async function doPublish() {
     return;
   }
   closePublish();
-  toast("已发布：" + d.data.url);
+  toast("已发布：" + (d.data.share_url || d.data.url));
   await refresh();
 }
 
@@ -3656,6 +3892,8 @@ function openDrawer(id) {
   currentDrawerId = id;
   document.getElementById("drawer-mask").classList.add("show");
   document.getElementById("drawer").classList.add("show");
+  compatCache = null;
+  loadCompat(id);
   loadDetail();
   clearInterval(drawerTimer);
   drawerTimer = setInterval(() => { if (currentDrawerId) loadDetail(); }, 2500);
@@ -3681,7 +3919,7 @@ function loadDetail() {
   document.getElementById("dw-domain").innerHTML = dom.configured
     ? (dom.bound_id === currentDrawerId
         ? '<button class="btn btn-sm" onclick="bindDomain(null)">解绑固定域名</button>'
-        : '<button class="btn btn-sm" onclick="bindDomain(\'' + currentDrawerId + '\')">设为固定域名应用</button>')
+        : '<button class="btn btn-sm" onclick="bindDomain(' + jsq(currentDrawerId) + ')">设为固定域名应用</button>')
     : "";
   document.getElementById("dw-name").textContent = a.name;
   document.getElementById("dw-kind").textContent = a.kind === "pages" ? "只读网页" : "端口 " + a.target;
@@ -3690,13 +3928,37 @@ function loadDetail() {
   const pinTxt = a.pinned ? " · 🔐 已设口令" : "";
   document.getElementById("dw-meta").textContent =
     "来源 " + src + " · 发布于 " + a.started + pinTxt + (a.launched ? " · 由 panweb 启动" : "");
+  renderCheckSection(a);
   const pv = a.pv || {total: 0, uv: 0, points: [], last: null, recent: []};
-  document.getElementById("dw-pv").textContent = pv.total;
-  document.getElementById("dw-uv").textContent = pv.uv;
+  document.getElementById("dw-pv").textContent = a.proxy_port ? pv.total : "—";
+  document.getElementById("dw-uv").textContent = a.proxy_port ? pv.uv : "—";
   document.getElementById("dw-last").textContent =
     pv.last ? new Date(pv.last * 1000).toTimeString().slice(0, 5) : "—";
   document.getElementById("dw-rename").value = a.name;
   document.getElementById("dw-rename").placeholder = a.name;
+  const shareUrl = a.share_url || "";
+  document.getElementById("dw-share-row").style.display = shareUrl ? "" : "none";
+  document.getElementById("dw-share-url").textContent = shareUrl;
+  document.getElementById("dw-share-desc-row").style.display = shareUrl ? "flex" : "none";
+  const descEl = document.getElementById("dw-share-desc");
+  if (document.activeElement !== descEl) descEl.value = a.desc || "";
+  const enableBtn = document.getElementById("dw-share-enable");
+  if (shareUrl) {
+    document.getElementById("dw-share-hint").textContent =
+      "收到分享链接的人会先看到应用名、说明、有效期和口令入口，再进入应用。";
+    enableBtn.style.display = "none";
+  } else if (a.proxy_port && !a.share_token) {
+    document.getElementById("dw-share-hint").textContent =
+      "这个应用还没有分享页；点「启用分享页」即可生成，网址不变。";
+    enableBtn.style.display = "";
+  } else {
+    document.getElementById("dw-share-hint").textContent =
+      "直连发布不记录统计，也没有分享页；重新发布时勾选「分享页 + 访问统计」即可。";
+    enableBtn.style.display = "none";
+  }
+  if (!a.proxy_port) {
+    document.getElementById("dw-meta").textContent += " · 直连发布不记录访问统计";
+  }
   // 访问明细
   const vl = document.getElementById("dw-visits");
   vl.innerHTML = (pv.recent || []).length ? pv.recent.map(r =>
@@ -3714,16 +3976,32 @@ function renderVisits(v) {
     Math.max(4, Math.round(p.count / maxC * 100)) + '%" title="' + p.count + ' 次"></div>').join("");
   const devs = v.devices || {};
   const keys = Object.keys(devs);
-  document.getElementById("dw-devs").innerHTML = keys.length
-    ? keys.map(k => '<span class="dev-chip">' + esc(k) + " " + devs[k] + '</span>').join("")
-    : "";
+  const chips = [];
+  if (v.share) chips.push('<span class="dev-chip">分享页 ' + v.share + '</span>');
+  if (v.app) chips.push('<span class="dev-chip">应用打开 ' + v.app + '</span>');
+  keys.forEach(k => chips.push('<span class="dev-chip">' + esc(k) + " " + devs[k] + '</span>'));
+  document.getElementById("dw-devs").innerHTML = chips.join("");
+  const countries = v.countries || {};
+  const browsers = v.browsers || {};
+  const src = [];
+  Object.keys(countries).sort((a, b) => countries[b] - countries[a]).slice(0, 4)
+    .forEach(k => src.push('<span class="dev-chip">' + esc(countryName(k)) + " " + countries[k] + '</span>'));
+  Object.keys(browsers).sort((a, b) => browsers[b] - browsers[a]).slice(0, 4)
+    .forEach(k => src.push('<span class="dev-chip">' + esc(k) + " " + browsers[k] + '</span>'));
+  document.getElementById("dw-sources").innerHTML = src.join("");
+  document.getElementById("dw-visit-split").textContent = v.total
+    ? "分享页浏览 " + (v.share || 0) + " · 应用打开 " + (v.app || 0) + " · 近 " + v.hours + " 小时"
+    : "还没有访问记录；把分享链接发出去试试。";
   const vl = document.getElementById("dw-visits");
-  vl.innerHTML = (v.recent || []).length ? v.recent.map(r =>
-    '<div class="v-row"><span class="v-time">' +
-    new Date(r.ts * 1000).toTimeString().slice(0, 5) + '</span>' +
-    '<span class="v-device" style="color:var(--faint)">' + esc(r.device || "") + '</span>' +
-    '<span class="v-path">' + esc(r.path || "/") + '</span></div>').join("")
-    : '<div class="feed-empty">暂无记录</div>';
+  vl.innerHTML = (v.recent || []).length ? v.recent.map(r => {
+    const meta = [r.device, r.country ? countryName(r.country) : "", r.browser].filter(Boolean).join(" · ");
+    return '<div class="v-row"><span class="v-time">' +
+      new Date(r.ts * 1000).toTimeString().slice(0, 5) + '</span>' +
+      '<span class="v-kind' + (r.kind === "share" ? " share" : "") + '">' +
+      (r.kind === "share" ? "分享" : "打开") + '</span>' +
+      (meta ? '<span class="v-device" style="color:var(--faint)">' + esc(meta) + '</span>' : '') +
+      '<span class="v-path">' + esc(r.path || "/") + '</span></div>';
+  }).join("") : '<div class="feed-empty">暂无记录</div>';
 }
 
 // ---------- 分享卡片 ----------
@@ -3740,6 +4018,7 @@ function roundRectPath(x, y, w, h, r) {
 async function genShareCard() {
   const a = (STATE.apps || []).find(x => x.id === currentDrawerId);
   if (!a) return;
+  const url = a.share_url || a.url;
   const c = document.createElement("canvas");
   c.width = 900; c.height = 520;
   const x = c.getContext("2d");
@@ -3754,17 +4033,18 @@ async function genShareCard() {
   x.fillStyle = "#8a968f"; x.font = "22px sans-serif";
   x.fillText("已在 panweb 上线，扫码或点链接访问", 80, 174);
   x.fillStyle = "#2a6558"; x.font = "600 22px 'SF Mono', monospace";
-  x.fillText(a.url.slice(0, 44), 80, 228);
+  x.fillText(url.slice(0, 44), 80, 228);
   x.fillStyle = "#b9975b"; x.font = "20px sans-serif";
   let y = 268;
-  if (a.pinned) { x.fillText("🔐 已设置访问口令，口令向主人索取", 80, y); y += 34; }
-  if (a.expires_at) { x.fillText("⏳ 有效期至 " + new Date(a.expires_at * 1000).toLocaleString(), 80, y); y += 34; }
-  const q = qrcode(0, "M"); q.addData(a.url); q.make();
+  if (a.pinned) { x.fillText("已设置访问口令，口令向主人索取", 80, y); y += 34; }
+  if (a.expires_at) { x.fillText("有效期至 " + new Date(a.expires_at * 1000).toLocaleString(), 80, y); y += 34; }
+  if (a.desc) { x.fillStyle = "#6d7a73"; x.font = "19px sans-serif"; x.fillText(a.desc.slice(0, 34), 80, y); }
+  const q = qrcode(0, "M"); q.addData(url); q.make();
   const img = new Image();
   await new Promise(res => { img.onload = res; img.src = q.createDataURL(7, 2); });
   x.drawImage(img, 624, 88, 196, 196);
   x.fillStyle = "#8a968f"; x.font = "16px sans-serif";
-  x.fillText("扫码直接打开", 672, 312);
+  x.fillText(a.share_url ? "扫码打开分享页" : "扫码直接打开", 668, 312);
   x.fillStyle = "#33796b"; x.font = "600 24px sans-serif";
   x.fillText("◈ panweb", 80, 432);
   x.fillStyle = "#b3bdb7"; x.font = "17px sans-serif";
@@ -3775,9 +4055,33 @@ async function genShareCard() {
   document.getElementById("share-preview").style.display = "block";
 }
 function shareText(a) {
+  const url = a.share_url || a.url;
   const exp = a.expires_at ? "（" + fmtRemain(a.expires_at) + "后失效）" : "";
   const pin = a.pinned ? "（口令向主人索取）" : "";
-  return "【" + a.name + "】已上线：" + a.url + pin + exp + " —— 点链接或扫码即可访问";
+  return "【" + a.name + "】已上线：" + url + pin + exp + " —— 点链接或扫码即可访问";
+}
+function openSharePage() {
+  const a = (STATE.apps || []).find(x => x.id === currentDrawerId);
+  if (a) openUrl(a.share_url || a.url, a.id);
+}
+async function saveShareDesc() {
+  const a = (STATE.apps || []).find(x => x.id === currentDrawerId);
+  if (!a) return;
+  const desc = document.getElementById("dw-share-desc").value.trim();
+  const d = await api("/api/share", {id: currentDrawerId, desc});
+  if (!d.ok) return toast(d.error ? d.error.message : "保存失败", false);
+  toast(desc ? "分享页说明已更新" : "分享页说明已移除");
+  await refresh();
+  loadDetail();
+}
+async function enableShare() {
+  const a = (STATE.apps || []).find(x => x.id === currentDrawerId);
+  if (!a) return;
+  const d = await api("/api/share", {id: currentDrawerId, desc: ""});
+  if (!d.ok) return toast(d.error ? d.error.message : "启用失败", false);
+  toast("分享页已启用");
+  await refresh();
+  loadDetail();
 }
 function copyShareText() {
   const a = (STATE.apps || []).find(x => x.id === currentDrawerId);
@@ -3918,6 +4222,108 @@ document.addEventListener("keydown", e => {
   if (e.key === "Escape") document.querySelectorAll(".overlay").forEach(ov => ov.classList.remove("show"));
 });
 
+// ---------- 买断许可 ----------
+function licenseModeText(st) {
+  if (!st) return "读取中…";
+  if (st.mode === "development") return "开发版";
+  if (st.mode === "active") return "已激活";
+  if (st.mode === "trial") {
+    return st.trial_days_left != null ? "试用剩余 " + st.trial_days_left + " 天" : "试用中";
+  }
+  if (st.mode === "expired") return "试用已结束";
+  if (st.mode === "invalid") return "许可无效";
+  return st.message || "未激活";
+}
+
+function renderLicense() {
+  const st = STATE && STATE.license;
+  if (!st) return;
+  const label = licenseModeText(st);
+  const btn = document.getElementById("license-btn");
+  if (btn) {
+    btn.textContent = "许可：" + label;
+    btn.classList.toggle("warn", !st.can_publish);
+    btn.title = st.message + (st.hint ? " · " + st.hint : "");
+  }
+  const mode = document.getElementById("lic-mode");
+  if (mode) {
+    mode.textContent = label;
+    mode.classList.toggle("warn-text", !st.can_publish);
+  }
+  const detail = document.getElementById("lic-detail");
+  if (detail) {
+    detail.textContent = st.message + (st.hint ? " · " + st.hint : "");
+  }
+  const banner = document.getElementById("license-banner");
+  if (banner) {
+    const need = !!st.activation_required;
+    banner.style.display = need ? "flex" : "none";
+    if (need) {
+      document.getElementById("license-banner-title").textContent = label;
+      document.getElementById("license-banner-text").textContent =
+        " · " + (st.hint || st.message || "请激活后继续发布");
+    }
+  }
+  const summary = document.getElementById("license-summary");
+  if (summary) {
+    summary.textContent = st.message + (st.hint ? " · " + st.hint : "");
+  }
+  const current = document.getElementById("license-current");
+  if (current) {
+    const lines = [];
+    if (st.mode !== "development") {
+      lines.push("状态：" + st.message);
+      if (st.license_id) lines.push("许可编号：" + st.license_id);
+      if (st.updates_until_text) lines.push("更新权益：" + st.updates_until_text);
+      if (st.trial_ends_text && st.mode === "trial") lines.push("试用到期：" + st.trial_ends_text);
+    }
+    if (st.machine) lines.push("本机指纹：" + st.machine);
+    if (st.mode === "development") {
+      lines.push("此构建未启用许可校验，所有功能可用。");
+    }
+    current.textContent = lines.join("\n");
+  }
+  const deact = document.getElementById("license-deactivate");
+  if (deact) deact.style.display = st.mode === "active" ? "" : "none";
+}
+
+function openLicense() {
+  renderLicense();
+  const key = document.getElementById("license-key");
+  if (key) key.value = "";
+  document.getElementById("license-overlay").classList.add("show");
+  setTimeout(() => { if (key) key.focus(); }, 120);
+}
+
+function closeLicense() {
+  document.getElementById("license-overlay").classList.remove("show");
+}
+
+async function activateLicenseKey() {
+  const keyEl = document.getElementById("license-key");
+  const btn = document.getElementById("license-activate");
+  const key = (keyEl.value || "").trim();
+  if (!key) { toast("请粘贴许可密钥", false); keyEl.focus(); return; }
+  if (btn) { btn.disabled = true; btn.textContent = "激活中…"; }
+  const d = await api("/api/license/activate", {key});
+  if (btn) { btn.disabled = false; btn.textContent = "激活"; }
+  if (!d.ok) { toast(d.error ? d.error.message : "激活失败", false); return; }
+  STATE.license = d.data;
+  renderLicense();
+  closeLicense();
+  await refresh();
+  toast("许可已激活 🎉");
+}
+
+async function deactivateLicenseKey() {
+  if (!confirm("解除本机绑定？许可密钥仍可在本机或其他设备重新激活。")) return;
+  const d = await api("/api/license/deactivate", {});
+  if (!d.ok) { toast(d.error ? d.error.message : "解除失败", false); return; }
+  closeLicense();
+  await refresh();
+  toast("已解除本机绑定");
+}
+
 // ---------- 三栏伸缩 ----------
 function initDrag(handleId, cssVar, dir, min, max, def) {
   const handle = document.getElementById(handleId);
@@ -3962,7 +4368,9 @@ function updateSub() {
   const subEl = document.getElementById("page-sub");
   if (currentPage === "apps" && STATE) {
     const stats = STATE.stats;
-    let sub = stats.total ? stats.total + " 个应用在线" : "还没有发布应用";
+    let sub = stats.total
+      ? stats.online + " 个应用在线" + (stats.total > stats.online ? " · 共 " + stats.total + " 个" : "")
+      : "还没有发布应用";
     if (stats.stopped_total) sub += " · 累计停止 " + stats.stopped_total;
     if (stats.attention) sub += ' · <span class="warn-text">⚠ ' + stats.attention + " 个需要检查</span>";
     subEl.innerHTML = sub;
@@ -3999,6 +4407,8 @@ async function loadSystem() {
   document.getElementById("sy-visits").textContent = SYSTEM.visits_total;
   document.getElementById("sy-agents").textContent = SYSTEM.agents_connected;
   document.getElementById("sy-size").textContent = humanSize(SYSTEM.data_size);
+  const nb = document.getElementById("notify-visits-btn");
+  if (nb) nb.textContent = "访客提醒：" + (SYSTEM.notify_visits === false ? "已关闭" : "已开启");
   document.getElementById("sy-about").innerHTML =
     "panweb v" + esc(SYSTEM.panweb_version) + " · " +
     esc(SYSTEM.cloudflared_version || "cloudflared 未安装") + " · " +
@@ -4012,6 +4422,14 @@ async function openDataDir() {
   const d = await api("/api/open-dir", {dir: SYSTEM.data_dir});
   if (!d.ok) toast(d.error ? d.error.message : "打开失败", false);
 }
+async function toggleVisitNotify() {
+  const enabled = SYSTEM ? SYSTEM.notify_visits === false : false;
+  const d = await api("/api/notify-visits", {enabled});
+  if (!d.ok) return toast(d.error ? d.error.message : "设置失败", false);
+  if (SYSTEM) SYSTEM.notify_visits = d.data.enabled;
+  toast(d.data.enabled ? "访客提醒已开启" : "访客提醒已关闭");
+  loadSystem();
+}
 async function recoverAll() {
   const d = await api("/api/recover", {});
   if (!d.ok) return toast(d.error ? d.error.message : "恢复失败", false);
@@ -4022,6 +4440,7 @@ async function recoverAll() {
 async function shutdownConsole() {
   if (!confirm("确定停止控制台？已发布的网址不受影响，隧道会继续工作。")) return;
   await api("/api/shutdown", {});
+  if (refreshTimer) clearInterval(refreshTimer);
   toast("控制台已停止，页面将无法刷新");
 }
 async function doPack() {
@@ -4045,8 +4464,8 @@ async function loadAgents() {
       : (a.detected ? '<span class="ag-state st-yes">● 可以连接</span>'
                      : '<span class="ag-state st-no">未检测到</span>');
     const btn = a.connected
-      ? '<button class="ag-btn rm" onclick="agentAction(\'disconnect\',\'' + a.id + '\')">移除</button>'
-      : '<button class="ag-btn go" onclick="agentAction(\'connect\',\'' + a.id + '\')" ' +
+      ? '<button class="ag-btn rm" onclick="agentAction(&quot;disconnect&quot;,' + jsq(a.id) + ')">移除</button>'
+      : '<button class="ag-btn go" onclick="agentAction(&quot;connect&quot;,' + jsq(a.id) + ')" ' +
         (a.detected ? "" : "disabled") + '>🔌 连接</button>';
     return '<div class="card agent-card">' +
       '<div class="agent-top">' +
@@ -4084,8 +4503,10 @@ function paletteCommands() {
     {t: "停止全部发布", k: "停止", f: async () => { await api("/api/stop", {target: "all"}); toast("已全部停止"); await refresh(); }},
   ];
   (STATE && STATE.apps ? STATE.apps : []).forEach(a => {
-    cmds.push({t: "打开 " + a.name, k: "应用", f: () => openUrl(a.url)});
-    cmds.push({t: "复制 " + a.name + " 网址", k: "应用", f: () => copyText(a.url)});
+    cmds.push({t: "打开 " + a.name, k: "应用", f: () => openUrl(a.url, a.id)});
+    cmds.push({t: "复制 " + a.name + (a.share_url ? " 分享链接" : " 网址"), k: "应用",
+               f: () => copyText(a.share_url || a.url)});
+    if (a.share_url) cmds.push({t: "预览 " + a.name + " 分享页", k: "应用", f: () => openUrl(a.share_url, a.id)});
     cmds.push({t: "停止 " + a.name, k: "停止", f: async () => { await api("/api/stop", {target: a.id}); toast("已停止 " + a.name); await refresh(); }});
   });
   return cmds;
@@ -4133,10 +4554,169 @@ document.getElementById("kz-list").addEventListener("click", e => {
   if (item) { document.getElementById("kz-overlay").classList.remove("show"); kzItems[+item.dataset.i].f(); }
 });
 
+// ---------- 自检结论与上游兼容（访客视角能不能打开） ----------
+const CHECK_UI = {
+  ok: {chip: "✓ 可访问", text: "访客现在能正常打开"},
+  warn: {chip: "△ 需留意", text: "大概率能用，但有坑"},
+  blocked: {chip: "✕ 打不开", text: "访客现在打不开"},
+};
+const AUTH_FIELDS = {
+  bearer: [["令牌", "Bearer 令牌（不含 “Bearer ” 前缀）", "password"]],
+  basic: [["用户名", "上游用户名", "text"], ["密码", "上游密码", "password"]],
+  header: [["头名称", "例如 X-Api-Key", "text"], ["头值", "这个头的值", "password"]],
+};
+let compatCache = null;
+
+function checkBadge(a) {
+  const c = a.check;
+  if (!c || !CHECK_UI[c.verdict]) return "";
+  const info = CHECK_UI[c.verdict];
+  return '<span class="check-badge ' + c.verdict + '" title="' + esc(c.summary) + '">' +
+    info.chip + '</span>';
+}
+
+function fmtCheckTs(ts) {
+  if (!ts) return "";
+  const d = new Date(ts * 1000);
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" +
+    String(d.getDate()).padStart(2, "0") + " " + d.toTimeString().slice(0, 5);
+}
+
+function renderCheckSection(a) {
+  const box = document.getElementById("dw-check");
+  const stamp = document.getElementById("dw-check-ts");
+  if (!box) return;
+  const c = a.check;
+  if (!c) {
+    stamp.textContent = "";
+    box.innerHTML = '<div class="feed-empty">还没有自检记录 · 点下面按钮按访客视角打开一次</div>';
+    return;
+  }
+  stamp.textContent = "上次自检：" + fmtCheckTs(c.ts);
+  const info = CHECK_UI[c.verdict] || {chip: "·", text: c.summary || ""};
+  let html = '<div class="check-verdict ' + esc(c.verdict) + '">' +
+    '<b>' + info.chip + '</b><span>' + esc(c.summary || info.text) + '</span></div>';
+  (c.fixes || []).forEach(f => {
+    html += '<div class="check-fix">🔧 ' + esc(f) + '</div>';
+  });
+  (c.signals || []).forEach(s => {
+    if (s.severity === "info" || s.label === c.summary) return;
+    html += '<div class="check-sig ' + esc(s.severity) + '">' + esc(s.label || s.code) +
+      (s.advice ? '<div class="t">' + esc(s.advice) + '</div>' : '') + '</div>';
+  });
+  const infos = (c.signals || []).filter(s => s.severity === "info");
+  if (infos.length) {
+    html += '<div class="d-hint">' + infos.map(s => esc(s.label)).join(" · ") + '</div>';
+  }
+  box.innerHTML = html;
+}
+
+async function runCheck() {
+  if (!currentDrawerId) return;
+  const btn = document.getElementById("dw-check-btn");
+  const label = btn.textContent;
+  btn.disabled = true;
+  btn.innerHTML = '<svg class="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M21 12a9 9 0 11-6.2-8.56"/></svg> 自检中…（打开首页与引用资源）';
+  const d = await api("/api/check", {id: currentDrawerId});
+  btn.disabled = false;
+  btn.textContent = label;
+  if (!d.ok) return toast(d.error ? d.error.message : "自检失败", false);
+  toast("自检：" + d.data.summary, d.data.verdict === "ok");
+  await refresh();
+  loadDetail();
+}
+
+// ---------- 上游兼容 ----------
+async function loadCompat(id) {
+  const d = await api("/api/compat?id=" + encodeURIComponent(id));
+  if (!d.ok) return;
+  compatCache = d.data;
+  renderCompat(d.data);
+}
+
+function renderCompat(c) {
+  const sel = document.getElementById("dw-hostmode");
+  if (!sel) return;
+  sel.innerHTML = (c.host_modes || []).map(m =>
+    '<option value="' + esc(m.value) + '"' + (m.value === c.host_mode ? " selected" : "") + '>' +
+    esc(m.label) + '</option>').join("");
+  const kind = document.getElementById("dw-auth-kind");
+  const save = document.getElementById("dw-auth-save");
+  const proxied = c.proxied !== false;
+  kind.value = (c.auth && c.auth.kind) || "";
+  [sel, kind, save].forEach(el => { el.disabled = !proxied; });
+  document.getElementById("dw-hostmode-hint").textContent = !proxied
+    ? "这是直连发布：隧道直接指向应用端口，panweb 不在请求链路上，所以这里改不动。要治 Host 校验或代填凭据，重新发布时勾选「分享页 + 访问统计」（或设置访问口令），让流量经过内置代理。"
+    : (c.host_mode === "tunnel"
+      ? "上游会看到访客正在用的公网域名（Host 与 X-Forwarded-Host 一起补上）。Jupyter、Grafana、n8n、Open WebUI、Vite 开发服务器这类会校验 Host 防重绑定的应用需要这个。"
+      : "上游只看到本机地址（127.0.0.1:端口），只肯服务 localhost 的开发服务器用这个。");
+  renderAuthFields();
+}
+
+function renderAuthFields() {
+  const kind = document.getElementById("dw-auth-kind").value;
+  const box = document.getElementById("dw-auth-fields");
+  const auth = compatCache && compatCache.auth;
+  const same = auth && auth.kind === kind;
+  if (!kind) {
+    box.innerHTML = '<div class="d-hint">' +
+      (auth ? "已注入：" + esc(auth.label) + "；把种类选成「不注入」并保存即可清除。"
+            : "没有替访客带上应用自己的凭据。") + '</div>';
+    return;
+  }
+  box.innerHTML = (AUTH_FIELDS[kind] || []).map((f, i) => {
+    const secret = f[2] === "password";
+    const val = secret ? "" : (same ? (auth.user || auth.name || "") : "");
+    const ph = secret && same ? "已保存 · 要改就填新值" : (val || f[1]);
+    return '<div class="d-field" style="margin-top:7px"><input type="' + f[2] +
+      '" id="dw-auth-' + i + '" value="' + esc(val) + '" placeholder="' + esc(ph) +
+      '" autocomplete="off" spellcheck="false"></div>';
+  }).join("") +
+    '<div class="d-hint">已保存的密钥不会回显；要修改就把每一项重新填全。' +
+    '密钥只写进本机 ~/.panweb/secrets（0600），控制台、命令行和分享页都只显示种类。</div>';
+}
+
+async function saveHostMode() {
+  if (!currentDrawerId) return;
+  const mode = document.getElementById("dw-hostmode").value;
+  const d = await api("/api/compat", {id: currentDrawerId, host_mode: mode});
+  if (!d.ok) return toast(d.error ? d.error.message : "设置失败", false);
+  compatCache = d.data;
+  renderCompat(d.data);
+  toast("Host 模式已切换，正在按访客视角复验…");
+  await runCheck();
+}
+
+async function saveAuth() {
+  if (!currentDrawerId) return;
+  const kind = document.getElementById("dw-auth-kind").value;
+  const body = {id: currentDrawerId};
+  if (!kind) {
+    body.clear_auth = true;
+  } else {
+    const vals = (AUTH_FIELDS[kind] || []).map((f, i) =>
+      (document.getElementById("dw-auth-" + i).value || "").trim());
+    // 已保存的密钥不回显，所以改任何一项都要填全——少了这一条就没法判断是改还是留。
+    if (vals.some(v => !v)) {
+      return toast("请把每一项都填全（已保存的密钥不会回显）", false);
+    }
+    body.auth_kind = kind;
+    if (kind === "bearer") body.token = vals[0];
+    else if (kind === "basic") { body.user = vals[0]; body.password = vals[1]; }
+    else { body.header_name = vals[0]; body.header_value = vals[1]; }
+  }
+  const d = await api("/api/compat", body);
+  if (!d.ok) return toast(d.error ? d.error.message : "保存失败", false);
+  compatCache = d.data;
+  renderCompat(d.data);
+  toast(body.clear_auth ? "已清除上游凭据" : "已保存，只存在本机");
+  await refresh();
+}
+
 // ---------- 启动 ----------
-switchPage(["apps", "feed", "agents"].includes(currentPage) ? currentPage : "apps");
+switchPage(["apps", "feed", "agents", "system"].includes(currentPage) ? currentPage : "apps");
 refresh();
-setInterval(refresh, 4000);
+const refreshTimer = setInterval(() => { if (!document.hidden) refresh(); }, 4000);
 </script>
 </body>
 </html>

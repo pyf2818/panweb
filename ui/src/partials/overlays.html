@@ -1,0 +1,233 @@
+<!-- ======= 发布弹窗 ======= -->
+<div class="overlay" id="pub-overlay">
+  <div class="modal">
+    <div class="modal-title">发布应用到公网</div>
+    <div class="modal-sub">免费、零服务器；生成随机公网网址，发给谁谁就能打开</div>
+    <div class="public-note">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+      <span>发布后网址为<b>公开访问</b>（随机子域名，未泄露即外人不知道）。无密码的服务请先加密码再发布。</span>
+    </div>
+    <div class="tabs">
+      <button class="tab active" id="tab-port" onclick="switchTab('port')">发布端口</button>
+      <button class="tab" id="tab-pages" onclick="switchTab('pages')">发布文件夹</button>
+      <button class="tab" id="tab-project" onclick="switchTab('project')">启动项目</button>
+      <button class="tab" id="tab-cloud" onclick="switchTab('cloud')">云端托管</button>
+    </div>
+
+    <div id="pane-port">
+      <div class="field"><label>本机正在运行的应用</label>
+        <div class="cand-list" id="cand-list"><div class="feed-empty">扫描中…</div></div>
+      </div>
+      <div class="field"><label>或手动输入端口</label>
+        <input type="number" id="in-port" placeholder="例如 3000" min="1" max="65535">
+      </div>
+    </div>
+
+    <div id="pane-pages" style="display:none">
+      <div class="field"><label>文件夹路径（将作为只读网页发布）</label>
+        <input type="text" id="in-folder" placeholder="/Users/you/项目/dist 或 ~/Documents/周报">
+      </div>
+    </div>
+
+    <div id="pane-cloud" style="display:none">
+      <div class="public-note" style="background:var(--accent-soft);color:var(--accent-deep)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 17.6A5 5 0 0018 8h-1.3A8 8 0 104 15.2"/></svg>
+        <span>🌐 上传到 GitHub Pages（免费、网址固定）—— <b>电脑关机也能访问</b>。仓库公开，勿传敏感内容；需要 GitHub 登录（一次）。</span>
+      </div>
+      <div class="field"><label>选择文件（HTML / Markdown / Excel，自动转换，可多选）</label>
+        <input type="file" id="in-files" multiple style="font-size:12.5px">
+      </div>
+      <div class="field"><label>或本地文件夹 / 单文件路径（整站上传）</label>
+        <input type="text" id="in-cloudfolder" placeholder="/Users/you/项目/dist">
+      </div>
+    </div>
+
+    <div id="pane-project" style="display:none">
+      <div class="field"><label>项目文件夹（panweb 自动识别并启动）</label>
+        <div class="field-inline">
+          <input type="text" id="in-project" placeholder="/Users/you/我的项目">
+          <button class="btn" onclick="detectProject()">识别</button>
+        </div>
+      </div>
+      <div class="detect-line" id="detect-line"></div>
+    </div>
+
+    <div class="field"><label>应用名称（可选）</label>
+      <input type="text" id="in-name" placeholder="例如 周报页面、演示版">
+    </div>
+    <div class="field" id="pin-field"><label>访问口令（可选，打开网址需先输入）</label>
+      <input type="text" id="in-pin" placeholder="留空则公开访问；例如 8668" maxlength="32">
+    </div>
+    <div class="check-line" id="share-line" style="display:flex">
+      <input type="checkbox" id="in-share" checked>
+      <label for="in-share" style="margin:0;cursor:pointer">生成分享页 + 访问统计（推荐）</label>
+    </div>
+    <div class="d-hint" id="share-hint" style="margin:-4px 0 10px">分享链接会先展示应用名、说明、有效期和口令入口；取消勾选则直连发布（更快，但无统计）。</div>
+    <div class="field"><label>有效期（到期自动收回，防忘记关）</label>
+      <select id="in-exp">
+        <option value="">永久有效</option>
+        <option value="1h">1 小时</option>
+        <option value="1d">1 天</option>
+        <option value="7d">7 天</option>
+      </select>
+    </div>
+    <div class="risk-warn" id="risk-warn"></div>
+    <div class="check-line" id="risk-check" style="display:none">
+      <input type="checkbox" id="risk-ack"><label for="risk-ack" style="margin:0;cursor:pointer">我了解风险，确认发布这个服务</label>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closePublish()">取消</button>
+      <button class="btn btn-primary" id="pub-btn" onclick="doPublish()">发布</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======= 买断许可 ======= -->
+<div class="overlay" id="license-overlay">
+  <div class="modal" style="width:540px">
+    <div class="modal-title">买断许可</div>
+    <div class="modal-sub" id="license-summary">读取中…</div>
+    <div class="license-current" id="license-current"></div>
+    <div class="field">
+      <label>许可密钥</label>
+      <textarea id="license-key" class="license-key" rows="4" placeholder="PWV1.…（购买后由卖家发送，整段粘贴）" autocomplete="off" spellcheck="false"></textarea>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeLicense()">关闭</button>
+      <button class="btn" id="license-deactivate" onclick="deactivateLicenseKey()" style="display:none">解除本机绑定</button>
+      <button class="btn btn-primary" id="license-activate" onclick="activateLicenseKey()">激活</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======= ⌘K 命令面板 ======= -->
+<div class="overlay" id="kz-overlay">
+  <div class="modal">
+    <input id="kz-input" placeholder="输入命令：发布 / 停止 / 打开 / 切换主题…" autocomplete="off">
+    <div id="kz-list"></div>
+  </div>
+</div>
+
+<!-- ======= 停止确认 ======= -->
+<div class="overlay" id="stop-overlay">
+  <div class="modal" style="width:420px">
+    <div class="modal-title">停止发布？</div>
+    <div class="modal-sub" id="stop-sub">停止后网址立即失效，之前拿到网址的人也无法再打开。</div>
+    <div class="modal-foot">
+      <button class="btn" onclick="document.getElementById('stop-overlay').classList.remove('show')">取消</button>
+      <button class="btn btn-danger" id="stop-btn">确认停止</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======= 应用详情抽屉 ======= -->
+<div class="drawer-mask" id="drawer-mask" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-head">
+    <div class="app-name" id="dw-name">—</div>
+    <span class="kind-badge" id="dw-kind"></span>
+    <button class="drawer-close" onclick="closeDrawer()">✕</button>
+  </div>
+  <div class="drawer-body">
+    <div class="d-sec">
+      <div class="d-label">公网网址</div>
+      <div class="url-row"><span class="u" id="dw-url"></span>
+        <button class="cp" onclick="copyText(document.getElementById('dw-url').textContent)" title="复制">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg>
+        </button></div>
+      <div class="d-hint" id="dw-meta"></div>
+    </div>
+    <div class="d-sec">
+      <div class="d-label">访客视角自检 <span class="more" id="dw-check-ts"></span></div>
+      <div class="check-box" id="dw-check"><div class="feed-empty">还没有自检记录</div></div>
+      <div class="d-hint">隧道通了不等于应用能用。panweb 会以访客身份真打开这个公网网址：首页、首页引用的 js/css、一次 WebSocket 握手，并把结论写成能照着做的下一步。</div>
+      <div style="margin-top:9px"><button class="btn btn-sm" id="dw-check-btn" onclick="runCheck()">重新自检</button></div>
+    </div>
+    <div class="d-sec">
+      <div class="d-label">上游兼容 <span class="more">密钥只存本机</span></div>
+      <div class="d-field">
+        <select id="dw-hostmode" onchange="saveHostMode()"></select>
+      </div>
+      <div class="d-hint" id="dw-hostmode-hint"></div>
+      <div class="d-field" style="margin-top:9px">
+        <select id="dw-auth-kind" onchange="renderAuthFields()">
+          <option value="">不注入凭据</option>
+          <option value="bearer">注入 Bearer 令牌</option>
+          <option value="basic">注入 Basic 用户名/密码</option>
+          <option value="header">注入自定义请求头</option>
+        </select>
+        <button class="btn btn-sm" id="dw-auth-save" onclick="saveAuth()">保存</button>
+      </div>
+      <div id="dw-auth-fields"></div>
+      <div class="d-hint">panweb 的访问口令只守公网入口；如果被发布的应用自己还要登录，这里替访客把它的凭据带上。应用拒绝本机 Host（403）时，把上面的 Host 模式改成「公网域名」。</div>
+    </div>
+    <div class="d-sec">
+      <div class="d-label">分享</div>
+      <div class="url-row" id="dw-share-row" style="display:none">
+        <span class="u" id="dw-share-url"></span>
+        <button class="cp" onclick="copyText(document.getElementById('dw-share-url').textContent)" title="复制分享链接">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg>
+        </button>
+      </div>
+      <div class="d-field" id="dw-share-desc-row" style="display:none;margin-top:9px">
+        <input type="text" id="dw-share-desc" maxlength="120" placeholder="分享页说明（可选，例如：给客户看的演示版）">
+        <button class="btn btn-sm" onclick="saveShareDesc()">保存</button>
+      </div>
+      <div class="d-hint" id="dw-share-hint"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+        <button class="btn btn-sm" id="dw-share-enable" onclick="enableShare()" style="display:none">启用分享页</button>
+        <button class="btn btn-sm" onclick="openSharePage()">预览分享页</button>
+        <button class="btn btn-sm" onclick="genShareCard()">生成分享图</button>
+        <button class="btn btn-sm" onclick="copyShareText()">复制分享文案</button>
+      </div>
+      <div id="share-preview" style="display:none;margin-top:10px;text-align:center">
+        <img id="share-img" style="max-width:100%;border-radius:12px;border:1px solid var(--border)">
+        <div class="share-actions">
+          <a class="btn btn-sm" id="share-dl" download="panweb-share.png">下载 PNG</a>
+          <button class="btn btn-sm" onclick="copyShareImg()">复制图片</button>
+        </div>
+      </div>
+    </div>
+    <div class="d-sec">
+      <div class="d-label">访问统计
+        <span class="chart-toggle">
+          <button class="ctab active" id="ct-24" onclick="setChartHours(24)">24 小时</button>
+          <button class="ctab" id="ct-168" onclick="setChartHours(168)">7 天</button>
+        </span>
+      </div>
+      <div class="stat-row">
+        <div class="stat-box"><div class="n" id="dw-pv">0</div><div class="l">访问次数</div></div>
+        <div class="stat-box"><div class="n" id="dw-uv">0</div><div class="l">访客数</div></div>
+        <div class="stat-box"><div class="n" id="dw-last">—</div><div class="l">最近访问</div></div>
+      </div>
+      <div class="dev-chips" id="dw-devs"></div>
+      <div class="dev-chips" id="dw-sources"></div>
+      <div class="d-hint" id="dw-visit-split" style="margin-top:6px"></div>
+      <div class="chart" id="dw-chart" style="margin-top:10px"></div>
+      <div class="d-label" style="margin-top:12px">最近访问 <span class="more">IP 已匿名化</span></div>
+      <div class="visit-list" id="dw-visits"><div class="feed-empty">暂无记录</div></div>
+    </div>
+    <div class="d-sec">
+      <div class="d-label">设置</div>
+      <div class="d-field">
+        <input type="text" id="dw-rename" placeholder="改名">
+        <button class="btn btn-sm" onclick="saveRename()">保存</button>
+      </div>
+      <div class="d-field" style="margin-top:9px">
+        <input type="text" id="dw-pin" placeholder="访问口令（留空提交=移除）" maxlength="32">
+        <button class="btn btn-sm" onclick="savePin()">应用</button>
+      </div>
+      <div class="d-hint">设置口令后打开网址需先验证；改动立即生效，无需换网址。</div>
+      <div id="dw-domain" style="margin-top:9px"></div>
+    </div>
+    <div class="d-sec">
+      <div class="d-label">运行日志 <span class="more" id="dw-logfile"></span></div>
+      <div class="log-box" id="dw-log">暂无日志</div>
+    </div>
+    <div class="d-sec">
+      <button class="btn btn-danger" style="width:100%" onclick="askStop(currentDrawerId, document.getElementById('dw-name').textContent); closeDrawer()">停止发布这个应用</button>
+    </div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>

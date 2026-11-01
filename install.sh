@@ -2,6 +2,7 @@
 # panweb 安装：CLI 软链到 ~/.local/bin，技能装到 ~/.agents/skills
 set -e
 DIR="$(cd "$(dirname "$0")" && pwd)"
+chmod +x "$DIR/panweb" 2>/dev/null || true
 
 mkdir -p "$HOME/.local/bin"
 ln -sf "$DIR/panweb" "$HOME/.local/bin/panweb"

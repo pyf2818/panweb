@@ -1,0 +1,171 @@
+<!-- ======= 主区 ======= -->
+<main class="main" id="top">
+
+  <!-- 顶栏：标题随页切换 + 动作 -->
+  <header class="topbar">
+    <div>
+      <h1 id="page-title">我的发布台</h1>
+      <div class="topbar-sub" id="page-sub">正在加载…</div>
+    </div>
+    <div class="topbar-actions">
+      <span class="pill" id="env-pill"><b>检查中…</b></span>
+      <button class="btn" id="bell-btn" onclick="toggleBell(event)" title="通知">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>
+        <span id="bell-badge">0</span>
+      </button>
+      <div class="bell-panel" id="bell-panel">
+        <div class="bell-head"><b>通知</b>
+          <span style="display:flex;gap:8px;align-items:center">
+            <button class="ctab" onclick="askNotifyPerm()" id="notify-perm-btn">开启系统通知</button>
+            <button class="ctab" onclick="markAllRead()">全部已读</button>
+          </span>
+        </div>
+        <div id="bell-list" style="max-height:300px;overflow-y:auto"><div class="feed-empty">暂无新通知</div></div>
+      </div>
+      <button class="btn" id="theme-btn" onclick="cycleTheme()" title="切换主题">
+        <svg id="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>
+      </button>
+      <button class="btn" onclick="refresh(true)" title="刷新">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+      </button>
+      <button class="btn btn-primary" id="topbar-pub" onclick="openPublish('port')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        发布应用
+      </button>
+    </div>
+  </header>
+
+  <div class="license-banner" id="license-banner" style="display:none">
+    <div><b id="license-banner-title">试用已结束</b><span id="license-banner-text"></span></div>
+    <button class="btn btn-sm btn-primary" onclick="openLicense()">激活买断版</button>
+  </div>
+
+  <!-- ======= 页面：我的应用 ======= -->
+  <section class="page show" id="page-apps">
+    <!-- 空状态：全舞台 Hero（无应用时） -->
+    <div class="empty-hero" id="empty-hero" style="display:none">
+      <div class="hero-glyph">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4.5v9L12 20l-8-4.5v-9L12 2z"/><path d="M12 11v9"/><path d="M12 11l8-4.5M12 11L4 6.5"/></svg>
+      </div>
+      <div class="hero-title">把这台电脑，<em>分享给任何人</em></div>
+      <div class="hero-sub">免费、零服务器。扫描正在运行的项目，或让 panweb 替你启动，<br>一次点击生成公网网址 —— 手机、朋友的电脑、客户的浏览器都能打开。</div>
+      <button class="btn btn-primary btn-lg" onclick="openPublish('port')">＋ 发布第一个应用</button>
+      <div class="hero-chips">
+        <button class="chip" onclick="openPublish('port')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg>
+          在手机上用这台电脑
+        </button>
+        <button class="chip" onclick="openPublish('pages')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.8l7.6-4.4M8.2 13.2l7.6 4.4"/></svg>
+          把文件夹发给朋友看
+        </button>
+        <button class="chip" onclick="openPublish('project')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17l6-6-6-6"/><path d="M12 19h8"/></svg>
+          启动一个项目并发布
+        </button>
+      </div>
+      <div class="hero-env" id="hero-env"></div>
+    </div>
+
+    <!-- 应用网格（有应用时） -->
+    <div id="apps-wrap" style="display:none">
+      <div class="row-head">
+        <div class="row-title">我的应用 <span class="row-hint" id="apps-count"></span></div>
+        <button class="btn btn-sm" onclick="openPublish('port')">＋ 发布</button>
+      </div>
+      <div class="apps-grid" id="apps-grid"></div>
+    </div>
+  </section>
+
+  <!-- ======= 页面：动态与提醒 ======= -->
+  <section class="page" id="page-feed">
+    <div class="feed-stats">
+      <div class="card fstat"><div><div class="n" id="fs-pub">0</div><div class="l">发布次数</div></div>
+        <div class="stat-ic ic-jade"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></div></div>
+      <div class="card fstat"><div><div class="n" id="fs-stop">0</div><div class="l">停止次数</div></div>
+        <div class="stat-ic ic-danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></div></div>
+      <div class="card fstat"><div><div class="n" id="fs-heal">0</div><div class="l">自动恢复</div></div>
+        <div class="stat-ic ic-gold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-2.64-6.36"/><path d="M21 3v6h-6"/></svg></div></div>
+    </div>
+    <div class="card timeline" id="visit-feed" style="margin-bottom:14px"><div class="feed-empty">暂无访客 · 分享链接被打开后会显示在这里</div></div>
+    <div class="card timeline" id="feed-list"><div class="feed-empty">暂无动态</div></div>
+  </section>
+
+  <!-- ======= 页面：连接 Agent ======= -->
+  <section class="page" id="page-agents">
+    <div class="card section-card">
+      <div class="sc-title">这台电脑上的 Agent</div>
+      <div class="sc-sub">点「连接」把 panweb 发布技能装给它 —— 只写它的技能目录，不动其他文件。装好后重新打开这个 Agent，用一句话就能发布本机应用。</div>
+      <div class="agent-grid" id="ag-list"><div class="feed-empty">检测中…</div></div>
+    </div>
+    <div class="card section-card">
+      <div class="sc-title">给其他 Agent 安装</div>
+      <div class="sc-sub">不在列表里的软件：点「复制安装说明」，粘贴给它就行。说明里带着本机技能目录，能读本机文件的 Agent 会照着装好。</div>
+      <button class="btn" onclick="copyGuide()">📋 复制安装说明</button>
+    </div>
+    <div class="card section-card">
+      <div class="sc-title">连接后可以这样对它说</div>
+      <div class="sc-sub">你的 Agent 会直接完成发布；公开访问前它都会先跟你确认风险。</div>
+      <div class="say" onclick="copyText('把 3000 端口发出去，让我手机上能打开')">「把 3000 端口发出去，让我手机上能打开」</div>
+      <div class="say" onclick="copyText('帮我启动这个项目并发到公网：/path/to/project')">「帮我启动这个项目并发到公网：&lt;路径&gt;」</div>
+      <div class="say" onclick="copyText('把这个页面发给所有人看，记得先加个访问口令')">「把这个页面发给所有人看，记得先加个访问口令」</div>
+    </div>
+  </section>
+
+  <!-- ======= 页面：系统与数据 ======= -->
+  <section class="page" id="page-system">
+    <div class="feed-stats">
+      <div class="card fstat"><div><div class="n" id="sy-apps">0</div><div class="l">发布中的应用</div></div>
+        <div class="stat-ic ic-jade"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5"/></svg></div></div>
+      <div class="card fstat"><div><div class="n" id="sy-visits">0</div><div class="l">累计访问记录</div></div>
+        <div class="stat-ic ic-gold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 12.55a11 11 0 0114 0"/><path d="M8.5 16a6 6 0 017 0"/><circle cx="12" cy="19.5" r="1"/></svg></div></div>
+      <div class="card fstat"><div><div class="n" id="sy-agents">0</div><div class="l">已连接 Agent</div></div>
+        <div class="stat-ic ic-jade"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-5"/><path d="M6 8h12v5a6 6 0 01-12 0V8z"/></svg></div></div>
+      <div class="card fstat"><div><div class="n" id="sy-size">0</div><div class="l">数据占用</div></div>
+        <div class="stat-ic ic-gold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div></div>
+    </div>
+
+    <div class="card section-card" style="margin-top:0">
+      <div class="sc-title">运行状态</div>
+      <div class="sc-sub" id="sy-about" style="margin-bottom:0">读取中…</div>
+    </div>
+
+    <div class="card section-card">
+      <div class="sc-title">固定域名 <span class="row-hint">网址永久不变 · 不受快速隧道限流影响</span></div>
+      <div class="sc-sub">需要一个已接入 Cloudflare 的域名。授权 → 填域名 → 启用，然后把任意应用「绑定」上去（同一时间一个应用）。</div>
+      <div id="dm-body"><div class="feed-empty">读取中…</div></div>
+    </div>
+
+    <div class="card section-card">
+      <div class="sc-title">买断许可 <span class="row-hint" id="lic-mode">读取中…</span></div>
+      <div class="sc-sub" id="lic-detail">一次买断，永久使用；含 1 年更新。离线签名，不联网校验。</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="openLicense()">激活 / 管理许可</button>
+      </div>
+      <div class="d-hint">许可与设备绑定；换机请先在旧机解除绑定，或用同一密钥在本机重新激活。</div>
+    </div>
+
+    <div class="card section-card">
+      <div class="sc-title">管理操作</div>
+      <div class="sc-sub">数据都保存在本机，随时可查可备份。</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn" onclick="openDataDir()">📂 打开数据目录</button>
+        <button class="btn" onclick="recoverAll()">🩺 重启全部通道</button>
+        <button class="btn" id="notify-visits-btn" onclick="toggleVisitNotify()">访客提醒：读取中…</button>
+        <button class="btn btn-danger" onclick="shutdownConsole()">⏻ 停止控制台</button>
+        <button class="btn" onclick="installMenubar()">🖥 安装菜单栏常驻</button>
+      </div>
+      <div class="d-hint">访客打开分享页或应用时，控制台会发 macOS 系统通知（需在系统设置中允许）；控制台关闭后不再提醒。</div>
+    </div>
+
+    <div class="card section-card">
+      <div class="sc-title">关机后还能访问吗？</div>
+      <div class="sc-sub" style="margin-bottom:10px">取决于应用类型：<b>动态应用</b>（Node 服务等）跑在这台电脑上，关机即下线 —— 想常驻需要放到云服务器或免费容器；<b>静态网页</b>可以打包上传到免费云托管（Cloudflare Pages / Netlify / Vercel），地址固定、关机也能访问。</div>
+      <div class="d-field" style="max-width:560px">
+        <input type="text" id="in-pack" placeholder="要导出的静态文件夹路径，例如 /Users/you/项目/dist">
+        <button class="btn btn-primary btn-sm" onclick="doPack()">导出离线包</button>
+      </div>
+      <div class="d-hint">导出的 zip 上传到任意静态托管即可；也可以直接把 zip 发给对方解压打开。</div>
+    </div>
+  </section>
+</main>

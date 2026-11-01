@@ -1,0 +1,176 @@
+<svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg" style="max-width:100%; height:auto; background:#fafafa;">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 Z" fill="currentColor"/>
+    </marker>
+    <linearGradient id="gradTunnel" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#33796b"/>
+      <stop offset="100%" stop-color="#2a6558"/>
+    </linearGradient>
+    <linearGradient id="gradProxy" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#b9975b"/>
+      <stop offset="100%" stop-color="#a08040"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.1"/>
+    </filter>
+  </defs>
+
+  <!-- Styles -->
+  <style>
+    .box { rx:12; ry:12; filter:url(#shadow); }
+    .box-main { fill:#fff; stroke:#33796b; stroke-width:2; }
+    .box-proxy { fill:#fff; stroke:#b9975b; stroke-width:2; stroke-dasharray:4 2; }
+    .box-cloud { fill:#e9f2ee; stroke:#33796b; stroke-width:2; }
+    .box-local { fill:#f7f6f2; stroke:#8a968f; stroke-width:1.5; }
+    .label { font:600 14px -apple-system, "PingFang SC", sans-serif; fill:#22312e; text-anchor:middle; }
+    .label-sm { font:500 12px -apple-system, "PingFang SC", sans-serif; fill:#5a6a65; text-anchor:middle; }
+    .note { font:400 11px -apple-system, "PingFang SC", sans-serif; fill:#8a968f; text-anchor:middle; }
+    .arrow { fill:none; stroke:#5a6a65; stroke-width:2; marker-end:url(#arrow); }
+    .arrow-tunnel { stroke:url(#gradTunnel); stroke-width:3; }
+    .arrow-proxy { stroke:url(#gradProxy); stroke-width:2; stroke-dasharray:4 2; }
+    .title { font:700 20px -apple-system, "PingFang SC", sans-serif; fill:#22312e; text-anchor:middle; }
+    .subtitle { font:500 13px -apple-system, "PingFang SC", sans-serif; fill:#5a6a65; text-anchor:middle; }
+    .badge { font:600 10px -apple-system, "PingFang SC", sans-serif; fill:#fff; }
+    .badge-bg { fill:#33796b; rx:4; ry:4; }
+    .badge-bg-gold { fill:#b9975b; }
+    .port-label { font:500 11px monospace; fill:#33796b; }
+    .port-label-proxy { font:500 11px monospace; fill:#b9975b; }
+    .legend-box { rx:6; ry:6; }
+  </style>
+
+  <!-- Title -->
+  <text x="600" y="35" class="title">panweb 核心原理：Cloudflare 快速隧道 + 本地代理编排</text>
+  <text x="600" y="55" class="subtitle">零服务器、零账号、一条命令把本机端口/文件夹发到公网</text>
+
+  <!-- ============ CLOUDFLARE EDGE (Right side) ============ -->
+  <g transform="translate(820, 80)">
+    <rect x="0" y="0" width="350" height="640" class="box box-cloud"/>
+    <text x="175" y="30" class="label">☁️ Cloudflare 边缘网络</text>
+
+    <!-- trycloudflare.com -->
+    <rect x="20" y="50" width="310" height="120" class="box" fill="#fff" stroke="#33796b" stroke-width="1.5"/>
+    <text x="175" y="75" class="label" style="font-size:13px;">trycloudflare.com (快速隧道)</text>
+    <text x="175" y="100" class="note">随机子域名：xxx-yyy.trycloudflare.com</text>
+    <text x="175" y="120" class="note">每次发布新网址，stop 即失效</text>
+    <text x="175" y="145" class="note">边缘 IP 直连验证（绕过本地 DNS）</text>
+
+    <!-- Edge behavior -->
+    <rect x="20" y="190" width="310" height="160" class="box" fill="#fff" stroke="#33796b" stroke-width="1.5"/>
+    <text x="175" y="215" class="label" style="font-size:13px;">边缘行为</text>
+    <text x="50" y="245" class="note" style="text-anchor:start;">🔹 出站 QUIC 连接（cloudflared 主动发起）</text>
+    <text x="50" y="270" class="note" style="text-anchor:start;">🔹 无需公网 IP、无需端口映射</text>
+    <text x="50" y="295" class="note" style="text-anchor:start;">🔹 公司内网/家庭 NAT 皆可用</text>
+    <text x="50" y="320" class="note" style="text-anchor:start;">🔹 无 SLA、大流量不适用</text>
+    <text x="50" y="345" class="note" style="text-anchor:start;">🔹 DNS 传播延迟（国内首访慢几分钟）</text>
+
+    <!-- Fixed domain option -->
+    <rect x="20" y="370" width="310" height="110" class="box" fill="#fff" stroke="#b9975b" stroke-width="1.5" stroke-dasharray="4 2"/>
+    <text x="175" y="395" class="label" style="font-size:13px; fill:#a08040;">🌐 进阶：固定域名（命名隧道）</text>
+    <text x="50" y="425" class="note" style="text-anchor:start; fill:#8a968f;">自有域名 + Cloudflare DNS → 永久固定网址</text>
+    <text x="50" y="450" class="note" style="text-anchor:start; fill:#8a968f;">cloudflared tunnel --hostname app.your.com</text>
+
+    <!-- Pool / Prewarm -->
+    <rect x="20" y="500" width="310" height="100" class="box" fill="#fff" stroke="#33796b" stroke-width="1.5"/>
+    <text x="175" y="525" class="label" style="font-size:13px;">⚡ 预热隧道池（控制台常驻时）</text>
+    <text x="50" y="555" class="note" style="text-anchor:start; fill:#5a6a65;">后台预建 N 条隧道 → 发布秒级出网址</text>
+    <text x="50" y="580" class="note" style="text-anchor:start; fill:#5a6a65;">用完即补，健康巡检 60s/次</text>
+  </g>
+
+  <!-- ============ LOCAL MACHINE (Left side) ============ -->
+  <g transform="translate(30, 80)">
+    <rect x="0" y="0" width="350" height="640" class="box box-local"/>
+    <text x="175" y="30" class="label">💻 本机</text>
+
+    <!-- User App -->
+    <rect x="20" y="50" width="310" height="140" class="box box-main"/>
+    <text x="175" y="75" class="label">🎯 你的应用</text>
+    <text x="175" y="105" class="port-label">端口 3000 / 5173 / 8000 ...</text>
+    <text x="175" y="130" class="note">Node (npm run dev) / Python / 静态文件</text>
+    <text x="175" y="155" class="note">panweb run 自动识别并启动</text>
+
+    <!-- Static folder -->
+    <rect x="20" y="210" width="310" height="100" class="box box-main"/>
+    <text x="175" y="235" class="label">📁 静态文件夹</text>
+    <text x="175" y="260" class="port-label">panweb pages ./dist</text>
+    <text x="175" y="285" class="note">只读 HTTP 服务（内置 Python 静态服务器）</text>
+
+    <!-- Internal Proxy (optional) -->
+    <rect x="20" y="330" width="310" height="160" class="box box-proxy"/>
+    <text x="175" y="355" class="label" style="fill:#a08040;">🔐 内置代理（可选）</text>
+    <text x="175" y="380" class="port-label-proxy">代理端口：随机 (如 45231)</text>
+    <text x="50" y="405" class="note" style="text-anchor:start; fill:#5a6a65;">触发条件：设置口令、分享页、静态发布</text>
+    <text x="50" y="430" class="note" style="text-anchor:start; fill:#5a6a65;">功能：口令校验、访问统计、WebSocket 透传</text>
+    <text x="50" y="455" class="note" style="text-anchor:start; fill:#5a6a65;">隧道指向代理端口 → 改口令不换网址</text>
+
+    <!-- cloudflared process -->
+    <rect x="20" y="510" width="310" height="120" class="box" fill="#fff" stroke="#33796b" stroke-width="1.5"/>
+    <text x="175" y="535" class="label" style="font-size:13px;">🚇 cloudflared 进程</text>
+    <text x="175" y="560" class="port-label">cloudflared tunnel --url http://127.0.0.1:PORT</text>
+    <text x="50" y="585" class="note" style="text-anchor:start; fill:#5a6a65;">每条发布 = 1 个独立 cloudflared 子进程</text>
+    <text x="50" y="610" class="note" style="text-anchor:start; fill:#5a6a65;">日志写 ~/.panweb/logs/{id}.log</text>
+  </g>
+
+  <!-- ============ CONTROL PLANE (Middle bottom) ============ -->
+  <g transform="translate(400, 560)">
+    <rect x="0" y="0" width="400" height="160" class="box box-main"/>
+    <text x="200" y="30" class="label">🎛️ panweb 控制平面 (单文件 Python)</text>
+    <text x="50" y="60" class="note" style="text-anchor:start; fill:#5a6a65;">CLI 命令：discover / publish / pages / run / list / stop / status / doctor / ui</text>
+    <text x="50" y="82" class="note" style="text-anchor:start; fill:#5a6a65;">状态持久化：~/.panweb/state.json + 文件锁 (fcntl 跨进程)</text>
+    <text x="50" y="104" class="note" style="text-anchor:start; fill:#5a6a65;">健康自愈：60s 巡检 → 代理/隧道挂了自动重启（网址不变）</text>
+    <text x="50" y="126" class="note" style="text-anchor:start; fill:#5a6a65;">预热池管理、口令哈希存储、访客 HMAC 指纹、分享页 Token</text>
+    <text x="50" y="148" class="note" style="text-anchor:start; fill:#5a6a65;">Web 控制台：panweb ui (127.0.0.1:7788，仅本机访问)</text>
+  </g>
+
+  <!-- ============ ARROWS (Connections) ============ -->
+  <!-- App -> Proxy (optional) -->
+  <path d="M380,200 Q500,200 500,380" class="arrow arrow-proxy"/>
+  <text x="510" y="200" class="badge" style="fill:#b9975b;">口令/分享/静态时</text>
+
+  <!-- App -> cloudflared (direct) -->
+  <path d="M380,120 Q550,120 550,250 Q650,250 820,250" class="arrow arrow-tunnel"/>
+  <text x="580" y="110" class="badge" style="fill:#33796b;">直连模式</text>
+
+  <!-- Proxy -> cloudflared -->
+  <path d="M380,410 Q550,410 550,300 Q650,300 820,300" class="arrow arrow-tunnel"/>
+  <text x="580" y="400" class="badge" style="fill:#33796b;">代理模式</text>
+
+  <!-- cloudflared -> Edge -->
+  <path d="M780,250 L820,250" class="arrow arrow-tunnel" style="stroke-width:4;"/>
+  <path d="M780,300 L820,300" class="arrow arrow-tunnel" style="stroke-width:4;"/>
+
+  <!-- Control plane arrows -->
+  <path d="M600,560 L600,500" class="arrow" style="stroke:#33796b; stroke-width:2;"/>
+  <path d="M600,560 L600,620" class="arrow" style="stroke:#b9975b; stroke-width:2; stroke-dasharray:4 2;"/>
+
+  <!-- Visitor flow (top) -->
+  <g transform="translate(820, 20)">
+    <text x="175" y="0" class="label" style="fill:#b4544a;">👤 访客浏览器</text>
+    <path d="M175,15 L175,60" class="arrow" style="stroke:#b4544a; stroke-width:2;"/>
+    <text x="175" y="80" class="label-sm" style="fill:#b4544a;">https://xxx.trycloudflare.com</text>
+  </g>
+
+  <!-- Legend -->
+  <g transform="translate(30, 730)">
+    <rect x="0" y="0" width="1140" height="50" class="legend-box" fill="#fff" stroke="#e9e6de"/>
+    <rect x="20" y="12" width="20" height="20" class="legend-box box-main"/>
+    <text x="50" y="27" class="label-sm">核心流程</text>
+    <rect x="160" y="12" width="20" height="20" class="legend-box box-proxy"/>
+    <text x="190" y="27" class="label-sm" style="fill:#a08040;">代理模式（口令/统计/静态）</text>
+    <path d="M360,22 L400,22" class="arrow arrow-tunnel" style="stroke-width:3;"/>
+    <text x="410" y="27" class="label-sm">Cloudflare 隧道 (QUIC 出站)</text>
+    <path d="M580,22 L620,22" class="arrow arrow-proxy" style="stroke-width:2;"/>
+    <text x="630" y="27" class="label-sm">本地转发 (代理→应用)</text>
+    <rect x="800" y="12" width="20" height="20" class="legend-box" fill="#e9f2ee" stroke="#33796b"/>
+    <text x="830" y="27" class="label-sm">Cloudflare 边缘</text>
+    <rect x="980" y="12" width="20" height="20" class="legend-box" fill="#f7f6f2" stroke="#8a968f"/>
+    <text x="1010" y="27" class="label-sm">本机进程</text>
+  </g>
+
+  <!-- Key insight callout -->
+  <g transform="translate(400, 730)">
+    <rect x="0" y="0" width="400" height="50" rx="8" ry="8" fill="#fff8e9" stroke="#b9975b" stroke-width="1.5"/>
+    <text x="200" y="20" class="label-sm" style="fill:#a08040; text-anchor:middle;">💡 关键洞见：UUMit = frp(自建服务端) + 账号体系 → panweb = cloudflared(零服务端) - 账号体系</text>
+    <text x="200" y="38" class="note" style="fill:#8a968f; text-anchor:middle;">网址即密码（随机子域名隐匿），高危服务必须加口令或走代理模式</text>
+  </g>
+</svg>

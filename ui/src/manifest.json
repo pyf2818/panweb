@@ -1,0 +1,21 @@
+{
+  "styles": [
+    "styles/base.css",
+    "styles/layout.css",
+    "styles/components.css",
+    "styles/overlays.css"
+  ],
+  "scripts": [
+    "js/core.js",
+    "js/apps.js",
+    "js/sharing.js",
+    "js/license.js",
+    "js/workspace.js",
+    "js/diagnose.js",
+    "js/boot.js"
+  ],
+  "partials": {
+    "pages": "partials/pages.html",
+    "overlays": "partials/overlays.html"
+  }
+}

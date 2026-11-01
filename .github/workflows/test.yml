@@ -1,0 +1,26 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Syntax check
+        run: python3 -m compileall -q -x '/\._' src tools tests
+      - name: Unit & CLI tests
+        run: python3 -m unittest discover -s tests -v
+      - name: UI build consistency
+        run: python3 tools/build_ui.py --check
+      - name: Build single-file distribution
+        run: python3 tools/build_zipapp.py --out /tmp/panweb.pyz && python3 /tmp/panweb.pyz --version
