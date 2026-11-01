@@ -110,6 +110,7 @@ src/panweb/             # 按职责分包，单文件均 < 500 行
   mcp_server            # MCP stdio（复用同一批 core_* 函数）
 ui/src/                 # 前端源码：4 个 CSS、7 个 JS、2 个 partials + index + manifest
 ui/index.html           # tools/build_ui.py 组装的单文件产物（文件头标注「请勿直接编辑」）
+site/                   # 项目介绍页：独立静态站（index + 3 CSS + 4 JS），`panweb pages site` 即可发布
 tools/build_ui.py       # 前端组装 / --check
 tools/build_dmg.py      # macOS 安装包（install-app 造 App → hdiutil 打 dmg）
 tools/license_tool.py   # 卖家侧离线签发许可
@@ -190,7 +191,8 @@ CLI 现在由 `main()` 统一捕获业务错误；`--json` 模式下 stderr 最�
 
 ## 已知限制
 
-- **DNS 传播**：部分网络（尤其中国内地）对新生子域名解析慢，首次过早访问可能失败几分钟。panweb 内部用 Cloudflare 边缘 IP 直连验证，不受此影响；访客打不开时等几分钟再试。
+- **DNS 传播**：部分网络（尤其中国内地）对新生子域名解析慢，首次过早访问可能失败几分钟。panweb 内部用 Cloudflare 边缘 IP 直连验证，不受此影响；访客打不开时等几分钟再试。自检会把这种情况归为「本机解析不到，但隧道在响应」，不会误报成应用坏了。
+- **QUIC 被吃掉时自动改走 HTTP/2**：有些网络会静默丢弃 UDP 443，cloudflared 拿到网址却撑不过几十秒，访客侧永远是 530。panweb 会探测一次（结果按进程缓存），不通就加 `--protocol http2`；也可以用 `PANWEB_TUNNEL_PROTOCOL=quic|http2|auto` 强制。
 - **速率**：Cloudflare 官方对快速隧道无 SLA，大流量/生产场景不适用。
 - **访问统计/分享页只在代理模式可用**：`pages` 和设置口令的发布默认经过内置代理；端口发布在控制台勾选「分享页 + 访问统计」或 CLI 加 `--share` 才走代理。默认直连发布零开销，不记录统计。
 - **上游兼容同样只在代理模式可用**：直连发布的链路里没有 panweb，`compat` 会直接告诉你"改了也不会生效"并给出切到代理的做法（详情抽屉里的控件也会置灰），不会留下一个看起来已设置、其实没生效的开关。
@@ -311,7 +313,7 @@ make dmg                           # macOS 安装包 → dist/panweb-<版本>-<�
 
 - `tests/` 现为分包结构：路径/状态/访问/许可/管道单元测试、CLI 合约、代理分享页/PIN/过期、WebSocket 透传、上游兼容（转发头构造、凭据归一化与注入拒绝）、访客自检（结论判定/资源抽样/裸 TLS WebSocket/Host 取证修正）、控制台安全、前端构建与模块体积约束、子进程代理集成（真实拉起 `_spawn_proxy` 后转发/分享页/口令/代填凭据）。
 - 状态目录可用 `PANWEB_HOME` 隔离（测试与便携模式）；panweb 拉起的代理/控制台子进程会继承它。
-- CI：`.github/workflows/test.yml` 在 Python 3.9/3.11/3.12 上跑语法编译、105 项测试、前端产物一致性检查与 zipapp 构建。
+- CI：`.github/workflows/test.yml` 在 Python 3.9/3.11/3.12 上跑语法编译、112 项测试、前端产物一致性检查与 zipapp 构建。
 - 第三方组件与许可证：见 `THIRD_PARTY_NOTICES.md`（cloudflared Apache-2.0、QR 库 MIT）。
 - 打包自包含 App：`panweb install-app`（复制包、UI、技能、第三方声明与可选许可公钥）。
 - 打包单文件分发：`python3 tools/build_zipapp.py` → `dist/panweb.pyz`（含 UI/技能/公钥，可独立运行）。

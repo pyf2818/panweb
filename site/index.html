@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>panweb — 零服务器，把本机应用一条命令发到公网</title>
+<meta name="description" content="panweb 用 Cloudflare 快速隧道把这台电脑上正在运行的网页、接口和静态文件夹发布成公网网址：不需要服务器、不需要账号、不需要实名，访客拿到网址就能打开。">
+<meta name="theme-color" content="#141a18">
+<meta property="og:title" content="panweb — 零服务器，把本机应用一条命令发到公网">
+<meta property="og:description" content="不需要服务器、账号与实名。发布端口、静态文件夹，自动启动项目；复杂应用有访客视角自检与上游兼容层。">
+<meta property="og:type" content="website">
+<link rel="icon" href="favicon.png">
+<link rel="stylesheet" href="styles/base.css">
+<link rel="stylesheet" href="styles/sections.css">
+<link rel="stylesheet" href="styles/motion.css">
+</head>
+<body>
+<div class="grain" aria-hidden="true"></div>
+<div class="progress" aria-hidden="true"><i></i></div>
+
+<header class="nav">
+  <a class="brand" href="#top">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13" class="ring"/><path d="M9 21V11h5.6a3.4 3.4 0 010 6.8H12" class="glyph"/><circle cx="23" cy="9" r="2.4" class="spark"/></svg>
+    <span>panweb</span>
+  </a>
+  <nav class="links">
+    <a href="#why" data-spy>为什么</a>
+    <a href="#flow" data-spy>原理</a>
+    <a href="#demo" data-spy>上手</a>
+    <a href="#hard" data-spy>复杂应用</a>
+    <a href="#features" data-spy>能力</a>
+    <a href="#safety" data-spy>安全</a>
+    <a href="#get" data-spy>下载</a>
+  </nav>
+  <div class="nav-side">
+    <button class="theme" id="theme" aria-label="切换明暗主题">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path class="moon" d="M20 14.5A8 8 0 019.8 4a8 8 0 1010.2 10.5z"/><circle class="sun" cx="12" cy="12" r="4.2"/><g class="rays"><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.5 1.5M17.6 17.6l1.5 1.5M19.1 4.9l-1.5 1.5M6.4 17.6l-1.5 1.5"/></g></svg>
+    </button>
+    <a class="btn btn-sm" href="https://github.com/pyf2818/panweb" rel="noopener">源码</a>
+  </div>
+</header>
+
+<main>
+  <section class="hero" id="top">
+    <canvas id="mesh" aria-hidden="true"></canvas>
+    <div class="aurora" aria-hidden="true"></div>
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow reveal"><span class="dot"></span>macOS · Python 标准库 · 无 pip 依赖 · 1.5.0</p>
+        <h1 class="reveal">把这台电脑上的应用<br><em>一条命令</em>发到公网</h1>
+        <p class="lede reveal">正在跑的网页、接口、静态文件夹，拿到网址的人用手机或其他电脑直接打开。
+          不需要申请服务器，不需要注册账号，不需要实名，也不用改网络设备的端口映射。</p>
+        <div class="cmd reveal" id="hero-cmd">
+          <code>panweb publish 3000 --share</code>
+          <button class="copy" data-copy="panweb publish 3000 --share" aria-label="复制命令">复制</button>
+        </div>
+        <div class="hero-cta reveal">
+          <a class="btn btn-lg magnetic" href="#get">下载安装包</a>
+          <a class="btn btn-lg ghost" href="#flow">看它怎么工作</a>
+        </div>
+      </div>
+      <ul class="zeros reveal">
+        <li><b data-count="0">0</b><span>台服务器</span></li>
+        <li><b data-count="0">0</b><span>次注册实名</span></li>
+        <li><b data-count="1">1</b><span>条命令</span></li>
+        <li><b data-count="105">105</b><span>项回归测试</span></li>
+      </ul>
+    </div>
+    <a class="scroll-hint" href="#why" aria-label="向下滚动"><i></i></a>
+  </section>
+
+  <section class="band" id="why">
+    <div class="wrap">
+      <h2 class="reveal">隧道内核这件事，<em>别人收费的地方它免费</em></h2>
+      <p class="sub reveal">panweb 的架构逆向自 UUMit 客户端（Go + 内嵌 <code>fatedier/frp</code>）：
+        隧道内核换成 Cloudflare 快速隧道，平台侧的账号、成员、实名与权限层整层去掉——
+        零服务器意味着没有那台需要人守着的服务端。</p>
+      <div class="split reveal">
+        <div class="split-col">
+          <h3>UUMit</h3>
+          <ul class="plain">
+            <li>frp 隧道，服务端由平台自建</li>
+            <li>平台账号 + 实名认证</li>
+            <li>固定设备子域名</li>
+            <li>暴露面分档：私有 / 邀请 / 成员管理 / 公开</li>
+            <li>免费档 + 付费档</li>
+          </ul>
+        </div>
+        <div class="split-col is-us">
+          <h3>panweb</h3>
+          <ul class="plain">
+            <li>cloudflared 快速隧道，只出站连接</li>
+            <li>无账号、无实名、不联网校验</li>
+            <li>每次发布随机网址（可另接固定域名）</li>
+            <li>靠随机子域名隐匿 + 访问口令 + 分享页 + 时效</li>
+            <li>源码自托管免费；商业发行版一次买断</li>
+          </ul>
+        </div>
+      </div>
+      <div class="ticker reveal" aria-hidden="true">
+        <div class="track">
+          <span>Jupyter</span><span>Grafana</span><span>n8n</span><span>Open WebUI</span><span>ComfyUI</span><span>Streamlit</span><span>Vite dev</span><span>Next.js</span><span>FastAPI</span><span>Gradio</span><span>Ollama</span><span>TypeScript 站点</span><span>Markdown 周报</span><span>Excel 报表</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band alt" id="flow">
+    <div class="wrap">
+      <h2 class="reveal">请求走的那条路</h2>
+      <p class="sub reveal">本机永远只发起出站连接，所以 NAT、防火墙、家庭宽带都能用；
+        源站只绑定 <code>127.0.0.1</code>，公网看不到它的地址。</p>
+      <div class="flow reveal" id="flow-diagram">
+        <svg viewBox="0 0 900 190" class="wires" aria-hidden="true">
+          <path class="wire" d="M120 96 H360"/>
+          <path class="wire dash" d="M360 96 C470 96 470 40 570 40"/>
+          <path class="wire dash" d="M360 96 C470 96 470 150 570 150"/>
+          <path class="wire" d="M570 40 C690 40 700 96 790 96"/>
+          <path class="wire" d="M570 150 C690 150 700 96 790 96"/>
+          <circle class="packet" r="4.5" d="M120 96 H360 C470 96 470 40 570 40 C690 40 700 96 790 96"/>
+          <circle class="packet p2" r="4.5" d="M790 96 C700 96 690 150 570 150 C470 150 470 96 360 96 H120"/>
+        </svg>
+        <div class="node n-visitor" style="left:6%">
+          <b>访客</b><span>手机 / 另一台电脑<br>只需一个网址</span>
+        </div>
+        <div class="node n-edge" style="left:34%">
+          <b>panweb 内置代理</b><span>口令 · 分享页 · 匿名统计<br>WebSocket 透传</span>
+        </div>
+        <div class="node n-tunnel" style="left:62%">
+          <b>Cloudflare 边缘</b><span>xxx.trycloudflare.com</span>
+        </div>
+        <div class="node n-app" style="left:88%">
+          <b>你的应用</b><span>127.0.0.1:3000</span>
+        </div>
+      </div>
+      <ol class="steps">
+        <li class="reveal"><b>01</b><span>本机拉起 cloudflared，向 Cloudflare 建立出站隧道</span></li>
+        <li class="reveal"><b>02</b><span>需要一个隧道就秒级取用一个：预热隧道池早就候着了</span></li>
+        <li class="reveal"><b>03</b><span>直连发布把隧道指向应用端口；要口令、统计、分享页则先经过内置代理</span></li>
+        <li class="reveal"><b>04</b><span>网址进状态文件，隧道独立进程存活——关掉终端也照样能访问</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="band" id="demo">
+    <div class="wrap two-col">
+      <div>
+        <h2 class="reveal">三条命令，覆盖三种东西</h2>
+        <p class="sub reveal">同一个控制台、同一批 <code>core_*</code> 函数也被 CLI、Web 界面、
+          MCP 与 Agent 技能共用，所以不会出现「界面上能做、命令行做不到」。</p>
+        <div class="tabs reveal" id="modes" role="tablist">
+          <button role="tab" aria-selected="true" data-mode="publish">发布端口</button>
+          <button role="tab" aria-selected="false" data-mode="pages">发布文件夹</button>
+          <button role="tab" aria-selected="false" data-mode="run">启动并发布项目</button>
+          <i class="tab-ind" aria-hidden="true"></i>
+        </div>
+        <p class="tab-body reveal" id="mode-body"></p>
+        <ul class="ticks reveal">
+          <li>控制台常驻时预热隧道池，命中约 1-2 秒出网址</li>
+          <li>有效期可选 1 小时 / 1 天 / 7 天，到期自动收回</li>
+          <li>已走代理的发布改口令不换网址，实时生效</li>
+        </ul>
+      </div>
+      <div class="term reveal" id="term">
+        <div class="term-bar"><span class="dots"><i></i><i></i><i></i></span><em>panweb — zsh</em></div>
+        <pre id="term-body"></pre>
+        <span class="caret" aria-hidden="true"></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="band alt" id="hard">
+    <div class="wrap">
+      <h2 class="reveal">隧道通了，页面却只有一个壳？<em>这才是要害</em></h2>
+      <p class="sub reveal">静态页和简单应用发出去就能用。真正复杂的应用会给你两道意料之外的门：
+        应用自己校验 Host 防 DNS 重绑定，以及应用要它自己的账号。panweb 1.5 把这两件事变成可诊断、可设置的东西。</p>
+      <div class="cards three">
+        <article class="card reveal" data-tilt>
+          <div class="card-iso" aria-hidden="true"></div>
+          <h3><span class="ico">⇄</span>回源 Host 可切换</h3>
+          <p>默认把本机地址交给应用（应用的防重绑定校验继续生效）；需要时切到 <code>tunnel</code>，
+            访客正在用的公网域名原样传到上游，Jupyter、Grafana、n8n、Open WebUI、Vite 的「未知 Host」403 就消失了。</p>
+          <code class="mini">panweb compat 我的应用 --host-mode tunnel</code>
+        </article>
+        <article class="card reveal" data-tilt>
+          <div class="card-iso" aria-hidden="true"></div>
+          <h3><span class="ico">🔑</span>代访客带上应用凭据</h3>
+          <p>应用非要自己的 token 才能用时，本机代理替每个访客注入 Bearer / Basic / 自定义请求头。
+            密钥只写进 <code>~/.panweb/secrets/&lt;id&gt;.auth.json</code>（0600），
+            状态文件、界面、命令行、MCP 和分享页最多只能看到「已设置哪种」。</p>
+          <code class="mini">printf 'bearer\n' | panweb compat 我的应用 --auth-stdin</code>
+        </article>
+        <article class="card reveal" data-tilt>
+          <div class="card-iso" aria-hidden="true"></div>
+          <h3><span class="ico">🔬</span>按访客视角自检</h3>
+          <p>发布后自动以访客身份真打开公网网址：首页状态与重定向链、首页引用的 js/css、一次裸 TLS 的
+            WebSocket 握手。结论同时写进命令行、详情抽屉、应用卡和分享页——打不开就明说打不开。</p>
+          <div class="verdict" id="verdict">
+            <span class="pill">✓ 可访问</span>
+            <ul class="sigs"></ul>
+          </div>
+        </article>
+      </div>
+      <p class="note reveal">取证式修正：怀疑应用在做 Host 校验时，先用两种 Host 各回源一次比对，
+        确认「本机地址能过、公网域名被拒」才切换模式；切完仍被拒就自动回滚，不把已经能用应用改坏。</p>
+    </div>
+  </section>
+
+  <section class="band" id="features">
+    <div class="wrap">
+      <h2 class="reveal">一台小机器上的完整发布台</h2>
+      <p class="sub reveal">后端按职责分包，前端模块化组装；单文件体积由测试守住，不会出现一个 3700 行的巨型脚本。</p>
+      <div class="cards">
+        <article class="card reveal" data-tilt><h3><span class="ico">⚡</span>秒级网址</h3><p>控制台常驻预热隧道池与转发器，发布时直接取用；隧道 502/530/失联自动重建，网址抖动前先探测三轮。</p></article>
+        <article class="card reveal" data-tilt><h3><span class="ico">🪪</span>分享页</h3><p><code>/__panweb/share/&lt;token&gt;</code> 首屏给应用名、说明、有效期倒计时、在线状态和口令入口，带 OG 预览，适合直接发微信。</p></article>
+        <article class="card reveal" data-tilt><h3><span class="ico">📊</span>匿名统计</h3><p>访客数与访问次数、分享页浏览与应用打开拆分、24 小时/7 天走势、设备与来源分布。IP 经本机 HMAC 后截断，不存原始地址与 UA。</p></article>
+        <article class="card reveal" data-tilt><h3><span class="ico">🌐</span>固定域名</h3><p>自有域名接入 Cloudflare 后走命名隧道：授权、建隧道、写 DNS、绑定应用一条向导做完，网址永久不变。</p></article>
+        <article class="card reveal" data-tilt><h3><span class="ico">🤖</span>Agent 与 MCP</h3><p>内置 MCP stdio 服务（9 个工具）与 Agent 技能；对 Claude Code、Codex 等说「把 3000 端口发出去」即可，技能里带安全规则。</p></article>
+        <article class="card reveal" data-tilt><h3><span class="ico">🖥</span>控制台与菜单栏</h3><p>仅绑定 127.0.0.1 的三栏工作台：应用、动态与提醒、连接 Agent、系统与数据；Swift 原生菜单栏常驻，深色模式与 ⌘K 命令面板。</p></article>
+        <article class="card reveal" data-tilt><h3><span class="ico">🔁</span>健康自愈</h3><p>每 60 秒巡检：内置代理死亡自动重启（网址不变）、陈旧条目清理、孤儿进程按 PID + 命令行双重校验后回收。</p></article>
+        <article class="card reveal" data-tilt><h3><span class="ico">🔐</span>离线买断许可</h3><p>RSA PKCS#1 v1.5 + SHA-256 离线签名，14 天试用、默认 2 台设备、含 1 年更新；全程不联网校验，不采集使用数据。</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="band alt" id="safety">
+    <div class="wrap">
+      <h2 class="reveal">公开是它的价值，也是它的风险</h2>
+      <p class="sub reveal">随机子域名是「隐匿」，不是「认证」。panweb 把边界写进代码，而不是写进承诺。</p>
+      <div class="guard reveal">
+        <div><b>控制台不会被发布</b><span>识别并拒绝自己的 7788 与内部代理端口，避免把本机管理权限带到公网。</span></div>
+        <div><b>高危目标先劝阻</b><span>无密码的模型服务、数据库、管理后台、含个人数据的文件夹——发布前必须确认一次。</span></div>
+        <div><b>静态发布有边界</b><span><code>realpath + commonpath</code>；拒绝隐藏文件、指向发布根之外的符号链接与系统根目录；只读。</span></div>
+        <div><b>口令与注入防护</b><span>加盐 SHA-256、常量时间比较、10 分钟 8 次失败限流；上游请求头拒绝 CR/LF，禁止覆盖 Host/Connection/Upgrade/Content-Length。</span></div>
+        <div><b>子进程不经过 shell</b><span>argv 数组启动，回收时校验 PID 与命令行，防 PID 复用误杀。</span></div>
+        <div><b>只出站</b><span>cloudflared 只向外连接 Cloudflare；本机不开放任何入站端口。</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="get">
+    <div class="wrap two-col">
+      <div>
+        <h2 class="reveal">拿回去用</h2>
+        <p class="sub reveal">纯 Python 标准库 + cloudflared，运行期不需要 pip 安装任何东西。</p>
+        <div class="get-row reveal">
+          <div class="get-main">
+            <b>macOS 安装包</b>
+            <span>自包含 App：内置 cloudflared，双击即用，无需 brew / 终端。ad-hoc 签名，首次打开请右键 →「打开」。</span>
+            <code class="mini">panweb-1.5.0-arm64.dmg · 9.5 MB</code>
+          </div>
+          <div class="get-side">
+            <div class="cmd"><code>git clone 仓库后 ./install.sh</code><button class="copy" data-copy="./install.sh">复制</button></div>
+            <p class="mini-note">命令行版：软链到 <code>~/.local/bin</code> 并安装 Agent 技能</p>
+            <div class="cmd"><code>python3 tools/build_dmg.py</code><button class="copy" data-copy="make dmg">复制</button></div>
+            <p class="mini-note">自己构建安装包（仅 macOS）</p>
+          </div>
+        </div>
+        <div class="honest reveal">
+          <h3>它不擅长的事</h3>
+          <ul class="plain tight">
+            <li>关机就下线：隧道是反代到这台电脑，需要常驻请把静态内容导出上云托管</li>
+            <li>新子域名解析慢：某些网络首次访问要等几分钟</li>
+            <li>快速隧道无 SLA：大流量与生产服务不适合</li>
+            <li>未编译的源码目录仍需在本地先构建再发 <code>dist/</code>（自检会明确告诉你是这一类问题）</li>
+          </ul>
+        </div>
+      </div>
+      <div class="cmd-list reveal">
+        <h3>命令一览</h3>
+        <div><code>panweb ui</code><span>本机控制台（浏览器仪表盘）</span></div>
+        <div><code>panweb discover</code><span>扫描可发布的 HTTP 应用</span></div>
+        <div><code>panweb publish &lt;端口&gt;</code><span>发布正在运行的应用，<code>--share</code> 带分享页</span></div>
+        <div><code>panweb pages &lt;文件夹&gt;</code><span>文件夹发布成只读网页</span></div>
+        <div><code>panweb run &lt;项目&gt;</code><span>识别并自动启动，再直达公网</span></div>
+        <div><code>panweb check &lt;应用&gt;</code><span>访客视角自检与取证修正</span></div>
+        <div><code>panweb compat &lt;应用&gt;</code><span>Host 模式与上游凭据</span></div>
+        <div><code>panweb list / stop / status</code><span>查看、收回、总览</span></div>
+        <div><code>panweb host &lt;文件&gt;</code><span>Markdown/Excel 托管到 GitHub Pages</span></div>
+        <div><code>panweb mcp</code><span>以 MCP stdio 暴露 9 个工具</span></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <span>panweb · 零服务器的本机应用公网发布台</span>
+    <span>v1.5.0 · Python 标准库 + cloudflared · <a href="https://github.com/pyf2818/panweb" rel="noopener">GitHub</a></span>
+  </div>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="js/canvas.js" defer></script>
+<script src="js/reveal.js" defer></script>
+<script src="js/terminal.js" defer></script>
+<script src="js/pointer.js" defer></script>
+</body>
+</html>

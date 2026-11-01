@@ -60,6 +60,7 @@ src/panweb/
 ui/src/                     # 前端源码：4 CSS + 7 JS + 2 partials + index + manifest
 ui/index.html               # 构建产物（文件头有「请勿直接编辑」横幅）
 ui/vendor/                  # 第三方前端库（qrcode.js，原样引入不拆改）
+site/                       # 项目介绍页（独立静态站：index + 3 CSS + 4 JS，可用 panweb pages 发布）
 tools/build_ui.py           # 组装前端为单文件
 tools/build_zipapp.py       # 构建单文件分发 dist/panweb.pyz
 tools/build_dmg.py          # macOS 安装包：调用 install-app 造 App，再 hdiutil 打成 dmg
@@ -179,6 +180,13 @@ panweb (CLI / App)
 分享页读的是同一份 `entry["check"]`——`verdict=blocked` 时分享页把状态降级成
 「主人自检未通过」，避免绿色「在线」和提示文字互相打脸。
 
+结论要归因准确，否则会把人引到错误的方向上：
+
+- 本机解析不到网址（DNS 慢或被污染）但边缘 IP 直连有响应 → `dns_slow`（warn），
+  说"访客侧多半能打开"，而不是报死。
+- HTTP 530 是 Cloudflare 边缘自己造的，代表这台机器没有活着的连接器 → `tunnel_down`，
+  指向「恢复通道/重新发布」，不冤枉应用；500/502 才归给 `server_error`。
+
 ## 5. 安全边界
 
 | 边界 | 措施 |
@@ -190,7 +198,7 @@ panweb (CLI / App)
 | 访客统计 | IP 经持久 HMAC 后截断；不存 UA/查询串；文档请求才计数；机器人过滤 |
 | 上游兼容 | `host_mode` 默认 `loopback`（本机应用靠 Host 校验挡 DNS 重绑定，不替访客伪造公网 Host）；改 `tunnel` 需显式设置。两者只在代理模式有意义：直连发布的链路里没有 panweb，`core_compat` 的写操作会返回 `not_supported` 并给出切代理的做法，界面同步置灰 |
 | 上游凭据 | 只落 `secrets/<id>.auth.json`（600），代理进程内读取；`state.json`/`/api/state`/CLI/菜单栏/分享页只出现 `auth_kind` 与掩码标签，永不回显密钥；头名/值经 RFC 7230 校验，拒绝 CR/LF 与控制字符，禁止覆盖 Host/Connection/Upgrade/Content-Length |
-| 隧道 | 只出站连接到 Cloudflare；本地源站绑定 127.0.0.1 |
+| 隧道 | 只出站连接到 Cloudflare；本地源站绑定 127.0.0.1。QUIC（UDP 443）被网络静默丢包时会自动改走 `--protocol http2`，避免"网址拿到了但永远 530" |
 | 子进程 | argv 数组，不经过 shell；PID + 命令行双重校验后终止 |
 | 许可 | 离线 RSA 签名；机器指纹哈希；不联网、不采集使用数据 |
 
@@ -261,6 +269,7 @@ ui/src/manifest.json       # 组装顺序
 | `PANWEB_RESOURCE_ROOT` | `ui/`、`skill/`、`assets/` 的资源根；App 由 launcher 指定 |
 | `PANWEB_ENTRYPOINT` | 可再次执行的 panweb 入口（zipapp/App 内自拉起用） |
 | `PANWEB_CLOUDFLARED` | 指定 cloudflared 二进制 |
+| `PANWEB_TUNNEL_PROTOCOL` | 强制隧道传输：`auto` / `quic` / `http2`；不设则探测 UDP 443 |
 | `PANWEB_LICENSE_PUBKEY` | 覆盖内置验签公钥路径 |
 | `PANWEB_LICENSE_OFF` | 关闭许可门禁（开源/自托管构建线） |
 | `PANWEB_TRIAL_DAYS` | 试用天数（默认 14） |
@@ -278,6 +287,7 @@ ui/src/manifest.json       # 组装顺序
 | 资源归还 | `duplex()` 两端 socket 必须关闭（隧道/代理按访客数复用，漏 fd 就是漏稳定性） |
 | 上游兼容 | `test_upstream.py`：转发头构造（Host 模式、WebSocket 保留 Upgrade/Connection）、凭据归一化与 CR/LF 注入拒绝、密钥文件权限、真实代理子进程端到端代填 |
 | 访客自检 | `test_healthcheck.py`：结论判定（首页/资源/未编译源码）、裸 TLS WebSocket 探测、Host 取证修正与回滚；`test_selfcheck.py`：走真实代理子进程验证修正传播与结论落盘 |
+| 隧道传输 | `test_tunnel.py`：QUIC 探测结果按进程缓存、探测不通时命令行带 `--protocol http2`、`auto` 不改命令行、`PANWEB_TUNNEL_PROTOCOL` 可强制 |
 | 控制台 | Host/Origin 拒绝、JSON Content-Type、自身端口拒绝发布、旧应用补分享令牌、`/api/compat` 不回显密钥、`/api/check` 落盘 |
 | 构建 | `build_ui.py --check` 产物一致、生成物横幅、模块体积上限、全模块可导入、zipapp 可执行 |
 | 集成 | 真实代理 + 临时静态目录 + 临时 HOME；隧道相关使用 fake cloudflared；`_spawn_proxy` 拉起的子进程转发、分享页与口令门禁 |
