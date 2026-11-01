@@ -20,6 +20,7 @@ from .entries import find_entry
 from .errors import PanwebError
 from .models import entry_public_url
 from .store import load_domain, load_state, log_activity, save_state, state_lock
+from .tunnel import pinned_status
 
 CHECK_TIMEOUT = 5.0
 CHECK_BUDGET = 20.0
@@ -36,12 +37,19 @@ CSS_JS_SUFFIXES = (".js", ".mjs", ".cjs", ".css")
 SIGNALS = {
     "unreachable": ("公网没有响应", "隧道可能还在启动；稍等几秒点「重新自检」，"
                                    "仍不行就用「恢复通道」或重新发布"),
+    "dns_slow": ("本机解析不到这个网址，但隧道在响应",
+                 "这台机器的 DNS 对新子域名还没跟上（或被污染）。已用 Cloudflare 边缘 "
+                 "IP 直连确认有响应，访客侧多半能打开；等几分钟再自检，"
+                 "或直接让访客试网址"),
     "host_rejected": ("应用拒绝本机地址的 Host", "已可自动改为「公网域名」模式；"
                                                  "改完访客能打开就保留"),
     "auth_required": ("应用自己要凭据（HTTP %s）", "在「上游兼容」里替访客补上应用的"
                                                   "凭据，panweb 口令管不到它内部"),
     "server_error": ("应用返回 HTTP %s", "打开「运行日志」看报错；应用本身没跑起来时"
                                          "公网只会显示这个"),
+    "tunnel_down": ("Cloudflare 说这台机器没连上来（HTTP %s）",
+                    "隧道进程掉线，多半是本机到 Cloudflare 的网络抖动，不是应用的错。"
+                    "等几十秒点「重新自检」，或在控制台「恢复通道」/重新发布"),
     "not_found": ("首页就是 404", "端口上没有这个路径；确认应用监听的路径，"
                                   "或发布构建产物目录"),
     "redirect_out": ("首页跳到了公网地址之外（%s）", "应用把访客指向了别的域名，"
@@ -64,9 +72,11 @@ SIGNALS = {
 }
 
 _SEVERITY = {"unreachable": "bad", "host_rejected": "bad", "server_error": "bad",
+             "tunnel_down": "bad",
              "not_found": "bad", "asset_404": "bad", "uncompiled_source": "bad",
              "redirect_out": "bad", "auth_required": "warn", "app_login": "warn",
              "blank_page": "warn", "ws_blocked": "warn", "direct_403": "warn",
+             "dns_slow": "warn",
              "own_pin_gate": "info", "looks_good": "info"}
 
 
@@ -186,6 +196,9 @@ def source_refs(body):
 def diagnose_root(root, entry):
     """首页观察结果 → 信号列表（纯函数，不碰网络）。"""
     if root.get("error"):
+        # 本机解析器跟不上，不代表访客打不开：边缘 IP 直连有响应就不该报"死"
+        if root.get("edge_status"):
+            return [_sig("dns_slow", "边缘直连返回 HTTP %d" % root["edge_status"])]
         return [_sig("unreachable", root["error"])]
     status = root.get("status") or 0
     body = (root.get("body") or "")
@@ -198,6 +211,9 @@ def diagnose_root(root, entry):
             out.append(_sig("auth_required", str(status)))
         else:
             out.append(_sig("direct_403", str(status)))
+    elif status == 530:
+        # 530 是 Cloudflare 边缘自己造的：这台机器上没有活着的服务端连上来
+        out.append(_sig("tunnel_down", str(status)))
     elif status >= 500:
         out.append(_sig("server_error", str(status)))
     elif status == 404:
@@ -335,6 +351,8 @@ def core_check(entry_id, auto_fix=True, visitor_host=None,
     host = visitor_host or urllib.parse.urlsplit(url).netloc
     fixes = []
     root = probe(url, host=host, timeout=timeout)
+    if root.get("error"):
+        root["edge_status"] = pinned_status(url, timeout=min(timeout, 8))
     signals = diagnose_root(root, entry)
 
     if (auto_fix and any(s["code"] == "host_rejected" for s in signals)

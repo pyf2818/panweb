@@ -19,13 +19,58 @@ def read_log_tail(log_path, n=800):
         return ""
 
 
+# QUIC 探测结果缓存：每次建隧道都探一遍会把发布拖慢，而网络环境通常几分钟内不变
+QUIC_TTL = 600.0
+_quic_probe = {"at": 0.0, "ok": False}
+
+
+def quic_usable(timeout=1.2):
+    """UDP 443 出得去吗。
+
+    不少网络（尤其内网/内地运营商）会静默丢掉 QUIC 包：cloudflared 能起来、能拿到
+    网址，但控制流几十秒后超时断开，访客侧永远 530。这时改用 http2 传输即可。
+    """
+    now = time.time()
+    if now - _quic_probe["at"] < QUIC_TTL:
+        return _quic_probe["ok"]
+    ok = False
+    try:
+        edge = socket.getaddrinfo("trycloudflare.com", 443,
+                                  socket.AF_INET)[0][4][0]
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.settimeout(timeout)
+        try:
+            # 一个最小的 QUIC 长包头 Initial；边缘活着就会有回包
+            sock.sendto(b"\xc0\x00\x00\x00\x01\x08" + os.urandom(8) + bytes(32),
+                        (edge, 443))
+            ok = bool(sock.recvfrom(1200)[0])
+        finally:
+            sock.close()
+    except Exception:  # noqa: BLE001 - 探测失败按"不通"处理，走 http2 更安全
+        ok = False
+    _quic_probe.update(at=now, ok=ok)
+    return ok
+
+
+def tunnel_protocol():
+    """用哪个 cloudflared 传输：默认自动探测，PANWEB_TUNNEL_PROTOCOL 可强制。"""
+    forced = (os.environ.get("PANWEB_TUNNEL_PROTOCOL") or "").strip().lower()
+    if forced in ("quic", "http2", "auto"):
+        return forced
+    return "auto" if quic_usable() else "http2"
+
+
 def start_tunnel(cf_bin, local_port, log_path):
     """启动 cloudflared 快速隧道，返回 (公网网址, 进程)。失败抛 TunnelError。"""
+    argv = [cf_bin, "tunnel", "--url", "http://127.0.0.1:%d" % local_port,
+            "--no-autoupdate"]
+    protocol = tunnel_protocol()
+    if protocol != "auto":
+        argv += ["--protocol", protocol]
     logf = open(log_path, "ab", buffering=0)
     try:
         proc = subprocess.Popen(
-            [cf_bin, "tunnel", "--url", "http://127.0.0.1:%d" % local_port,
-             "--no-autoupdate"],
+            argv,
             stdout=logf, stderr=subprocess.STDOUT,
             stdin=subprocess.DEVNULL, start_new_session=True,
         )

@@ -31,6 +31,15 @@ class DiagnoseTests(unittest.TestCase):
         self.assertEqual(codes(out), ["unreachable"])
         self.assertEqual(healthcheck._verdict(out)[0], "blocked")
 
+    def test_local_dns_miss_with_edge_response_is_only_a_warning(self):
+        """本机解析器跟不上时不能说"打不开"——边缘直连有响应就是访客能打开。"""
+        rescue = dict(root(error="URLError: nodename nor servname provided"),
+                      edge_status=200)
+        out = healthcheck.diagnose_root(rescue, self.entry)
+        self.assertEqual(codes(out), ["dns_slow"])
+        self.assertEqual(healthcheck._verdict(out)[0], "warn")
+        self.assertIn("边缘", out[0]["label"] + out[0]["advice"])
+
     def test_403_with_loopback_host_suggests_host_mode(self):
         out = healthcheck.diagnose_root(root(403, ""), self.entry)
         self.assertEqual(out[0]["code"], "host_rejected")
@@ -45,6 +54,11 @@ class DiagnoseTests(unittest.TestCase):
             root(403, ""), self.with_entry(proxy_port=None))
         self.assertEqual(codes(out), ["direct_403"])
         self.assertIn("allowedHosts", out[0]["advice"])
+
+    def test_530_blames_the_tunnel_not_the_app(self):
+        out = healthcheck.diagnose_root(root(530, ""), self.entry)
+        self.assertEqual(codes(out), ["tunnel_down"])
+        self.assertIn("不是应用的错", out[0]["advice"])
 
     def test_server_error_and_not_found_are_blocked(self):
         for status in (500, 502, 404):
