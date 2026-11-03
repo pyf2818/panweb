@@ -3251,6 +3251,67 @@ var qrcode = function() {
 .fk-hint.ok { color: var(--accent-deep); }
 .fk-hint.bad { color: var(--gold); }
 
+/* 发布弹窗：上次设置提示、步骤进度与可重试错误 */
+.smart-note {
+  display: flex; align-items: flex-start; gap: 8px;
+  margin: 2px 0 14px; padding: 10px 12px; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--accent-soft);
+  color: var(--accent-deep); font-size: 12.5px; line-height: 1.55;
+}
+.smart-note::before { content: "✦"; color: var(--gold); flex-shrink: 0; }
+.pub-progress {
+  margin: 4px 0 12px; padding: 12px 14px; border-radius: 12px;
+  border: 1px solid var(--border); background: var(--surface);
+}
+.pp-head {
+  display: flex; align-items: center; gap: 9px;
+  font-size: 13px; font-weight: 600; color: var(--ink);
+}
+.pp-dot {
+  width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
+  background: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft);
+  animation: pp-pulse 1.4s ease-in-out infinite;
+}
+.pub-progress.done .pp-dot { animation: none; background: var(--accent-deep); }
+@keyframes pp-pulse { 50% { transform: scale(.72); opacity: .6; } }
+.pp-steps {
+  list-style: none; margin: 10px 0 0; padding: 0;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.pp-steps li {
+  position: relative; padding-left: 18px; font-size: 12px; color: var(--faint);
+  line-height: 1.5;
+}
+.pp-steps li::before {
+  content: "·"; position: absolute; left: 5px; top: -1px;
+  color: var(--faint); font-size: 14px;
+}
+.pp-steps li.active { color: var(--accent-deep); font-weight: 600; }
+.pp-steps li.active::before { content: "▸"; color: var(--accent); }
+.pp-steps li.done { color: var(--muted); }
+.pp-steps li.done::before { content: "✓"; color: var(--accent); font-size: 12px; }
+.pub-error {
+  margin: 4px 0 12px; padding: 12px 14px; border-radius: 12px;
+  border: 1px solid var(--danger); background: var(--danger-soft);
+}
+.pe-title { font-size: 13px; font-weight: 600; color: var(--danger); line-height: 1.5; }
+.pe-hint { margin-top: 6px; font-size: 12.5px; color: var(--muted); line-height: 1.6; }
+.pe-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+/* 弹窗内容再长，主按钮也留在视口底部：滚动时不用再找「发布」 */
+#pub-overlay .modal-foot {
+  position: sticky; bottom: -25px; z-index: 2;
+  margin: 6px -27px -25px; padding: 13px 27px 12px;
+  background: var(--surface); border-top: 1px solid var(--border);
+  border-radius: 0 0 20px 20px;
+  box-shadow: 0 -10px 18px -14px rgba(20, 26, 24, .35);
+}
+
+@media (max-width: 640px) {
+  .smart-note, .pub-progress, .pub-error { font-size: 12px; padding: 10px 11px; }
+  .pe-actions .btn { flex: 1 1 auto; justify-content: center; }
+  #pub-overlay .modal-foot .btn { flex: 1; justify-content: center; }
+}
+
   @media (max-width: 1080px) {
     .feed-stats { grid-template-columns: 1fr; }
     .sidebar, .drag-h { display: none; }
@@ -3673,6 +3734,8 @@ html[data-theme="dark"] :focus-visible { outline-color: rgba(108,184,167,.6); }
       <button class="tab" id="tab-cloud" onclick="switchTab('cloud')">云端托管</button>
     </div>
 
+    <div class="smart-note" id="pub-smart" hidden></div>
+
     <div id="pane-port">
       <div class="field"><label>本机正在运行的应用</label>
         <div class="cand-list" id="cand-list"><div class="feed-empty">扫描中…</div></div>
@@ -3740,6 +3803,11 @@ html[data-theme="dark"] :focus-visible { outline-color: rgba(108,184,167,.6); }
     <div class="risk-warn" id="risk-warn"></div>
     <div class="check-line" id="risk-check" style="display:none">
       <input type="checkbox" id="risk-ack"><label for="risk-ack" style="margin:0;cursor:pointer">我了解风险，确认发布这个服务</label>
+    </div>
+    <div class="pub-error" id="pub-error" hidden></div>
+    <div class="pub-progress" id="pub-progress" hidden>
+      <div class="pp-head"><span class="pp-dot"></span><span id="pub-step">准备中…</span></div>
+      <ol class="pp-steps" id="pub-steps"></ol>
     </div>
     <div class="modal-foot">
       <button class="btn" onclick="closePublish()">取消</button>
@@ -4243,33 +4311,22 @@ document.addEventListener("click", e => {
     p.classList.remove("show");
 });
 
-// ---------- 动作 ----------
-function copyText(s) {
-  const done = () => toast("已复制：" + s);
-  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(s).then(done, () => fallbackCopy(s, done));
-  else fallbackCopy(s, done);
-}
-function fallbackCopy(s, done) {
-  const ta = document.createElement("textarea");
-  ta.value = s; ta.style.position = "fixed"; ta.style.opacity = "0";
-  document.body.appendChild(ta); ta.select();
-  try { document.execCommand("copy"); done(); } catch (e) { toast("复制失败，请手动选择", false); }
-  ta.remove();
-}
-function openUrl(url, entryId) {
-  if (entryId) {
-    fetch("/api/owner-open", {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({id: entryId}),
-      keepalive: true
-    }).catch(() => {});
-  }
-  window.open(url, "_blank", "noopener");
-}
-
 // ---------- 发布弹窗 ----------
 let pubTab = "port";
+let pubDefaults = null;
+let pubPoll = null;
+const PUB_PIN_KEY = "panweb.pin";
+
+function storedPin() {
+  try { return sessionStorage.getItem(PUB_PIN_KEY) || ""; } catch (e) { return ""; }
+}
+function rememberPin(pin) {
+  try {
+    if (pin) sessionStorage.setItem(PUB_PIN_KEY, pin);
+    else sessionStorage.removeItem(PUB_PIN_KEY);
+  } catch (e) { /* 隐私模式禁用存储也不影响发布 */ }
+}
+
 function openPublish(tab) {
   if (STATE && STATE.license && STATE.license.activation_required) {
     toast("试用已结束，请先激活买断版", false);
@@ -4282,23 +4339,42 @@ function openPublish(tab) {
   document.getElementById("in-port").value = "";
   document.getElementById("in-folder").value = "";
   document.getElementById("in-project").value = "";
-  document.getElementById("in-pin").value = "";
+  document.getElementById("in-pin").value = storedPin();
   document.getElementById("in-share").checked = true;
   document.getElementById("in-exp").value = "";
   document.getElementById("in-files").value = "";
   document.getElementById("in-cloudfolder").value = "";
   document.getElementById("detect-line").className = "detect-line";
   selPort = null; selPortRisky = null; detected = null;
+  resetPubFeedback();
   updateRisk();
   document.getElementById("pub-overlay").classList.add("show");
-  if (pubTab === "port") loadCandidates();
+  loadPublishOptions();
   setTimeout(() => {
     const el = pubTab === "port" ? "in-port" : pubTab === "pages" ? "in-folder"
       : pubTab === "cloud" ? "in-cloudfolder" : "in-project";
     document.getElementById(el).focus();
   }, 120);
 }
-function closePublish() { document.getElementById("pub-overlay").classList.remove("show"); }
+function closePublish() {
+  document.getElementById("pub-overlay").classList.remove("show");
+  if (pubPoll) { clearInterval(pubPoll); pubPoll = null; }
+}
+function resetPubFeedback() {
+  const btn = document.getElementById("pub-btn");
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = pubTab === "project" ? "启动并发布"
+      : pubTab === "cloud" ? "上传并托管" : "发布";
+  }
+  hidePubError();
+  const box = document.getElementById("pub-progress");
+  if (box) { box.hidden = true; document.getElementById("pub-steps").innerHTML = ""; }
+}
+function hidePubError() {
+  const box = document.getElementById("pub-error");
+  if (box) { box.hidden = true; box.innerHTML = ""; }
+}
 function switchTab(tab) {
   pubTab = tab;
   ["port", "pages", "project", "cloud"].forEach(t =>
@@ -4320,22 +4396,62 @@ function switchTab(tab) {
     tab === "project" ? "启动并发布" : tab === "cloud" ? "上传并托管" : "发布";
   updateRisk();
 }
-async function loadCandidates() {
+async function loadPublishOptions() {
   const list = document.getElementById("cand-list");
-  list.innerHTML = '<div class="feed-empty">扫描中…</div>';
-  const d = await api("/api/discover");
-  if (!d.ok) { list.innerHTML = '<div class="feed-empty">扫描失败</div>'; return; }
-  const cands = d.data.candidates;
+  if (pubTab === "port") list.innerHTML = '<div class="feed-empty">扫描中…</div>';
+  const d = await api("/api/publish-defaults");
+  if (!d.ok) {
+    if (pubTab === "port")
+      list.innerHTML = '<div class="feed-empty">扫描失败，可直接输入端口</div>';
+    applyStoredDefaults({});
+    return;
+  }
+  const defaults = d.data.defaults || {};
+  applyStoredDefaults(defaults);
+  if (pubTab === "port") renderCandidates(d.data.candidates || [], defaults);
+}
+function applyStoredDefaults(d) {
+  pubDefaults = d || {};
+  const exp = document.getElementById("in-exp");
+  if (exp && !exp.value) exp.value = pubDefaults.expires || "";
+  if (pubTab !== "pages")
+    document.getElementById("in-share").checked = pubDefaults.share !== false;
+  const folder = document.getElementById("in-folder");
+  const project = document.getElementById("in-project");
+  if (folder && !folder.value && pubDefaults.last_folder) folder.value = pubDefaults.last_folder;
+  if (project && !project.value && pubDefaults.last_project) project.value = pubDefaults.last_project;
+  const bits = [];
+  if (pubDefaults.last_port) bits.push("上次端口 " + pubDefaults.last_port);
+  if (pubDefaults.expires) bits.push("上次有效期 " + pubDefaults.expires);
+  if (storedPin()) bits.push("口令沿用本标签页");
+  const note = document.getElementById("pub-smart");
+  if (bits.length) {
+    note.textContent = "已按上次设置预填：" + bits.join(" · ") + "（可随时改）";
+    note.hidden = false;
+  } else {
+    note.hidden = true;
+  }
+}
+function renderCandidates(cands, defaults) {
+  const list = document.getElementById("cand-list");
   if (!cands.length) {
     list.innerHTML = '<div class="feed-empty">没有发现正在运行的应用<br>可先在本地启动项目，或到「启动项目」让 panweb 替你启动</div>';
     return;
   }
-  list.innerHTML = cands.map((c, i) =>
+  list.innerHTML = cands.map(c =>
     '<div class="cand" data-port="' + c.port + '" data-risky="' + esc(c.risky || "") + '" onclick="selCand(this)">' +
     '<span class="c-port">' + c.port + '</span><span class="c-title">' + esc(c.title) + '</span>' +
     '<span class="c-proc">' + esc(c.process || "") + '</span>' +
     (c.published ? '<span class="c-risk" style="color:var(--accent);background:var(--accent-soft)">已发布</span>' : '') +
     (c.risky ? '<span class="c-risk">⚠ 高危</span>' : '') + '</div>').join("");
+  // 少一步：上次用过的端口还在，或只有一个未发布候选，就直接选中
+  const previous = Number(defaults && defaults.last_port);
+  const fresh = cands.filter(c => !c.published);
+  const pick = cands.find(c => c.port === previous) || (fresh.length === 1 ? fresh[0] : null);
+  if (pick) {
+    const el = list.querySelector('.cand[data-port="' + pick.port + '"]');
+    if (el) selCand(el);
+  }
 }
 function selCand(el) {
   document.querySelectorAll(".cand").forEach(x => x.classList.remove("sel"));
@@ -4399,11 +4515,16 @@ async function doPublish() {
   let path, body;
   if (pubTab === "port") {
     const port = parseInt(document.getElementById("in-port").value, 10);
-    if (!port) return toast("请输入或选择一个端口", false);
-    if (selPortRisky && String(port) === String(selPort) && !document.getElementById("risk-ack").checked)
-      return toast("请先勾选「我了解风险」", false);
-    body = {port, name: document.getElementById("in-name").value.trim() || null, pin, expires, share};
-    path = "/api/publish";
+    if (!port) {
+      // 留空不拦：服务端会挑上次端口或唯一候选；拿不准时会直接告诉我们
+      body = {port: null, name: document.getElementById("in-name").value.trim() || null, pin, expires, share};
+      path = "/api/publish";
+    } else {
+      if (selPortRisky && String(port) === String(selPort) && !document.getElementById("risk-ack").checked)
+        return toast("请先勾选「我了解风险」", false);
+      body = {port, name: document.getElementById("in-name").value.trim() || null, pin, expires, share};
+      path = "/api/publish";
+    }
   } else if (pubTab === "pages") {
     const folder = document.getElementById("in-folder").value.trim();
     if (!folder) return toast("请输入文件夹路径", false);
@@ -4438,22 +4559,121 @@ async function doPublish() {
     if (!folder) return toast("请输入项目文件夹路径", false);
     if (detected && (detected.type === "python" || detected.type === "unknown"))
       return toast(detected.detail, false);
-    body = {folder, name: document.getElementById("in-name").value.trim() || null, share};
+    body = {folder, name: document.getElementById("in-name").value.trim() || null,
+            share, pin, expires};
     path = "/api/run";
   }
+  hidePubError();
   btn.disabled = true;
-  btn.innerHTML = '<svg class="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px"><path d="M21 12a9 9 0 11-6.2-8.56"/></svg> ' +
-    (pubTab === "project" ? "启动中…（可能需要 1-2 分钟）" : pubTab === "cloud" ? "部署中…（约 30-60 秒）" : "发布中…（约 10 秒）");
-  const d = await api(path, body);
+  const spin = '<svg class="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px"><path d="M21 12a9 9 0 11-6.2-8.56"/></svg> ';
+  if (pubTab === "cloud") {
+    btn.innerHTML = spin + "上传并部署中…（约 30-60 秒）";
+    const d = await api(path, body);
+    if (!d.ok) return pubFail(d.error);
+    return pubDone(d.data);
+  }
+  const first = pubTab === "project" ? "准备启动项目…" : "准备发布…";
+  showPubProgress({step: first, steps: [first], done: false});
+  btn.innerHTML = spin + esc(first);
+  // 慢动作异步跑：先拿 job id，再轮询步骤；失败时保留表单，方便直接重试
+  const d = await api(path, Object.assign({}, body, {async: true}));
+  if (!d.ok) return pubFail(d.error);
+  if (!d.data.job) return pubDone(d.data);
+  await pollPublish(d.data.job, btn, spin);
+}
+
+function showPubProgress(job) {
+  const box = document.getElementById("pub-progress");
+  const steps = job.steps || [];
+  document.getElementById("pub-step").textContent = job.step || "准备中…";
+  box.hidden = false;
+  box.classList.toggle("done", !!job.done);
+  // 头部已经显示当前步骤，列表只留走过的路径，避免同一句出现两遍
+  const done = job.done ? steps : steps.slice(0, -1);
+  document.getElementById("pub-steps").innerHTML = done.map(s =>
+    '<li class="done">' + esc(s) + '</li>').join("");
+  revealFeedback(box);
+}
+function revealFeedback(box) {
+  if (!box || box.hidden) return;
+  try { box.scrollIntoView({block: "center", behavior: "smooth"}); } catch (e) {}
+}
+function pubFail(err) {
+  const btn = document.getElementById("pub-btn");
   btn.disabled = false;
   btn.textContent = pubTab === "project" ? "启动并发布" : pubTab === "cloud" ? "上传并托管" : "发布";
-  if (!d.ok) {
-    toast(d.error ? d.error.message : "发布失败", false);
-    return;
-  }
+  const box = document.getElementById("pub-error");
+  const msg = err && err.message ? err.message : "发布失败";
+  const hint = err && err.hint ? err.hint : "";
+  const extra = err && (err.type === "port_not_serving" || err.type === "ambiguous_port")
+    ? '<button class="btn btn-sm" onclick="switchTab(\'project\')">去启动项目</button>' +
+      '<button class="btn btn-sm" onclick="switchTab(\'port\');loadPublishOptions()">重新扫描</button>'
+    : "";
+  box.innerHTML = '<div class="pe-title">' + esc(msg) + '</div>' +
+    (hint ? '<div class="pe-hint">' + esc(hint) + '</div>' : "") +
+    '<div class="pe-actions"><button class="btn btn-sm btn-primary" onclick="doPublish()">重试</button>' + extra + '</div>';
+  box.hidden = false;
+  document.getElementById("pub-progress").hidden = true;
+  revealFeedback(box);
+}
+function pubDone(data) {
+  if (pubPoll) { clearInterval(pubPoll); pubPoll = null; }
+  rememberPin(document.getElementById("in-pin").value.trim());
   closePublish();
-  toast("已发布：" + (d.data.share_url || d.data.url));
-  await refresh();
+  toast("已发布：" + (data.share_url || data.url));
+  refresh();
+}
+function pollPublish(jobId, btn, spin) {
+  return new Promise(resolve => {
+    const tick = async () => {
+      const d = await api("/api/job?id=" + encodeURIComponent(jobId));
+      if (!d.ok) {
+        pubFail(d.error || {message: "任务状态丢失，请重试"});
+        return resolve(false);
+      }
+      const job = d.data;
+      showPubProgress(job);
+      if (!job.done) {
+        btn.innerHTML = spin + esc(job.step || "处理中…");
+        return;
+      }
+      if (pubPoll) { clearInterval(pubPoll); pubPoll = null; }
+      if (job.ok) {
+        pubDone(job.result || {});
+      } else {
+        pubFail(job.error || {message: "发布失败"});
+      }
+      resolve(!!job.ok);
+    };
+    if (pubPoll) clearInterval(pubPoll);
+    pubPoll = setInterval(tick, 600);
+    tick();
+  });
+}
+
+// ---------- 动作 ----------
+function copyText(s) {
+  const done = () => toast("已复制：" + s);
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(s).then(done, () => fallbackCopy(s, done));
+  else fallbackCopy(s, done);
+}
+function fallbackCopy(s, done) {
+  const ta = document.createElement("textarea");
+  ta.value = s; ta.style.position = "fixed"; ta.style.opacity = "0";
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand("copy"); done(); } catch (e) { toast("复制失败，请手动选择", false); }
+  ta.remove();
+}
+function openUrl(url, entryId) {
+  if (entryId) {
+    fetch("/api/owner-open", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({id: entryId}),
+      keepalive: true
+    }).catch(() => {});
+  }
+  window.open(url, "_blank", "noopener");
 }
 
 // ---------- 详情抽屉 ----------

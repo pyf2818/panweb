@@ -9,6 +9,7 @@
   ],
   "scripts": [
     "js/core.js",
+    "js/publish.js",
     "js/apps.js",
     "js/sharing.js",
     "js/license.js",

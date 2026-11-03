@@ -6,7 +6,7 @@ import threading
 import time
 import urllib.parse
 
-from . import runtime, ui_context
+from . import jobs, runtime, ui_context
 from .agents import (AGENT_GUIDE, core_agent_connect, core_agent_disconnect,
                      core_agents, core_terminal_agents, skill_source_dir)
 from .browser import open_browser
@@ -25,7 +25,7 @@ from .licensing import (activate_license, deactivate_license,
 from .menubar import core_install_menubar
 from .models import entry_share_url
 from .publish import (core_detect, core_pages, core_publish, core_run,
-                      core_set_pin)
+                      core_set_pin, load_publish_defaults)
 from .share import new_share_token
 from .store import (json_lock, load_activity, load_domain, load_meta,
                     load_state, log_activity, save_meta, save_state,
@@ -66,6 +66,16 @@ def handle_get(handler, path):
     if path == "/api/discover":
         return handler.send_json({"ok": True, "data": {
             "candidates": core_discover()}}) or True
+    if path == "/api/publish-defaults":
+        return handler.send_json({"ok": True, "data": {
+            "defaults": load_publish_defaults(),
+            "candidates": core_discover()}}) or True
+    if path == "/api/job":
+        job = jobs.get(_first(_query(handler), "id"))
+        if not job:
+            return handler.send_json({"ok": False, "error": {
+                "type": "not_found", "message": "任务不存在或控制台已重启"}}) or True
+        return handler.send_json({"ok": True, "data": job}) or True
     if path == "/api/detect":
         folder = _first(_query(handler), "folder")
         return handler.send_json({"ok": True, "data": core_detect(folder)}) or True
@@ -140,20 +150,30 @@ def handle_get(handler, path):
     return False
 
 
+def _run_or_job(handler, body, kind, fn):
+    """慢动作可以异步跑：返回 job id，前端轮询拿步骤与结果。"""
+    if body.get("async"):
+        job_id = jobs.start(kind, fn)
+        return handler.send_json({"ok": True, "data": {
+            "job": job_id, "kind": kind}}) or True
+    return handler.send_json({"ok": True, "data": fn(None)}) or True
+
+
 def handle_post(handler, path, body):
     if path == "/api/publish":
-        entry = core_publish(body.get("port"), body.get("name"),
-                             pin=body.get("pin"), expires=body.get("expires"),
-                             share=bool(body.get("share")))
-        return handler.send_json({"ok": True, "data": entry}) or True
+        return _run_or_job(handler, body, "publish", lambda progress: core_publish(
+            body.get("port"), body.get("name"), pin=body.get("pin"),
+            expires=body.get("expires"), share=bool(body.get("share")),
+            progress=progress)) or True
     if path == "/api/pages":
-        entry = core_pages(body.get("folder"), body.get("name"),
-                           pin=body.get("pin"), expires=body.get("expires"))
-        return handler.send_json({"ok": True, "data": entry}) or True
+        return _run_or_job(handler, body, "pages", lambda progress: core_pages(
+            body.get("folder"), body.get("name"), pin=body.get("pin"),
+            expires=body.get("expires"), progress=progress)) or True
     if path == "/api/run":
-        entry = core_run(body.get("folder"), body.get("name"),
-                         share=bool(body.get("share")))
-        return handler.send_json({"ok": True, "data": entry}) or True
+        return _run_or_job(handler, body, "run", lambda progress: core_run(
+            body.get("folder"), body.get("name"),
+            share=bool(body.get("share")), pin=body.get("pin"),
+            expires=body.get("expires"), progress=progress)) or True
     if path == "/api/stop":
         stopped = core_stop(body.get("target") or "all")
         return handler.send_json({"ok": True, "data": {

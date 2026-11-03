@@ -14,6 +14,8 @@
       <button class="tab" id="tab-cloud" onclick="switchTab('cloud')">云端托管</button>
     </div>
 
+    <div class="smart-note" id="pub-smart" hidden></div>
+
     <div id="pane-port">
       <div class="field"><label>本机正在运行的应用</label>
         <div class="cand-list" id="cand-list"><div class="feed-empty">扫描中…</div></div>
@@ -81,6 +83,11 @@
     <div class="risk-warn" id="risk-warn"></div>
     <div class="check-line" id="risk-check" style="display:none">
       <input type="checkbox" id="risk-ack"><label for="risk-ack" style="margin:0;cursor:pointer">我了解风险，确认发布这个服务</label>
+    </div>
+    <div class="pub-error" id="pub-error" hidden></div>
+    <div class="pub-progress" id="pub-progress" hidden>
+      <div class="pp-head"><span class="pp-dot"></span><span id="pub-step">准备中…</span></div>
+      <ol class="pp-steps" id="pub-steps"></ol>
     </div>
     <div class="modal-foot">
       <button class="btn" onclick="closePublish()">取消</button>
