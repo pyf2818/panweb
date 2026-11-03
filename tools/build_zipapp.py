@@ -41,6 +41,9 @@ def build(out):
         notices = ROOT / "THIRD_PARTY_NOTICES.md"
         if notices.is_file():
             shutil.copy2(notices, stage / "THIRD_PARTY_NOTICES.md")
+        third_party = ROOT / "assets" / "third_party"
+        if third_party.is_dir():
+            shutil.copytree(third_party, stage / "third_party", ignore=IGNORE)
         # xterm.js 等库内联进产物，但 MIT 声明要跟着分发物一起走
         for name in ("LICENSE.xterm", "LICENSE.addon-fit", "LICENSE.addon-canvas"):
             src_license = ui / "vendor" / name

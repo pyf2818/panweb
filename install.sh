@@ -22,6 +22,12 @@ if [ -d "$DIR/ui" ]; then
   echo "✅ 控制台:  $HOME/.panweb/ui（备用副本）"
 fi
 
+if [ -f "$DIR/THIRD_PARTY_NOTICES.md" ]; then
+  cp "$DIR/THIRD_PARTY_NOTICES.md" "$HOME/.panweb/THIRD_PARTY_NOTICES.md"
+  rm -rf "$HOME/.panweb/third_party"
+  cp -R "$DIR/assets/third_party" "$HOME/.panweb/third_party"
+fi
+
 if command -v cloudflared >/dev/null 2>&1 \
    || [ -x "$HOME/homebrew/bin/cloudflared" ] \
    || [ -x /opt/homebrew/bin/cloudflared ] \

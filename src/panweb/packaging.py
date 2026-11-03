@@ -57,6 +57,9 @@ def cmd_install_app(args):
         os.makedirs(os.path.join(res, "assets"), exist_ok=True)
         shutil.copy2(license_key,
                      os.path.join(res, "assets", "license_public_key.pem"))
+    third_party = os.path.join(root, "assets", "third_party")
+    if os.path.isdir(third_party):
+        _copy_tree(third_party, os.path.join(res, "third_party"))
     _copy_tree(pkg_dir, os.path.join(res, "src", "panweb"))
     launcher_py = os.path.join(root, "panweb")
     if not os.path.isfile(launcher_py):

@@ -74,6 +74,10 @@ class BuildTests(unittest.TestCase):
                                  "zipapp 少了后端模块")
                 self.assertTrue(any(n.endswith("ui/index.html") for n in names),
                                 "zipapp 少了控制台产物")
+                self.assertTrue(
+                    any(n.endswith("third_party/cloudflared/LICENSE")
+                        for n in names),
+                    "zipapp 少了 cloudflared 的 Apache-2.0 许可证")
 
     def test_all_modules_import(self):
         code = (

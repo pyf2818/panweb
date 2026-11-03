@@ -1,0 +1,8 @@
+cloudflared
+Copyright (c) Cloudflare, Inc.
+
+This distribution bundles the cloudflared binary. cloudflared is licensed
+under the Apache License, Version 2.0; the full text is in LICENSE in this
+directory.
+
+Upstream project: https://github.com/cloudflare/cloudflared

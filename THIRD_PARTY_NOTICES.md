@@ -9,7 +9,9 @@ panweb 本体使用 Python 标准库，并在运行时/发布产物中包含以�
 - 许可证：Apache License 2.0
 - 来源：https://github.com/cloudflare/cloudflared
 - 说明：`panweb install-app` 会把本机已安装的 cloudflared 二进制复制进 `.app`。
-  分发该 App 时请一并保留 cloudflared 的 LICENSE/NOTICE，并遵守 Apache-2.0。
+  Apache-2.0 全文与署名声明随包放在 `assets/third_party/cloudflared/`，
+  App 内同样位于 `Contents/Resources/third_party/cloudflared/`；
+  zipapp 内位于 `third_party/cloudflared/`。
 
 ## QR Code Generator for JavaScript
 
