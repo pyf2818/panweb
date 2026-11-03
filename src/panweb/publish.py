@@ -20,12 +20,71 @@ from .processes import (find_cloudflared, free_port, internal_ports,
                         port_listening, stop_process)
 from .safety import check_pages_folder
 from .share import new_share_token
-from .store import load_state, log_activity
+from .store import json_lock, load_meta, load_state, log_activity, save_meta
 from .tunnel import TunnelError, start_tunnel, verify_public
 
 NODE_DEV_PORTS = [3000, 3001, 5173, 5174, 4321, 1420, 8000, 8080, 8888]
 PORT_HINT_RE = re.compile(
     r"(?:localhost|127\.0\.0\.1|0\.0\.0\.0|::1?|\[[^\]]+\]):(\d{2,5})", re.I)
+DEFAULTS_KEY = "publish_defaults"
+
+
+def _emit(progress, message):
+    if progress:
+        progress(message)
+
+
+def load_publish_defaults():
+    """上次发布用的有效期/分享选项与最近端口、文件夹；口令不落盘。"""
+    meta = load_meta()
+    saved = meta.get(DEFAULTS_KEY)
+    saved = saved if isinstance(saved, dict) else {}
+    return {
+        "expires": saved.get("expires") or "",
+        "share": bool(saved.get("share", True)),
+        "last_port": saved.get("last_port"),
+        "last_folder": saved.get("last_folder"),
+        "last_project": saved.get("last_project"),
+    }
+
+
+def remember_publish(**values):
+    """记住选项供下次预填；失败只记日志，不能因为偏好写不进去而毁掉发布。"""
+    try:
+        with json_lock(runtime.META_FILE):
+            meta = load_meta()
+            saved = meta.get(DEFAULTS_KEY)
+            saved = dict(saved) if isinstance(saved, dict) else {}
+            for key, value in values.items():
+                if value is not None:
+                    saved[key] = value
+            meta[DEFAULTS_KEY] = saved
+            save_meta(meta)
+    except OSError as e:
+        log_activity("system", "保存发布偏好失败：%s" % e)
+
+
+def _pick_port(progress=None):
+    """没给端口时替主人挑一个：优先上次用的，其次唯一候选。"""
+    from .discovery import core_discover
+
+    _emit(progress, "自动探测本机正在运行的应用…")
+    candidates = core_discover()
+    if not candidates:
+        raise PanwebError(
+            2, "invalid_argument", "没有发现可发布的应用",
+            "先在本地启动应用，再运行 panweb discover 查看端口；"
+            "也可以直接 panweb publish <端口>")
+    last = load_publish_defaults().get("last_port")
+    if last and any(c["port"] == last for c in candidates):
+        return int(last)
+    fresh = [c for c in candidates if not c.get("published")] or candidates
+    if len(fresh) == 1:
+        return int(fresh[0]["port"])
+    ports = "、".join(str(c["port"]) for c in fresh[:6])
+    raise PanwebError(
+        2, "ambiguous_port", "发现多个可发布端口：%s" % ports,
+        "指定其中一个：panweb publish %d" % fresh[0]["port"])
 
 
 def is_risky_port(port):
@@ -60,8 +119,9 @@ def _spawn_proxy(listen_port, entry_id, target_port=None, serve_dir=None,
 
 def _publish_port(port, name, extra=None, pin=None, serve_dir=None,
                   expires_at=None, share=False, auto_check=True,
-                  register=True):
+                  register=True, progress=None):
     """发布端口的共用实现（CLI / API / run 共用）。"""
+    _emit(progress, "检查发布许可与隧道引擎…")
     require_publish_license()
     cf = find_cloudflared()
     if not cf:
@@ -77,6 +137,7 @@ def _publish_port(port, name, extra=None, pin=None, serve_dir=None,
     tunnel_pid = None
     try:
         if pin or serve_dir or share:
+            _emit(progress, "启动内置代理与分享页…")
             proxy_port = free_port()
             proxy_proc = _spawn_proxy(proxy_port, entry_id,
                                       target_port=None if serve_dir else port,
@@ -104,7 +165,9 @@ def _publish_port(port, name, extra=None, pin=None, serve_dir=None,
         if item:
             url, tunnel_pid = item["url"], item["pid"]
             entry_extra["pooled"] = True
+            _emit(progress, "复用预热隧道…")
         else:
+            _emit(progress, "建立公网隧道（通常需要数秒）…")
             log_path = os.path.join(runtime.LOG_DIR, "%s.log" % entry_id)
             try:
                 url, proc = start_tunnel(cf, tunnel_target, log_path)
@@ -141,6 +204,7 @@ def _publish_port(port, name, extra=None, pin=None, serve_dir=None,
         # 不能刷新菜单栏或把临时检查结果混进条目。
         return entry
     write_menubar_state()
+    _emit(progress, "验证公网可达…")
     reachable, dns_slow = verify_public(
         url, initial_wait=0 if entry_extra.get("pooled") else 3)
     result = dict(entry, reachable=reachable, dns_slow=dns_slow,
@@ -148,6 +212,7 @@ def _publish_port(port, name, extra=None, pin=None, serve_dir=None,
     if auto_check:
         # 隧道通不代表应用能打开；后台按访客视角再走一遍，结论自己会进控制台。
         result["checking"] = healthcheck.schedule_check(entry_id)
+    _emit(progress, "发布完成")
     return result
 
 
@@ -162,21 +227,29 @@ def _ensure_publishable_port(port):
                           "发布它会把本机管理权限暴露到公网；请选择你的应用端口")
 
 
-def core_publish(port, name=None, pin=None, expires=None, share=False,
-                 auto_check=True):
-    try:
-        port = int(port)
-    except (TypeError, ValueError):
-        raise PanwebError(2, "invalid_argument", "端口必须是数字")
+def core_publish(port=None, name=None, pin=None, expires=None, share=False,
+                 auto_check=True, progress=None):
+    if port is None:
+        port = _pick_port(progress)
+    else:
+        try:
+            port = int(port)
+        except (TypeError, ValueError):
+            raise PanwebError(2, "invalid_argument", "端口必须是数字")
     if not (1 <= port <= 65535):
         raise PanwebError(2, "invalid_argument", "端口必须在 1-65535 之间")
     pin = normalize_pin(pin)
+    _emit(progress, "确认端口 %d 有服务响应…" % port)
     if not port_listening(port):
-        raise PanwebError(8, "port_not_serving",
-                          "端口 %d 上没有正在运行的程序" % port,
-                          "先在本地启动应用（或到「启动项目」让 panweb 替你启动），再发布")
+        raise PanwebError(
+            8, "port_not_serving", "端口 %d 上没有正在运行的程序" % port,
+            "先启动应用；也可以运行 panweb discover 看本机在监听哪些端口，"
+            "或到「启动项目」让 panweb 替你启动")
     entry = _publish_port(port, name, pin=pin, expires_at=parse_expires(expires),
-                          share=share, auto_check=auto_check)
+                          share=share, auto_check=auto_check,
+                          progress=progress)
+    remember_publish(last_port=port, expires=expires or "",
+                     share=bool(share))
     log_activity("publish", "发布了应用「%s」%s%s" % (
         entry["name"],
         "（已设置访问口令）" if pin else "",
@@ -270,18 +343,25 @@ def _sniff_port(log_path):
     return None
 
 
-def core_run(folder, name=None, share=False, auto_check=True):
+def core_run(folder=None, name=None, share=False, auto_check=True, pin=None,
+             expires=None, progress=None):
     """识别项目类型 → 自动启动 → 等端口就绪 → 发布。"""
+    folder = folder or "."
+    _emit(progress, "识别项目类型…")
     info = core_detect(folder)
     folder = info["folder"]
     if info["type"] == "static":
-        entry = core_pages(folder, name)
+        _emit(progress, "静态网页，直接发布…")
+        entry = core_pages(folder, name, pin=pin, expires=expires,
+                           progress=progress)
         log_activity("publish", "识别为静态网页，直接发布了「%s」"
                      % entry["name"], entry["url"])
+        remember_publish(last_project=folder)
         return entry
     if info["type"] != "node" or not info.get("script"):
         raise PanwebError(2, "unsupported", info["detail"],
-                          "可手动启动应用后用「发布端口」发布")
+                          "可手动启动应用后用「发布端口」发布，"
+                          "或先运行 panweb discover 确认端口")
     npm = shutil.which("npm")
     if not npm:
         raise PanwebError(3, "dependency_missing", "未找到 npm",
@@ -292,6 +372,7 @@ def core_run(folder, name=None, share=False, auto_check=True):
                            "run-%s.log" % uuid.uuid4().hex[:6])
     baseline_ports = ({p for p, _ in listening_ports()}
                       if shutil.which("lsof") else set())
+    _emit(progress, "启动项目（npm run %s）…" % info["script"])
     logf = open(app_log, "ab", buffering=0)
     try:
         proc = subprocess.Popen([npm, "run", info["script"]], cwd=folder,
@@ -304,6 +385,7 @@ def core_run(folder, name=None, share=False, auto_check=True):
 
     port = None
     try:
+        _emit(progress, "等待项目监听端口（最多 120 秒）…")
         deadline = time.time() + 120
         while time.time() < deadline:
             if proc.poll() is not None:
@@ -329,28 +411,34 @@ def core_run(folder, name=None, share=False, auto_check=True):
         entry = _publish_port(
             port, name or os.path.basename(folder),
             extra={"app_pid": proc.pid, "app_log": app_log, "launched": True},
-            share=share, auto_check=auto_check)
+            pin=normalize_pin(pin), expires_at=parse_expires(expires),
+            share=share, auto_check=auto_check, progress=progress)
     except BaseException:
         # 发布失败就回收刚拉起的项目进程；否则用户只能看到一个不知从哪来的
         # npm/node 进程继续占着端口，重试还会撞端口。
         stop_process(proc, ("npm", "node", "pnpm", "yarn", "bun"))
         raise
+    remember_publish(last_project=folder, last_port=port,
+                     expires=expires or "", share=bool(share))
     log_activity("publish", "启动并发布了「%s」（npm run %s，端口 %d）"
                  % (entry["name"], info["script"], port), entry["url"])
     return entry
 
 
-def core_pages(folder, name=None, pin=None, expires=None, auto_check=True):
-    folder = os.path.abspath(os.path.expanduser(folder))
+def core_pages(folder=None, name=None, pin=None, expires=None, auto_check=True,
+               progress=None):
+    folder = os.path.abspath(os.path.expanduser(folder or "."))
     if not os.path.isdir(folder):
         raise PanwebError(2, "invalid_argument", "文件夹不存在：%s" % folder)
+    _emit(progress, "检查网页文件夹…")
     check_pages_folder(folder)
     pin = normalize_pin(pin)
     entry = _publish_port(0, name or os.path.basename(folder),
                           extra={"kind": "pages", "target": folder},
                           pin=pin, serve_dir=folder,
                           expires_at=parse_expires(expires),
-                          auto_check=auto_check)
+                          auto_check=auto_check, progress=progress)
+    remember_publish(last_folder=folder, expires=expires or "")
     log_activity("publish", "发布了网页「%s」%s" % (
         entry["name"], "（已设置访问口令）" if pin else ""), entry["url"])
     return entry

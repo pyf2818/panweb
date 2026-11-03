@@ -16,7 +16,8 @@ from .hosting import core_host
 from .licensing import (activate_license, deactivate_license,
                         license_status)
 from .pins import normalize_pin
-from .publish import core_pages, core_publish, core_run
+from .publish import (core_pages, core_publish, core_run,
+                      load_publish_defaults)
 from .system import core_pack
 from .update import core_update_apply, core_update_status
 
@@ -32,6 +33,32 @@ def _resolve_cli_pin(args):
                               "--pin 与 --pin-stdin 只能二选一")
         pin = sys.stdin.readline().strip()
     return normalize_pin(pin)
+
+
+def _progress(args):
+    """人读模式才把步骤打到 stderr，JSON 输出保持干净。"""
+    if getattr(args, "json", False):
+        return None
+
+    def show(message):
+        print("→ %s" % message, file=sys.stderr, flush=True)
+
+    return show
+
+
+def _effective_expires(args, defaults):
+    if getattr(args, "permanent", False):
+        return ""
+    if getattr(args, "expires", None) is not None:
+        return args.expires
+    return defaults.get("expires") or ""
+
+
+def _effective_share(args, defaults):
+    wanted = getattr(args, "share", None)
+    if wanted is None:
+        return bool(defaults.get("share", True))
+    return bool(wanted)
 
 
 def render_check(check, indent="   "):
@@ -83,9 +110,12 @@ def cmd_discover(args):
 
 
 def cmd_publish(args):
+    defaults = load_publish_defaults()
     entry = core_publish(args.port, args.name, pin=_resolve_cli_pin(args),
-                         expires=args.expires, share=args.share,
-                         auto_check=not args.no_check)
+                         expires=_effective_expires(args, defaults),
+                         share=_effective_share(args, defaults),
+                         auto_check=not args.no_check,
+                         progress=_progress(args))
     if args.json:
         print(json.dumps({"ok": True, "data": _entry_for_json(entry)},
                          ensure_ascii=False))
@@ -111,8 +141,11 @@ def cmd_publish(args):
 
 
 def cmd_pages(args):
+    defaults = load_publish_defaults()
     entry = core_pages(args.folder, args.name, pin=_resolve_cli_pin(args),
-                       expires=args.expires, auto_check=not args.no_check)
+                       expires=_effective_expires(args, defaults),
+                       auto_check=not args.no_check,
+                       progress=_progress(args))
     if args.json:
         print(json.dumps({"ok": True, "data": _entry_for_json(entry)},
                          ensure_ascii=False))
@@ -135,8 +168,13 @@ def cmd_pages(args):
 
 
 def cmd_run(args):
-    entry = core_run(args.folder, args.name, share=args.share,
-                     auto_check=not args.no_check)
+    defaults = load_publish_defaults()
+    entry = core_run(args.folder, args.name,
+                     share=_effective_share(args, defaults),
+                     auto_check=not args.no_check,
+                     pin=_resolve_cli_pin(args),
+                     expires=_effective_expires(args, defaults),
+                     progress=_progress(args))
     if args.json:
         print(json.dumps({"ok": True, "data": _entry_for_json(entry)},
                          ensure_ascii=False))

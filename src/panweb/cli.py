@@ -49,36 +49,53 @@ def build_parser():
     p.set_defaults(func=cmd_discover)
 
     p = sub.add_parser("publish", help="发布本机端口上正在运行的应用")
-    p.add_argument("port", type=int)
+    p.add_argument("port", type=int, nargs="?",
+                   help="应用端口；省略时自动选上次用的或唯一候选")
     p.add_argument("--name", help="应用名称（默认 port-<端口>）")
     p.add_argument("--pin", help="设置访问口令（打开网址需先输入口令）")
     p.add_argument("--pin-stdin", action="store_true",
                    help="从 stdin 读取口令，避免出现在进程列表中")
-    p.add_argument("--share", action="store_true",
+    p.add_argument("--share", dest="share", action="store_true", default=None,
                    help="生成分享页并统计访问（会经由内置代理）")
-    p.add_argument("--expires", help="有效期：1h / 1d / 7d（默认永久）")
+    p.add_argument("--no-share", dest="share", action="store_false",
+                   help="不生成分享页，直接转发")
+    p.add_argument("--expires", help="有效期：1h / 1d / 7d（省略时沿用上次）")
+    p.add_argument("--permanent", action="store_true",
+                   help="强制永久，不沿用上次的有效期")
     p.add_argument("--no-check", action="store_true",
                    help="发布后不做访客视角自检（默认会自检并给出结论）")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_publish)
 
     p = sub.add_parser("pages", help="把文件夹发布成只读网页")
-    p.add_argument("folder")
+    p.add_argument("folder", nargs="?", default=".",
+                   help="网页文件夹（默认当前目录）")
     p.add_argument("--name", help="页面名称（默认文件夹名）")
     p.add_argument("--pin", help="设置访问口令（打开网址需先输入口令）")
     p.add_argument("--pin-stdin", action="store_true",
                    help="从 stdin 读取口令，避免出现在进程列表中")
-    p.add_argument("--expires", help="有效期：1h / 1d / 7d（默认永久）")
+    p.add_argument("--expires", help="有效期：1h / 1d / 7d（省略时沿用上次）")
+    p.add_argument("--permanent", action="store_true",
+                   help="强制永久，不沿用上次的有效期")
     p.add_argument("--no-check", action="store_true",
                    help="发布后不做访客视角自检")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_pages)
 
     p = sub.add_parser("run", help="识别并启动项目文件夹（静态/Node），然后发布")
-    p.add_argument("folder")
+    p.add_argument("folder", nargs="?", default=".",
+                   help="项目文件夹（默认当前目录）")
     p.add_argument("--name", help="应用名称（默认文件夹名）")
-    p.add_argument("--share", action="store_true",
+    p.add_argument("--pin", help="设置访问口令（打开网址需先输入口令）")
+    p.add_argument("--pin-stdin", action="store_true",
+                   help="从 stdin 读取口令，避免出现在进程列表中")
+    p.add_argument("--share", dest="share", action="store_true", default=None,
                    help="生成分享页并统计访问（会经由内置代理）")
+    p.add_argument("--no-share", dest="share", action="store_false",
+                   help="不生成分享页，直接转发")
+    p.add_argument("--expires", help="有效期：1h / 1d / 7d（省略时沿用上次）")
+    p.add_argument("--permanent", action="store_true",
+                   help="强制永久，不沿用上次的有效期")
     p.add_argument("--no-check", action="store_true",
                    help="发布后不做访客视角自检")
     p.add_argument("--json", action="store_true")

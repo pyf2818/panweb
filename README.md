@@ -72,9 +72,9 @@ python3，缺失时首次启动会引导安装 Command Line Tools），
 | --- | --- |
 | `panweb ui` | **启动本机控制台**（浏览器仪表盘，http://127.0.0.1:7788，UUMit 风格） |
 | `panweb discover` | 扫描本机监听端口，识别可发布的 HTTP 应用（只读） |
-| `panweb publish <端口> [--name 名字] [--share] [--no-check]` | 发布端口上正在运行的应用 → 公网网址；`--share` 额外生成分享页与访问统计；发布后自动按访客视角自检（`--no-check` 跳过） |
-| `panweb pages <文件夹> [--name 名字]` | 文件夹发布成只读网页 → 公网网址（自动带分享页与统计） |
-| `panweb run <文件夹> [--name 名字] [--share]` | **识别并自动启动项目**（静态/Node），一条命令直达公网；`--share` 生成分享页与统计 |
+| `panweb publish [端口] [--name 名字] [--share\|--no-share] [--pin 口令] [--expires 时长] [--permanent] [--no-check]` | 发布端口上正在运行的应用 → 公网网址；**端口可省略**（自动挑上次用过或唯一在跑的应用，多个候选时直接告诉你该填哪个）；有效期/分享选项默认沿用上次设置 |
+| `panweb pages [文件夹] [--name 名字] [--expires 时长]` | 文件夹发布成只读网页 → 公网网址（自动带分享页与统计）；**文件夹可省略**，默认当前目录 |
+| `panweb run [文件夹] [--name 名字] [--share\|--no-share] [--pin 口令] [--expires 时长]` | **识别并自动启动项目**（静态/Node），一条命令直达公网；`--share` 生成分享页与统计 |
 | `panweb check <id\|名称\|网址> [--no-fix]` | **按访客视角自检已发布的应用**：首页/静态资源/WebSocket 逐项给结论，默认会依据取证自动修正 Host 模式；未通过时退出码 1 |
 | `panweb compat <id\|名称> [--host-mode tunnel] [--bearer T \| --user U --password P \| --header Name --value V \| --auth-stdin] [--clear-auth]` | 上游兼容设置：回源 Host 模式、代访客注入应用自己的凭据（密钥只存本机；`--auth-stdin` 从标准输入读，不进进程列表） |
 | `panweb list` | 已发布的应用与网址 |
@@ -94,6 +94,8 @@ python3，缺失时首次启动会引导安装 Command Line Tools），
 ```
 
 `panweb run` 或控制台「启动项目」Tab 一次完成全链路；Python 等其他类型请手动启动后用「发布端口」。
+
+**少一步、可预期**：`publish/pages/run` 的端口、文件夹、有效期、分享选项都有默认值——文件夹默认当前目录，端口空着由 panweb 自动探测（优先上次用过的那个），有效期与分享开关沿用上次发布；只有真正跑不起来时才需要你补参数。耗时步骤（端口探测、启动项目、建立隧道）在 CLI 里逐行输出 `→` 步骤，在控制台里显示步骤列表；失败时给的是下一步动作（`重试` / `去启动项目` / `重新扫描`）而不是一条错误堆栈。PIN 只在本次会话里复用，不写进任何状态文件。
 
 ## 代码结构（1.6 模块化）
 
@@ -115,10 +117,11 @@ src/panweb/             # 按职责分包，单文件均 < 500 行
   codesign              # Developer ID 签名 + 苹果公证（没配凭据退回 ad-hoc）
   update                # 检查 GitHub Releases / 取回升级包，受许可更新窗口约束
   ui_server/ui_actions  # 控制台 HTTP 与 API
+  jobs                  # 发布/启动等慢操作的后台任务与进度
   licensing             # 离线买断许可
   cli/cli_commands      # 参数解析与调度 / 命令输出渲染
   mcp_server            # MCP stdio（复用同一批 core_* 函数）
-ui/src/                 # 前端源码：6 个 CSS、10 个 JS、2 个 partials + index + manifest
+ui/src/                 # 前端源码：6 个 CSS、11 个 JS、2 个 partials + index + manifest
 ui/index.html           # tools/build_ui.py 组装的单文件产物（文件头标注「请勿直接编辑」）
 site/                   # 项目介绍页：独立静态站（index + 3 CSS + 4 JS），`panweb pages site` 即可发布
 tools/build_ui.py       # 前端组装 / --check
@@ -335,7 +338,7 @@ make dmg                           # macOS 安装包 → dist/panweb-<版本>-<�
 - `tests/` 按主题平铺（不是按包分层）：路径/状态/访问/许可/管道单元测试、CLI 合约、代理分享页/PIN/过期、WebSocket 透传、上游兼容（转发头构造、凭据归一化与注入拒绝）、访客自检（结论判定/资源抽样/裸 TLS WebSocket/Host 取证修正）、隧道传输（QUIC 探测与 http2 回退）、真终端（假 Agent 跑在 PTY 里，验证 argv 白名单、尺寸传递、退出码、缓冲上限与 SSE 游标补发）、自愈与孤儿隧道回收（死隧道不进取用池、恢复未验证通过就不写状态）、诊断包（脱敏字段与"混进密钥就拒绝出包"的自审）、签名与公证（没配身份退回 ad-hoc、配了就先里后外）、更新（版本比较、按架构挑包、许可窗口拒绝、下载大小核对与 SHA-256）、控制台安全、前端构建与模块体积约束、子进程代理集成（真实拉起 `_spawn_proxy` 后转发/分享页/口令/代填凭据）。
 - **发行构建的可控项**（都靠环境变量，缺省即安全退回）：`PANWEB_SIGN_IDENTITY`（Developer ID 身份，空则 ad-hoc）、`PANWEB_NOTARY_PROFILE` 或 `PANWEB_APPLE_KEY_ID`/`PANWEB_APPLE_ISSUER_ID`/`PANWEB_APPLE_P8`（公证凭据，缺则跳过公证）、`PANWEB_RELEASE_REPO`（更新来源仓库，默认 `pyf2818/panweb`）、`PANWEB_LICENSE_PUBKEY`（发行时注入公钥后许可校验才生效）。
 - 状态目录可用 `PANWEB_HOME` 隔离（测试与便携模式）；panweb 拉起的代理/控制台子进程会继承它。
-- CI：`.github/workflows/test.yml` 在 Python 3.9/3.11/3.12 上跑语法编译、211 项测试、前端产物一致性检查与 zipapp 构建；另设 macOS job 验证 App/dmg 打包与内置许可文件，ruff 只拦语法/未定义名这类真错误，覆盖率下限 50%（子进程测试不计入，当前实测约 55%）。
+- CI：`.github/workflows/test.yml` 在 Python 3.9/3.11/3.12 上跑语法编译、223 项测试、前端产物一致性检查与 zipapp 构建；另设 macOS job 验证 App/dmg 打包与内置许可文件，ruff 只拦语法/未定义名这类真错误，覆盖率下限 50%（子进程测试不计入，当前实测约 55%）。
 - 第三方组件与许可证：见 `THIRD_PARTY_NOTICES.md`（cloudflared Apache-2.0、QR 库 MIT）。
 - 打包 macOS App：`panweb install-app`（复制包、UI、技能、第三方声明与可选许可公钥；
   Python 仍用系统解释器）。

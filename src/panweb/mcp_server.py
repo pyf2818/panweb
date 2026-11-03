@@ -83,7 +83,9 @@ def _mcp_call(name, a):
                           expires=a.get("expires"))
     if name == "run_project":
         return core_run(a.get("folder"), a.get("name"),
-                        share=bool(a.get("share")))
+                        share=bool(a.get("share")),
+                        pin=(a.get("pin") or "") or None,
+                        expires=a.get("expires"))
     if name == "stop":
         return {"stopped": core_stop(a.get("target") or "all")}
     if name == "list_apps":
