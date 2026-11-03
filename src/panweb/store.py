@@ -2,6 +2,7 @@
 import contextlib
 import json
 import os
+import tempfile
 import threading
 import time
 
@@ -64,16 +65,58 @@ def state_lock():
         _STATE_THREAD_LOCK.release()
 
 
-def save_json(path, data):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    tmp = path + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+_JSON_LOCKS = {}
+_JSON_LOCKS_GUARD = threading.Lock()
+
+
+@contextlib.contextmanager
+def json_lock(path):
+    """跨线程/跨进程互斥，保护任意 JSON 文件的读-改-写。
+
+    state.json 用 state_lock；activity/meta 这类非 state 文件也有人在
+    CLI、控制台和菜单栏之间并发读写，同样需要一把锁。
+    """
+    path = os.path.abspath(path)
+    with _JSON_LOCKS_GUARD:
+        lock = _JSON_LOCKS.setdefault(path, threading.RLock())
+    lock.acquire()
+    lockf = None
     try:
-        os.chmod(tmp, 0o600)
-    except OSError:
-        pass
-    os.replace(tmp, path)
+        ensure_private_dir(os.path.dirname(path))
+        lockf = open(path + ".lock", "a+", encoding="utf-8")
+        if fcntl:
+            fcntl.flock(lockf.fileno(), fcntl.LOCK_EX)
+        yield
+    finally:
+        if lockf:
+            if fcntl:
+                try:
+                    fcntl.flock(lockf.fileno(), fcntl.LOCK_UN)
+                except OSError:
+                    pass
+            lockf.close()
+        lock.release()
+
+
+def save_json(path, data):
+    directory = os.path.dirname(path) or "."
+    os.makedirs(directory, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(prefix=".%s." % os.path.basename(path),
+                               suffix=".tmp", dir=directory)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        try:
+            os.chmod(tmp, 0o600)
+        except OSError:
+            pass
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.remove(tmp)
+        except OSError:
+            pass
+        raise
 
 
 def _load_json(path, default):
@@ -97,10 +140,11 @@ def load_activity():
 
 
 def log_activity(kind, text, detail=None):
-    items = load_activity()
-    items.append({"ts": time.strftime("%Y-%m-%d %H:%M:%S"),
-                  "kind": kind, "text": text, "detail": detail})
-    save_json(runtime.ACTIVITY_FILE, items[-200:])
+    with json_lock(runtime.ACTIVITY_FILE):
+        items = load_activity()
+        items.append({"ts": time.strftime("%Y-%m-%d %H:%M:%S"),
+                      "kind": kind, "text": text, "detail": detail})
+        save_json(runtime.ACTIVITY_FILE, items[-200:])
 
 
 def load_meta():
@@ -114,9 +158,10 @@ def save_meta(meta):
 def bump_stopped(count):
     if not count:
         return
-    meta = load_meta()
-    meta["stopped_total"] = meta.get("stopped_total", 0) + count
-    save_meta(meta)
+    with json_lock(runtime.META_FILE):
+        meta = load_meta()
+        meta["stopped_total"] = meta.get("stopped_total", 0) + count
+        save_meta(meta)
 
 
 def load_domain():

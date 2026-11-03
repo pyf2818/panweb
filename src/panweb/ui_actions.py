@@ -30,8 +30,9 @@ from .pins import normalize_pin, write_pin
 from .publish import (_publish_port, core_detect, core_pages, core_publish,
                       core_run)
 from .share import new_share_token
-from .store import (load_activity, load_domain, load_meta, load_state,
-                    log_activity, save_meta, save_state, state_lock)
+from .store import (json_lock, load_activity, load_domain, load_meta,
+                    load_state, log_activity, save_meta, save_state,
+                    state_lock)
 from .supervisor import restart_entry_tunnel
 from .system import core_pack, core_system
 from .term import (core_terminal_close, core_terminal_input,
@@ -179,9 +180,10 @@ def handle_post(handler, path, body):
         return _share(handler, body) or True
     if path == "/api/notify-visits":
         enabled = bool(body.get("enabled"))
-        meta = load_meta()
-        meta["notify_visits"] = enabled
-        save_meta(meta)
+        with json_lock(runtime.META_FILE):
+            meta = load_meta()
+            meta["notify_visits"] = enabled
+            save_meta(meta)
         log_activity("ui", "访客提醒已%s" % ("开启" if enabled else "关闭"))
         return handler.send_json({"ok": True, "data": {
             "enabled": enabled}}) or True
@@ -190,13 +192,14 @@ def handle_post(handler, path, body):
         if not entry_id:
             return handler.send_json({"ok": True, "data": {
                 "owner": False}}) or True
-        meta = load_meta()
         now = time.time()
-        grace = {k: v for k, v in (meta.get("owner_grace") or {}).items()
-                 if v > now}
-        grace[entry_id] = now + 15
-        meta["owner_grace"] = grace
-        save_meta(meta)
+        with json_lock(runtime.META_FILE):
+            meta = load_meta()
+            grace = {k: v for k, v in (meta.get("owner_grace") or {}).items()
+                     if v > now}
+            grace[entry_id] = now + 15
+            meta["owner_grace"] = grace
+            save_meta(meta)
         return handler.send_json({"ok": True, "data": {
             "owner": True}}) or True
     if path == "/api/term/open":
