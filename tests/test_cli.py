@@ -18,6 +18,9 @@ class CliTests(unittest.TestCase):
         self.env = os.environ.copy()
         self.env["HOME"] = self.home
         self.env["PANWEB_CLOUDFLARED"] = shutil.which("false") or "/bin/false"
+        # 清掉外部可能带进来的 PANWEB_HOME，doctor 才会按临时 HOME 推导路径；
+        # 否则开发机上设置的 PANWEB_HOME 会穿透到子进程，污染真实状态目录。
+        self.env.pop("PANWEB_HOME", None)
         self.env.pop("PANWEB_LICENSE_PUBKEY", None)
         self.env.pop("PANWEB_MACHINE_ID", None)
         self.env.pop("PANWEB_LICENSE_OFF", None)

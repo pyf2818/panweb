@@ -1,3 +1,4 @@
+import atexit
 import base64
 import contextlib
 import os
@@ -28,6 +29,14 @@ def reset_caches():
     forwarder.CURRENT_POOL = None
     pins.PIN_FAILS.clear()
     ui_context.VISIT_NOTIFIER = None
+
+
+# 测试一启动就把状态目录挪到临时位置：即使开发者机器上设了 PANWEB_HOME，
+# 跑测试也不会读写真实的 ~/.panweb；需要更细隔离的用例再用 temp_home。
+_SESSION_HOME = tempfile.mkdtemp(prefix="panweb-tests-")
+runtime.set_home(_SESSION_HOME)
+reset_caches()
+atexit.register(shutil.rmtree, _SESSION_HOME, True)
 
 
 @contextlib.contextmanager

@@ -332,10 +332,10 @@ make dmg                           # macOS 安装包 → dist/panweb-<版本>-<�
 构建 dmg/pyz、生成 `SHA256SUMS` 并创建 GitHub Release。`panweb update` 下载后会
 按这份清单校验 SHA-256；清单缺失时仍会提示“无校验清单”。
 
-- `tests/` 现为分包结构：路径/状态/访问/许可/管道单元测试、CLI 合约、代理分享页/PIN/过期、WebSocket 透传、上游兼容（转发头构造、凭据归一化与注入拒绝）、访客自检（结论判定/资源抽样/裸 TLS WebSocket/Host 取证修正）、隧道传输（QUIC 探测与 http2 回退）、真终端（假 Agent 跑在 PTY 里，验证 argv 白名单、尺寸传递、退出码、缓冲上限与 SSE 游标补发）、自愈与孤儿隧道回收（死隧道不进取用池、恢复未验证通过就不写状态）、诊断包（脱敏字段与"混进密钥就拒绝出包"的自审）、签名与公证（没配身份退回 ad-hoc、配了就先里后外）、更新（版本比较、按架构挑包、许可窗口拒绝、下载大小核对与 SHA-256）、控制台安全、前端构建与模块体积约束、子进程代理集成（真实拉起 `_spawn_proxy` 后转发/分享页/口令/代填凭据）。
+- `tests/` 按主题平铺（不是按包分层）：路径/状态/访问/许可/管道单元测试、CLI 合约、代理分享页/PIN/过期、WebSocket 透传、上游兼容（转发头构造、凭据归一化与注入拒绝）、访客自检（结论判定/资源抽样/裸 TLS WebSocket/Host 取证修正）、隧道传输（QUIC 探测与 http2 回退）、真终端（假 Agent 跑在 PTY 里，验证 argv 白名单、尺寸传递、退出码、缓冲上限与 SSE 游标补发）、自愈与孤儿隧道回收（死隧道不进取用池、恢复未验证通过就不写状态）、诊断包（脱敏字段与"混进密钥就拒绝出包"的自审）、签名与公证（没配身份退回 ad-hoc、配了就先里后外）、更新（版本比较、按架构挑包、许可窗口拒绝、下载大小核对与 SHA-256）、控制台安全、前端构建与模块体积约束、子进程代理集成（真实拉起 `_spawn_proxy` 后转发/分享页/口令/代填凭据）。
 - **发行构建的可控项**（都靠环境变量，缺省即安全退回）：`PANWEB_SIGN_IDENTITY`（Developer ID 身份，空则 ad-hoc）、`PANWEB_NOTARY_PROFILE` 或 `PANWEB_APPLE_KEY_ID`/`PANWEB_APPLE_ISSUER_ID`/`PANWEB_APPLE_P8`（公证凭据，缺则跳过公证）、`PANWEB_RELEASE_REPO`（更新来源仓库，默认 `pyf2818/panweb`）、`PANWEB_LICENSE_PUBKEY`（发行时注入公钥后许可校验才生效）。
 - 状态目录可用 `PANWEB_HOME` 隔离（测试与便携模式）；panweb 拉起的代理/控制台子进程会继承它。
-- CI：`.github/workflows/test.yml` 在 Python 3.9/3.11/3.12 上跑语法编译、195 项测试、前端产物一致性检查与 zipapp 构建。
+- CI：`.github/workflows/test.yml` 在 Python 3.9/3.11/3.12 上跑语法编译、208 项测试、前端产物一致性检查与 zipapp 构建；另设 macOS job 验证 App/dmg 打包与内置许可文件，ruff 只拦语法/未定义名这类真错误，覆盖率下限 50%（子进程测试不计入，当前实测约 55%）。
 - 第三方组件与许可证：见 `THIRD_PARTY_NOTICES.md`（cloudflared Apache-2.0、QR 库 MIT）。
 - 打包 macOS App：`panweb install-app`（复制包、UI、技能、第三方声明与可选许可公钥；
   Python 仍用系统解释器）。

@@ -195,20 +195,24 @@ def _expected_sha256(url, name):
 
 
 def _download(url, target):
+    part = target + ".part"
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     try:
         with urllib.request.urlopen(req, timeout=60) as resp, \
-                open(target + ".part", "wb") as f:
+                open(part, "wb") as f:
             while True:
                 chunk = resp.read(1 << 16)
                 if not chunk:
                     break
                 f.write(chunk)
     except (urllib.error.URLError, OSError) as e:
+        # 断在半截时不能把 .part 留在本机：下次会被当成“正在下载”或占满目录
+        _discard(part)
         raise PanwebError(4, "network", "下载失败：%s" % e)
     try:
-        os.replace(target + ".part", target)
+        os.replace(part, target)
     except OSError as e:
+        _discard(part)
         raise PanwebError(9, "write_failed", "升级包落盘失败：%s" % e)
 
 

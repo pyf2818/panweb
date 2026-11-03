@@ -42,6 +42,19 @@ class FakeResp:
         return False
 
 
+class BrokenResp(FakeResp):
+    """吐出一小段后断掉，模拟下载中途网络中断。"""
+
+    def __init__(self, data, fail_after=100):
+        super().__init__(data)
+        self.fail_after = fail_after
+
+    def read(self, size=-1):
+        if self.pos >= self.fail_after:
+            raise OSError("connection reset")
+        return super().read(min(size, self.fail_after - self.pos))
+
+
 class VersionTests(unittest.TestCase):
     def test_common_tag_shapes(self):
         self.assertEqual(update.parse_version("v1.6.0"), (1, 6, 0))
@@ -148,7 +161,8 @@ class ApplyTests(unittest.TestCase):
         patcher.start()
         self.addCleanup(patcher.stop)
 
-    def _run(self, payload=b"x" * 4096, lic_state=None, rel=None, sums=None):
+    def _run(self, payload=b"x" * 4096, lic_state=None, rel=None, sums=None,
+             resp=None):
         urls = []
 
         def spy(req, timeout=0):
@@ -157,7 +171,7 @@ class ApplyTests(unittest.TestCase):
                 raise payload
             if sums is not None and req.full_url.endswith("SHA256SUMS"):
                 return FakeResp(sums.encode("utf-8"))
-            return FakeResp(payload)
+            return resp or FakeResp(payload)
 
         patchers = [mock.patch.object(update, "license_status",
                                       return_value=lic_state or lic()),
@@ -246,6 +260,13 @@ class ApplyTests(unittest.TestCase):
         self.assertEqual(err.err_type, "network")
         out = os.path.join(runtime.HOME_DIR, "update")
         self.assertEqual(os.listdir(out), [], "下载中断不能留下 .part")
+
+    def test_mid_download_failure_removes_part_file(self):
+        err, _ = self._run(resp=BrokenResp(b"x" * 4096))
+        self.assertIsInstance(err, PanwebError, str(err))
+        self.assertEqual(err.err_type, "network")
+        out = os.path.join(runtime.HOME_DIR, "update")
+        self.assertEqual(os.listdir(out), [], "读到一半断掉也要清掉 .part")
 
 
 class ShaTests(unittest.TestCase):
