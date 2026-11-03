@@ -148,13 +148,15 @@ class ApplyTests(unittest.TestCase):
         patcher.start()
         self.addCleanup(patcher.stop)
 
-    def _run(self, payload=b"x" * 4096, lic_state=None, rel=None):
+    def _run(self, payload=b"x" * 4096, lic_state=None, rel=None, sums=None):
         urls = []
 
         def spy(req, timeout=0):
             urls.append(req.full_url)
             if isinstance(payload, Exception):
                 raise payload
+            if sums is not None and req.full_url.endswith("SHA256SUMS"):
+                return FakeResp(sums.encode("utf-8"))
             return FakeResp(payload)
 
         patchers = [mock.patch.object(update, "license_status",
@@ -208,6 +210,35 @@ class ApplyTests(unittest.TestCase):
         self.assertNotIsInstance(result, PanwebError, str(result))
         self.assertIsNone(result["downloaded"])
         self.assertEqual(urls, [])
+
+    def test_checksum_mismatch_is_discarded(self):
+        rel = release()
+        rel["assets"].append({
+            "name": "SHA256SUMS", "browser_download_url":
+            "https://dl.test/SHA256SUMS", "size": 100})
+        with mock.patch.object(update.platform, "machine",
+                               return_value="arm64"):
+            err, urls = self._run(
+                rel=rel, sums="%s  panweb-9.9.9-arm64.dmg\n" % ("0" * 64))
+        self.assertIsInstance(err, PanwebError, str(err))
+        self.assertEqual(err.err_type, "checksum")
+        self.assertIn("SHA256SUMS", urls[0])
+        out = os.path.join(runtime.HOME_DIR, "update")
+        self.assertEqual(os.listdir(out), [], "校验失败不能留下安装包")
+
+    def test_checksum_match_is_reported_verified(self):
+        rel = release()
+        rel["assets"].append({
+            "name": "SHA256SUMS", "browser_download_url":
+            "https://dl.test/SHA256SUMS", "size": 100})
+        digest = hashlib.sha256(b"x" * 4096).hexdigest()
+        with mock.patch.object(update.platform, "machine",
+                               return_value="arm64"):
+            result, _ = self._run(
+                rel=rel, sums="%s  panweb-9.9.9-arm64.dmg\n" % digest)
+        self.assertNotIsInstance(result, PanwebError, str(result))
+        self.assertTrue(result["verified"])
+        self.assertEqual(result["sha256"], digest)
 
     def test_download_failure_leaves_no_part_file(self):
         err, _ = self._run(payload=urllib.error.URLError("断了"))

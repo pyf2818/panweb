@@ -1,0 +1,77 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Check tag matches PANWEB_VERSION
+        run: |
+          python3 - <<'PY'
+          import os, sys
+          sys.path.insert(0, "src")
+          from panweb.runtime import PANWEB_VERSION
+          tag = os.environ["GITHUB_REF_NAME"]
+          if tag.lstrip("v") != PANWEB_VERSION:
+              raise SystemExit("tag %s != PANWEB_VERSION %s" % (tag, PANWEB_VERSION))
+          print("version ok:", PANWEB_VERSION)
+          PY
+
+      - name: Install cloudflared
+        run: brew install cloudflared
+
+      - name: Tests and UI consistency
+        run: |
+          python3 -m compileall -q -x '/\._' src tools tests
+          python3 -m unittest discover -s tests
+          python3 tools/build_ui.py --check
+
+      - name: Build zipapp and dmg
+        run: |
+          python3 tools/build_zipapp.py --out dist/panweb.pyz
+          python3 tools/build_dmg.py --out dist
+
+      - name: Write SHA256SUMS
+        run: |
+          cd dist
+          shasum -a 256 panweb.pyz panweb-*.dmg > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="$GITHUB_REF_NAME"
+          files=(dist/panweb.pyz dist/panweb-*.dmg dist/SHA256SUMS)
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" "${files[@]}" --clobber
+          else
+            gh release create "$tag" "${files[@]}" \
+              --title "$tag" --generate-notes
+          fi
+
+      - name: Summarize signing state
+        run: |
+          {
+            echo "### Release $GITHUB_REF_NAME"
+            echo
+            echo "产物：dmg、pyz、SHA256SUMS（update 会按清单校验）"
+            echo
+            echo "若构建时未设置 Developer ID 证书，dmg/App 为 ad-hoc 签名；"
+            echo "对外正式发布前需要在 macOS 构建机上配置签名与公证。"
+          } >> "$GITHUB_STEP_SUMMARY"

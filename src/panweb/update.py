@@ -64,20 +64,36 @@ def latest_release():
     return data
 
 
+def find_checksum_asset(release):
+    """找到 Release 里的 SHA-256 清单；没有就返回 None。"""
+    for item in release.get("assets") or []:
+        name = str(item.get("name", ""))
+        if name in ("SHA256SUMS", "sha256sums.txt", "checksums.txt"):
+            return item
+    return None
+
+
 def pick_asset(release):
     """挑本机这个架构的 dmg，其次任意 dmg，最后 .pyz。"""
+    checksums = find_checksum_asset(release)
+    release_checksums = None
+    if checksums:
+        # 只是给后续 apply 用的内部字段，不影响 CLI 对外 JSON 的字段语义。
+        release_checksums = checksums.get("browser_download_url")
     assets = release.get("assets") or []
     arch = platform.machine().lower()
     named = [a for a in assets if str(a.get("name", "")).endswith(".dmg")]
     want = [a for a in named if arch in str(a.get("name", "")).lower()]
     for item in (want or named):
         return {"name": item.get("name"), "url": item.get("browser_download_url"),
-                "size": item.get("size"), "kind": "dmg"}
+                "size": item.get("size"), "kind": "dmg",
+                "checksums_url": release_checksums}
     for item in assets:
         if str(item.get("name", "")).endswith(".pyz"):
             return {"name": item.get("name"),
                     "url": item.get("browser_download_url"),
-                    "size": item.get("size"), "kind": "pyz"}
+                    "size": item.get("size"), "kind": "pyz",
+                    "checksums_url": release_checksums}
     return None
 
 
@@ -128,21 +144,54 @@ def core_update_apply():
     out_dir = os.path.join(runtime.HOME_DIR, "update")
     os.makedirs(out_dir, exist_ok=True)
     target = os.path.join(out_dir, os.path.basename(asset["name"]))
+    expected = None
+    if asset.get("checksums_url"):
+        expected = _expected_sha256(asset["checksums_url"], asset["name"])
     _download(asset["url"], target)
     size = os.path.getsize(target)
     if asset.get("size") and abs(size - int(asset["size"])) > 1024:
-        try:
-            os.remove(target)
-        except OSError:
-            pass
+        _discard(target)
         raise PanwebError(4, "checksum", "下载大小与发布记录不符，已丢弃")
     digest = sha256_of(target)
+    if expected and digest.lower() != expected:
+        _discard(target)
+        raise PanwebError(4, "checksum",
+                          "升级包 SHA-256 与 SHA256SUMS 不符，已丢弃",
+                          "不要运行这个文件；请重新下载或联系发布者")
     opened = _open_quietly(target, asset["kind"])
-    log_activity("system", "已取回升级包 %s（%d MB）"
-                 % (asset["name"], max(1, size // 1048576)))
+    log_activity("system", "已取回升级包 %s（%d MB，%s）"
+                 % (asset["name"], max(1, size // 1048576),
+                    "校验通过" if expected else "无校验清单"))
     return dict(status, downloaded=target, size=size, sha256=digest,
-                opened=opened,
+                verified=bool(expected), opened=opened,
                 message="升级包已就绪：%s" % target)
+
+
+def _discard(path):
+    try:
+        os.remove(path)
+    except OSError:
+        pass
+
+
+def _expected_sha256(url, name):
+    if not str(url).startswith("https://"):
+        raise PanwebError(4, "checksum", "SHA256SUMS 地址不是 HTTPS，已拒绝")
+    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    try:
+        with urllib.request.urlopen(req, timeout=API_TIMEOUT) as resp:
+            text = resp.read(1 << 16).decode("utf-8", "replace")
+    except (urllib.error.URLError, OSError, ValueError) as e:
+        raise PanwebError(4, "network", "读取 SHA256SUMS 失败：%s" % e)
+    for line in text.splitlines():
+        parts = line.strip().split()
+        if len(parts) >= 2 and parts[1].lstrip("*") == name:
+            digest = parts[0].lower()
+            if re.fullmatch(r"[0-9a-f]{64}", digest):
+                return digest
+            break
+    raise PanwebError(4, "checksum",
+                      "SHA256SUMS 里没有 %s 的有效摘要，已拒绝" % name)
 
 
 def _download(url, target):
