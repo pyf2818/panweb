@@ -5,7 +5,7 @@ import shutil
 import subprocess
 import time
 
-from . import runtime
+from . import codesign, runtime
 from .errors import PanwebError
 from .processes import find_cloudflared
 from .system import dir_size
@@ -113,13 +113,14 @@ open "http://127.0.0.1:7788"
     icns = os.path.join(root, "assets", "icon.icns")
     if os.path.isfile(icns):
         shutil.copy2(icns, os.path.join(res, "panweb.icns"))
-    subprocess.run(["codesign", "--force", "--deep", "-s", "-", app],
-                   capture_output=True)  # ad-hoc 签名，减少 Gatekeeper 提示
+    signed = codesign.sign(app)
     size = dir_size(app)
     if args.json:
-        print(json.dumps({"ok": True, "data": {"app": app, "size": size}},
+        print(json.dumps({"ok": True, "data": {"app": app, "size": size,
+                                               "signed": signed}},
                          ensure_ascii=False))
     else:
         print("✅ 自包含应用已构建：%s（%.0f MB）" % (app, size / 1048576))
         print("   双击即可使用 —— 无需 brew / 终端 / install.sh（cloudflared 已内置）")
         print("   控制台已有实例运行时会直接打开浏览器（幂等）")
+    print("   %s" % codesign.describe(signed))

@@ -200,6 +200,47 @@ def cleanup_orphan_proxies():
         kill_process(pid, ("--internal-proxy",))
 
 
+def cleanup_orphan_tunnels():
+    """回收没有归属的快速隧道：控制台被强杀后，cloudflared 会变成 ppid=1 的孤儿一直挂着。
+
+    四道护栏，避免误杀主人自己跑的隧道：只认 panweb 的命令行形状（--url 127.0.0.1 +
+    --no-autoupdate）、只认 ppid=1、state 里在用的 pid 一律跳过、转发的本机端口还在
+    监听也跳过（说明后面还接着活的代理）。
+    """
+    referenced = set()
+    for e in load_state():
+        for key in ("pid", "tunnel_pid"):
+            try:
+                if e.get(key):
+                    referenced.add(int(e[key]))
+            except (TypeError, ValueError):
+                pass
+    try:
+        out = subprocess.run(["ps", "-axo", "pid=,ppid=,command="],
+                             capture_output=True, text=True,
+                             timeout=10).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return []
+    killed = []
+    for line in out.splitlines():
+        m = re.match(r"\s*(\d+)\s+(\d+)\s+(.*)$", line)
+        if not m:
+            continue
+        pid, ppid, cmd = int(m.group(1)), int(m.group(2)), m.group(3)
+        if ppid != 1 or pid in referenced:
+            continue
+        if "cloudflared" not in cmd or "--no-autoupdate" not in cmd:
+            continue
+        if " tunnel " not in cmd or "--url" not in cmd:
+            continue
+        tm = re.search(r"--url\s+http://127\.0\.0\.1:(\d+)", cmd)
+        if not tm or port_listening(int(tm.group(1))):
+            continue
+        if kill_process(pid, ("cloudflared",)):
+            killed.append(pid)
+    return killed
+
+
 def wait_port(port, seconds=6.0):
     deadline = time.time() + seconds
     while time.time() < deadline and not port_listening(port):

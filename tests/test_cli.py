@@ -58,13 +58,13 @@ class CliTests(unittest.TestCase):
     def test_version(self):
         out = self.run_cli("--version")
         self.assertEqual(out.returncode, 0)
-        self.assertIn("1.5.0", out.stdout)
+        self.assertIn("1.6.0", out.stdout)
 
     def test_help_lists_commands(self):
         out = self.run_cli("--help")
         self.assertEqual(out.returncode, 0)
         for cmd in ("publish", "pages", "run", "list", "stop", "ui",
-                    "license", "check", "compat"):
+                    "license", "check", "compat", "report", "update"):
             self.assertIn(cmd, out.stdout)
 
     def test_license_status_development(self):

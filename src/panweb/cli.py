@@ -10,7 +10,8 @@ import sys
 from . import runtime, upstream
 from .cli_commands import (cmd_check, cmd_compat, cmd_discover, cmd_doctor,
                            cmd_host, cmd_list, cmd_license, cmd_pages,
-                           cmd_publish, cmd_run, cmd_status, cmd_stop, cmd_pack)
+                           cmd_publish, cmd_report, cmd_run, cmd_status,
+                           cmd_stop, cmd_pack, cmd_update)
 from .cliio import emit_fail
 from .console import cmd_console
 from .errors import PanwebError
@@ -158,11 +159,22 @@ def build_parser():
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_pack)
 
+    p = sub.add_parser("report", help="导出脱敏诊断包（给卖家排查用）")
+    p.add_argument("--out", help="输出目录（默认 ~/.panweb/reports）")
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_report)
+
     p = sub.add_parser("license", help="查看/激活/解除买断许可")
     p.add_argument("action", choices=["status", "activate", "deactivate"])
     p.add_argument("key", nargs="?", help="许可密钥（activate 时必填）")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_license)
+
+    p = sub.add_parser("update", help="检查更新 / 取回升级包（买断含 1 年更新）")
+    p.add_argument("action", nargs="?", default="check",
+                   choices=["check", "apply"])
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_update)
 
     return parser
 

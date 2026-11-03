@@ -1,6 +1,6 @@
 # panweb 架构设计
 
-本文描述 panweb 1.5 的代码结构、依赖规则、运行模型与商业许可边界。目标是：
+本文描述 panweb 1.6 的代码结构、依赖规则、运行模型与商业许可边界。目标是：
 后端按职责分包、单文件不超过约 450 行、前端样式与脚本可独立维护，同时保留
 “本机运行、离线自包含、单条命令发布”的交付方式。
 
@@ -38,19 +38,22 @@ src/panweb/
   entries.py                # 发布条目注册/停止/存活/列表/菜单栏状态、上游兼容设置
   upstream.py               # 上游兼容层：Host 模式、代访客注入凭据、转发头构造
   healthcheck.py            # 发布后的访客视角自检（首页/资源/WebSocket）与取证自动修正
-  agentchat.py              # 控制台驱动本机 Agent CLI 的会话（argv 白名单、增量输出、可停止）
+  term.py                   # 控制台里的真终端：PTY 会话、非阻塞读写、SSE 画面推流
   folders.py                # 本机目录浏览：控制台「选文件夹」的数据源（只列目录，不读内容）
   publish.py                # 发布端口/静态页/自动启动项目、代理子进程
   discovery.py              # 可发布应用发现、doctor
   supervisor.py             # 健康巡检、隧道/代理自愈、启动清理
   convert.py                # Markdown/Excel → HTML、站点整理
   hosting.py                # GitHub Pages 云端托管
-  agents.py                 # 本机 Agent 技能安装
+  agents.py                 # 本机 Agent 技能安装、终端可执行的 Agent 白名单与命令行
   installer.py              # 一键安装 cloudflared
   menubar.py                # Swift 菜单栏构建
   packaging.py              # 自包含 macOS App 构建
   console.py                # 控制台守护进程
   system.py                 # 系统全景、离线打包
+  diagnostics.py            # 脱敏诊断包：字段掩码 + 出包前自审（混进密钥就拒绝）
+  codesign.py               # Developer ID 签名与苹果公证（无凭据退回 ad-hoc）
+  update.py                 # 检查 GitHub Releases、按架构挑包、许可窗口内取回升级包
   mcp_server.py             # MCP stdio 服务
   proxy.py                  # 内置代理子进程：口令门禁、分享页、转发、WebSocket、静态服务
   ui_server.py              # 控制台 HTTP 服务与路由
@@ -59,9 +62,9 @@ src/panweb/
   licensing.py              # 买断制离线许可（试用/激活/设备/更新权益）
   cli_commands.py           # 各命令的输出渲染（JSON / 人类可读）
   cli.py                    # argparse 定义与调度（唯一入口 main）
-ui/src/                     # 前端源码：4 CSS + 9 JS + 2 partials + index + manifest
+ui/src/                     # 前端源码：6 CSS + 10 JS + 2 partials + index + manifest
 ui/index.html               # 构建产物（文件头有「请勿直接编辑」横幅）
-ui/vendor/                  # 第三方前端库（qrcode.js，原样引入不拆改）
+ui/vendor/                  # 第三方前端库（qrcode.js、xterm.js + fit/canvas 插件，原样引入不拆改）
 site/                       # 项目介绍页（独立静态站：index + 3 CSS + 4 JS，可用 panweb pages 发布）
 tools/build_ui.py           # 组装前端为单文件
 tools/build_zipapp.py       # 构建单文件分发 dist/panweb.pyz
@@ -78,13 +81,15 @@ docs/licensing.md           # 许可运营手册
                  cli.py ── cli_commands.py      ui_server.py ── ui_actions.py ── ui_context.py
                  mcp_server.py（AI 客户端入口，复用同一批 core_* 函数）
                  ├── system.py / packaging.py / console.py / installer.py
+                 ├── diagnostics.py / update.py ── licensing.py
+                 ├── codesign.py（只在构建期被 tools 调用）
                  ├── supervisor.py ── domain.py
                  ├── publish.py ── entries.py ── lifecycle.py
                  │      ├── healthcheck.py ── upstream.py
                  │      ├── forwarder.py ── tunnel.py
                  │      └── pins.py / share.py
                  ├── discovery.py
-                 ├── agentchat.py ── agents.py
+                 ├── term.py ── agents.py / processes.py
                  ├── folders.py ── safety.py
                  ├── hosting.py ── convert.py
                  ├── agents.py / menubar.py
@@ -106,8 +111,21 @@ docs/licensing.md           # 许可运营手册
   Host/凭据语义永远一致。
 - `healthcheck` 单向调用 `entries`/`upstream`：自检能改条目的 `host_mode` 与 `check`
   结论，但绝不反过来被 `publish` 调用链依赖——发布只负责 `schedule_check()` 扔进后台线程。
-- `agentchat` 只认识三件事：白名单里的 Agent id、主人指定的工作目录、CLI 打印的字节。
-  它不解析对话内容、不实现模型，也不接受界面传来的可执行文件路径——界面上进来的是选择。
+- `term` 只认识三件事：白名单里的 Agent id、主人指定的工作目录、PTY 两头的字节。
+  一条隐性契约：PTY 的行列表数就是子进程重绘时用的行列表数，所以前端在打开、切回、
+  布局变化后都要把网页算出来的格数推回去（`TIOCSWINSZ`）——只靠 xterm 的 `onResize`
+  不够，刷新后网页尺寸没变而 PTY 还记着旧尺寸，画面就会错位。
+  它不解析画面内容、不实现模型，也不接受界面传来的可执行文件路径或命令行——界面上进来
+  的是「选哪个 Agent」和键盘。真终端以主人身份运行，能改本机文件、能执行发布命令，
+  所以控制台只监听回环、只认本机 Host/Origin，并且最多四个并发、退出即回收子进程。
+- `diagnostics` 与 `update` 都受许可约束，但方向相反：前者**往外拿**（导出前递归掩码
+  含 token/password/secret/pin/key/cookie/authorization 的字段，跳过 `secrets`/`pins`/
+  `visits` 三个目录，打包后再读一遍 zip 自审，发现漏网就抛错并删掉坏包）；后者**往里放**
+  （只走 HTTPS，先问 `licensing` 的 1 年更新窗口，过期就 `license_expired` 拒绝，
+  落地后按 Release 记录核对大小、算 SHA-256，然后只 `open` dmg —— 绝不替换正在运行的
+  App 或 site-packages，替换这一步留给人拖拽）。
+- `codesign` 只在构建期用：没有 `PANWEB_SIGN_IDENTITY` 就退回 ad-hoc 并如实写进
+  「安装说明」，签名失败不当作构建失败（开发机不该被凭据卡住）。
 - `cli.py` 只定义参数并调度，`cli_commands.py` 只渲染输出，二者都不含业务逻辑；
   控制台与打包命令按需延迟导入，避免每次 CLI 启动加载整条 UI/代理链。
 - 业务能力只写在 core 模块，UI/CLI 复用同一组 `core_*` 函数，不复制逻辑。
@@ -164,6 +182,10 @@ panweb (CLI / App)
 | `domain.json` | 固定域名隧道状态 | 600 |
 | `pool.json` | 预热隧道 PID/端口（异常退出回收） | 600 |
 | `license.json` | 离线许可/试用状态 | 600 |
+| `logs/*.log` | 隧道/代理/域名/控制台日志（诊断包只取每个尾部若干 KB） | 目录 700、文件 644 |
+| `packs/*.zip` | `panweb pack` 导出的离线静态包 | 目录 700、文件 644 |
+| `reports/*.zip` | `panweb report` 导出的脱敏诊断包 | 目录 700、文件 644 |
+| `update/*` | `panweb update apply` 取回的升级包（下载先写 `.part`，核对通过才改名） | 目录 700、文件 644 |
 
 路径统一由 `runtime.set_home()` 计算，测试可指向临时目录。
 
@@ -207,7 +229,9 @@ panweb (CLI / App)
 | 隧道 | 只出站连接到 Cloudflare；本地源站绑定 127.0.0.1。QUIC（UDP 443）被网络静默丢包时会自动改走 `--protocol http2`，避免"网址拿到了但永远 530" |
 | 子进程 | argv 数组，不经过 shell；PID + 命令行双重校验后终止 |
 | 目录选择器 | 只列目录、不列文件与隐藏项、不跟随符号链接、单次上限 400 条；路径由本机 realpath 解析，界面传不进任意读文件的能力（读内容仍走静态发布那套边界） |
-| 本机 Agent 终端 | 只有回环控制台能调用；Agent 二进制按固定白名单从 PATH 解析，界面传不进路径；工作目录必须是已存在的目录；并发 2 个、每轮 600 秒超时、输出 200KB 截尾、主人可随时停止；提示词里带着"高危先说风险、不要读 secrets"的规则，但 Agent 仍以主人身份执行——它能动本机，这是这个功能的定义而不是漏洞 |
+| 本机 Agent 终端 | 只有回环控制台能调用；Agent 二进制按固定白名单（Claude Code / Codex / OpenCode）从 PATH 解析，界面传不进可执行文件路径与命令行，只传「选哪个 Agent + 工作目录 + 键盘字节」；工作目录必须是本机已存在目录（`realpath` 后使用）；并发 4 个、画面缓冲每端 300KB 截尾、单次写入 32KB 上限、尺寸钳制在 20-400 列 × 6-200 行；关闭会话先终止子进程，仍活着就 `killpg` 整组；控制台退出时统一回收，不留孤儿。Agent 仍以主人身份执行——它能动本机，这是这个功能的定义而不是漏洞 |
+| 诊断包 | 递归掩码含 token/password/secret/pin/key/cookie/authorization 的字段；跳过 `secrets`/`pins`/`visits`；出包后重新读一遍 zip 自审，混进未脱敏字段即报错并删除坏包 |
+| 更新 | 数据源固定为 GitHub Releases（`PANWEB_RELEASE_REPO` 可覆盖）；先查许可的 1 年更新窗口，过期拒绝（`license_expired`）；只接受 `https://` 资源；落地核对 Release 记录的大小，不符即丢弃；打印 SHA-256 供比对，真正的信任链是 Developer ID 签名与苹果公证；**不替换正在运行的 App** |
 | 许可 | 离线 RSA 签名；机器指纹哈希；不联网、不采集使用数据 |
 
 ## 6. 前端架构
@@ -221,20 +245,33 @@ ui/src/styles/base.css     # 变量、重置、排版、主题
 ui/src/styles/layout.css   # 拖拽手柄、侧栏、顶栏
 ui/src/styles/components.css # 按钮、卡片、统计、应用卡、许可
 ui/src/styles/overlays.css # 弹窗、抽屉、Toast、命令面板
+ui/src/styles/terminal.css # 终端页：整幅布局、工具条、xterm 容器配色
 ui/src/js/core.js          # 状态、API、轮询、主题、工具、渲染
 ui/src/js/apps.js          # 动作、发布、详情抽屉、分享/统计
 ui/src/js/sharing.js       # 分享图、固定域名、安装、停止
 ui/src/js/license.js       # 试用/激活/解除与状态展示
-ui/src/js/workspace.js     # 三栏伸缩、页面切换、系统、Agent、命令面板
+ui/src/js/workspace.js     # 三栏伸缩、页面切换、系统、更新检查、命令面板
 ui/src/js/diagnose.js      # 访客视角自检结论渲染、host_mode 与上游凭据设置
-ui/src/js/agentterm.js     # 终端页：选本机 Agent、发一轮对话、增量拉取输出与停止
+ui/src/js/term.js          # 真终端页：xterm.js 挂载、尺寸回写 PTY、键盘直通、SSE 续播
 ui/src/js/picker.js        # 文件夹选择器：翻本机目录回填路径（终端 / 发布文件夹 / 启动项目）
+ui/src/js/fx.js            # 氛围层：隧道流线粒子（在线数=密度、新动态=脉冲），终端页与隐藏标签停笔
+ui/src/styles/decor.css    # 氛围与装饰：光带/颗粒/卡片抬升/标题饰/入场浮起/焦点环
 ui/src/js/boot.js          # 启动
 ui/src/manifest.json       # 组装顺序
 ```
 
-`tools/build_ui.py` 读取 manifest，把 CSS/JS 内联进单个 `ui/index.html`，
-再注入 QR 库；`--check` 用于 CI。运行期仍然只分发一个 HTML，无构建步骤依赖。
+`tools/build_ui.py` 读取 manifest，把 CSS/JS 内联进单个 `ui/index.html`，再按
+`LIBRARY_SLOTS` 注入第三方库（qrcode.js、xterm.js 与 fit/canvas 插件、xterm 样式，
+都在 `ui/vendor/`）；`--check` 用于 CI。运行期仍然只分发一个 HTML，无构建步骤依赖。
+
+**氛围层**（`fx.js` + `decor.css`）的契约：它是背景，不是主角。三层由远到近是
+光带（`body::before`，z-index -3）→ 颗粒质感（`body::after`，-2）→ 隧道粒子（`#fx`，-1），
+全部 `pointer-events: none`，卡片仍是不透明表面，粒子只从缝隙与半透明侧栏后透出来。
+粒子画的是链路本身：本机节点（左下）→ Cloudflare 边缘（右上），在线应用数决定流密与亮度，
+新动态从本机放一圈脉冲。开销封死：帧率上限 30fps、DPR 上限 1.6、粒子数按视口面积 14-44 个，
+终端页（`body[data-page="term"]`）淡出到 0 后 `cancelAnimationFrame` 彻底停笔并清空画布，
+标签页隐藏由浏览器自然挂起、回前台时重置时基不补画一大帧，`prefers-reduced-motion` 下
+只画一张静构图、CSS 动画全部关闭。它不联网、不读 API，`fx.sync(STATE)` 只吃已有的状态对象。
 
 ## 7. 买断制许可（离线）
 
@@ -262,7 +299,11 @@ ui/src/manifest.json       # 组装顺序
 - **macOS 安装包**：`python3 tools/build_dmg.py`（`make dmg`）先用同一条 `install-app` 命令在临时
   目录造 App，再用 `hdiutil` 打成 `dist/panweb-<版本>-<架构>.dmg`（UDZO，内含拖拽用的
   `Applications` 软链与安装说明）。安装包只是构建产物，`dist/`、`*.dmg` 与 `keys/` 都在
-  `.gitignore` 里；App 为 ad-hoc 签名、未公证，首次打开需要右键「打开」。
+  `.gitignore` 里。签名由 `codesign.py` 负责：**没有配置身份就退回 ad-hoc**（首次打开需右键
+  「打开」），配了 `PANWEB_SIGN_IDENTITY` 就按"先里后外"签 `panweb-launcher` 与内置
+  `cloudflared`，再带 entitlements 签 bundle；只有真用 Developer ID 签名时才走苹果公证
+  （`notarytool submit --wait` → `spctl --assess` → `stapler staple`），「安装说明」与构建
+  日志都会如实反映当前到底签成没签成——不拿 ad-hoc 冒充已公证。
 - **单文件 zipapp（可选）**：`tools/build_zipapp.py` 生成 `dist/panweb.pyz`；
   `runtime.read_resource()` 支持从 zip 读取 UI/模板，技能目录回退到已安装副本。
 - 运行期不需要 pip 依赖；Python 标准库 + cloudflared 即可。
@@ -284,6 +325,10 @@ ui/src/manifest.json       # 组装顺序
 | `PANWEB_LICENSE_OFF` | 关闭许可门禁（开源/自托管构建线） |
 | `PANWEB_TRIAL_DAYS` | 试用天数（默认 14） |
 | `PANWEB_MACHINE_ID` | 覆盖机器指纹（仅测试） |
+| `PANWEB_SIGN_IDENTITY` | Developer ID 签名身份；不设则 ad-hoc，签名失败也不阻断构建 |
+| `PANWEB_NOTARY_PROFILE` | 公证用 keychain profile（优先）|
+| `PANWEB_APPLE_KEY_ID` / `PANWEB_APPLE_ISSUER_ID` / `PANWEB_APPLE_P8` | 公证 API 密钥三件套（profile 不存在时用） |
+| `PANWEB_RELEASE_REPO` | 更新来源仓库 slug（默认 `pyf2818/panweb`） |
 | `PANWEB_DEBUG` | 出错时抛出栈而非 JSON 错误 |
 
 ## 9. 测试策略
@@ -299,7 +344,11 @@ ui/src/manifest.json       # 组装顺序
 | 访客自检 | `test_healthcheck.py`：结论判定（首页/资源/未编译源码）、裸 TLS WebSocket 探测、Host 取证修正与回滚；`test_selfcheck.py`：走真实代理子进程验证修正传播与结论落盘 |
 | 隧道传输 | `test_tunnel.py`：QUIC 探测结果按进程缓存、探测不通时命令行带 `--protocol http2`、`auto` 不改命令行、`PANWEB_TUNNEL_PROTOCOL` 可强制 |
 | 目录选择器 | `test_folders.py`：只列子目录（隐藏/文件/符号链接都排除）、排序与截断计数、主目录不可发布、坏路径与 NUL 拒绝；`test_ui.py`：`/api/folders` 需要本机 Host，缺 Host 直接 403 |
-| Agent 终端 | `test_agentchat.py`：用假 Agent 回显 argv，验证自动批准开关、工作目录、`--` 分隔、上下文规则与多轮历史；停止后状态不被收尾盖掉、并发上限、坏目录/未知 Agent 拒绝、输出游标与截尾、后台钩子占住管道时仍能收工 |
+| 真终端 | `test_term.py`：假 Agent 跑在 PTY 里，验证 argv 白名单（没有 shell、没有一次性开关）、逐字回显、`TIOCSWINSZ` 真的传到子进程、退出码、缓冲上限与游标补发、写已退出终端被拒、关闭回收子进程、并发上限不误杀活的；`test_term_stream.py`：SSE 帧的游标/心跳/断线续播与 `gap` 上报；`test_ui.py`：`/api/term/*` 路由与旧的 `/api/agent/*` 已下线 |
+| 自愈与回收 | `test_recovery.py`：死隧道不进取用池（三次都死就如实报死）、恢复未验证通过就不写状态、正在服务的隧道被收编、孤儿快速隧道被回收但**在用的三条都不动**（后面挂着活代理的、状态里引用的、父进程还在的） |
+| 诊断包 | `test_diagnostics.py`：包内容齐全、凭据永不入包、日志只取尾部、自审能拦下未脱敏字段并删掉坏包、`--out` 生效、裸装（无状态文件）也能出包 |
+| 签名与公证 | `test_codesign.py`：无身份退回 ad-hoc、有身份时先内后外且失败不越级、dmg 只签外层、凭据缺失即跳过公证、keychain profile 优先于 API 三件套、不完整的三件套被忽略、submit→assess→staple 顺序 |
+| 更新 | `test_update.py`：版本号解析（`v` 前缀、补零、乱串归零、1.10 > 1.9）、按架构挑包与 `.pyz` 兜底、同版本不算新、404/断网/返回结构异常都如实报错、许可窗口过期拒绝下载、下载大小不符即丢弃、只接受 `https://`、SHA-256 正确、失败不留 `.part` |
 | 控制台 | Host/Origin 拒绝、JSON Content-Type、自身端口拒绝发布、旧应用补分享令牌、`/api/compat` 不回显密钥、`/api/check` 落盘 |
 | 构建 | `build_ui.py --check` 产物一致、生成物横幅、模块体积上限、全模块可导入、zipapp 可执行 |
 | 集成 | 真实代理 + 临时静态目录 + 临时 HOME；隧道相关使用 fake cloudflared；`_spawn_proxy` 拉起的子进程转发、分享页与口令门禁 |
@@ -308,9 +357,12 @@ CI 在 push/PR 运行全部测试与前端产物一致性检查。
 
 ## 10. 演进路线
 
-1. **1.5**：完成分包、前端模块化、离线许可与回归（本版本）。
+1. **1.5**：完成分包、前端模块化、离线许可与回归。
 2. **1.5.x**：上游兼容层（`host_mode` + 代访客注入凭据）与发布后的访客视角自检——
    把"能发布"变成"打得开"：复杂应用不再只有一个壳，结论同时出现在命令行、控制台抽屉
    与分享页。
-3. **1.6**：固定域名向导增强、Agent 一键接入、可选局域网直连、未编译源码目录的自动构建提示。
+3. **1.6**：控制台里的真终端（PTY + xterm.js）、目录选择器、版本错配提示、
+   启动回收孤儿隧道、一键诊断包、macOS 签名与公证、检查更新与升级包取回。
+   剩下的是发行侧的收尾：真实 Developer ID 凭据、`keys/` 许可密钥对的正式归属、
+   GitHub Release 首发（有了 Release，`panweb update` 才真正有东西可查）、LICENSE/EULA。
 4. **2.0**：可插拔隧道引擎、团队/多设备管理（不引入云端账号，除非重新评估隐私边界）。

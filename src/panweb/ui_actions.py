@@ -7,12 +7,11 @@ import time
 import urllib.parse
 
 from . import runtime, ui_context
-from .agentchat import (core_agent_list, core_agent_output, core_agent_send,
-                        core_agent_sessions, core_agent_start, core_agent_stop)
 from .agents import (AGENT_GUIDE, core_agent_connect, core_agent_disconnect,
-                     core_agents, skill_source_dir)
+                     core_agents, core_terminal_agents, skill_source_dir)
 from .browser import open_browser
 from .discovery import core_discover, core_doctor
+from .diagnostics import core_report
 from .domain import (core_domain_bind, core_domain_login,
                      core_domain_setup, core_domain_status,
                      core_domain_teardown)
@@ -35,6 +34,10 @@ from .store import (load_activity, load_domain, load_meta, load_state,
                     log_activity, save_meta, save_state, state_lock)
 from .supervisor import restart_entry_tunnel
 from .system import core_pack, core_system
+from .term import (core_terminal_close, core_terminal_input,
+                   core_terminal_open, core_terminal_resize,
+                   core_terminal_sessions, core_terminal_stream)
+from .update import core_update_apply, core_update_status
 from .visits import aggregate_visits
 
 
@@ -107,16 +110,17 @@ def handle_get(handler, path):
     if path == "/api/agents":
         return handler.send_json({"ok": True, "data": {
             "agents": core_agents()}}) or True
-    if path == "/api/agent/agents":
+    if path == "/api/term/agents":
         return handler.send_json({"ok": True, "data": {
-            "agents": core_agent_list()}}) or True
-    if path == "/api/agent/sessions":
+            "agents": core_terminal_agents()}}) or True
+    if path == "/api/term/sessions":
         return handler.send_json({"ok": True, "data": {
-            "sessions": core_agent_sessions()}}) or True
-    if path == "/api/agent/output":
+            "sessions": core_terminal_sessions()}}) or True
+    if path == "/api/term/output":
         query = _query(handler)
-        return handler.send_json({"ok": True, "data": core_agent_output(
-            _first(query, "id"), _first(query, "after") or 0)}) or True
+        core_terminal_stream(handler, _first(query, "id"),
+                             _first(query, "after") or 0)
+        return True
     if path == "/api/folders":
         return handler.send_json({"ok": True, "data": core_folders(
             _first(_query(handler), "path"))}) or True
@@ -133,6 +137,8 @@ def handle_get(handler, path):
         return handler.send_json({"ok": True, "data": core_doctor()}) or True
     if path == "/api/license":
         return handler.send_json({"ok": True, "data": license_status()}) or True
+    if path == "/api/update":
+        return handler.send_json({"ok": True, "data": core_update_status()}) or True
     return False
 
 
@@ -193,15 +199,18 @@ def handle_post(handler, path, body):
         save_meta(meta)
         return handler.send_json({"ok": True, "data": {
             "owner": True}}) or True
-    if path == "/api/agent/start":
-        return handler.send_json({"ok": True, "data": core_agent_start(
+    if path == "/api/term/open":
+        return handler.send_json({"ok": True, "data": core_terminal_open(
             body.get("agent"), cwd=body.get("cwd") or "",
-            text=body.get("text") or "", name=body.get("name") or "")}) or True
-    if path == "/api/agent/send":
-        return handler.send_json({"ok": True, "data": core_agent_send(
-            body.get("id"), body.get("text"))}) or True
-    if path == "/api/agent/stop":
-        return handler.send_json({"ok": True, "data": core_agent_stop(
+            cols=body.get("cols") or 0, rows=body.get("rows") or 0)}) or True
+    if path == "/api/term/input":
+        return handler.send_json({"ok": True, "data": core_terminal_input(
+            body.get("id"), body.get("data"))}) or True
+    if path == "/api/term/resize":
+        return handler.send_json({"ok": True, "data": core_terminal_resize(
+            body.get("id"), body.get("cols"), body.get("rows"))}) or True
+    if path == "/api/term/close":
+        return handler.send_json({"ok": True, "data": core_terminal_close(
             body.get("id"))}) or True
     if path == "/api/agents/connect":
         return handler.send_json({"ok": True, "data": core_agent_connect(
@@ -214,6 +223,9 @@ def handle_post(handler, path, body):
         return handler.send_json({"ok": True, "data": {
             "guide": AGENT_GUIDE.format(
                 src=src or "(未找到技能源，请先运行 install.sh)")}}) or True
+    if path == "/api/report":
+        return handler.send_json({"ok": True, "data": core_report(
+            body.get("out"))}) or True
     if path == "/api/pack":
         return handler.send_json({"ok": True, "data": core_pack(
             body.get("folder"))}) or True
@@ -239,6 +251,8 @@ def handle_post(handler, path, body):
         result = deactivate_license()
         log_activity("ui", "已解除本机许可绑定")
         return handler.send_json({"ok": True, "data": result}) or True
+    if path == "/api/update/apply":
+        return handler.send_json({"ok": True, "data": core_update_apply()}) or True
     if path == "/api/open-dir":
         return _open_dir(handler, body) or True
     if path == "/api/recover":

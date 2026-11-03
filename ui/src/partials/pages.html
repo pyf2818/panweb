@@ -114,33 +114,26 @@
 
   <!-- ======= 页面：终端（与本机 Agent 对话，让它替你部署） ======= -->
   <section class="page" id="page-term">
-    <div class="card section-card">
-      <div class="sc-title">选一个 Agent，说人话，它替你部署</div>
-      <div class="sc-sub">这里不做大模型，只是把你本机已经装好的 Agent 命令行接进控制台：启动它、选它、跟它对话。它已经装着 panweb 技能，会自己执行 <code>panweb publish / pages / run / check</code> 这些命令。</div>
-      <div class="tm-pick">
-        <div class="tm-agents" id="tm-agents"><div class="feed-empty">检测本机 Agent…</div></div>
-        <div class="tm-row">
-          <input id="tm-cwd" placeholder="工作目录（默认这台电脑的主目录）" autocomplete="off" spellcheck="false">
-          <button class="btn btn-sm ghost" onclick="openFolderPicker('tm-cwd')">选择…</button>
-          <button class="btn btn-sm" onclick="tmStart()">启动终端</button>
-        </div>
-        <div class="tm-note" id="tm-note"></div>
-      </div>
-    </div>
     <div class="card tm-card">
+      <div class="tm-bar">
+        <div class="tm-agents" id="tm-agents"><div class="feed-empty">检测本机 Agent…</div></div>
+        <input id="tm-cwd" placeholder="工作目录（默认主目录）" autocomplete="off" spellcheck="false">
+        <button class="btn btn-sm ghost" onclick="openFolderPicker('tm-cwd')">选择…</button>
+        <button class="btn btn-sm btn-primary" id="tm-open" onclick="tmOpenTerm()">开终端</button>
+        <button class="btn btn-sm ghost" id="tm-close" onclick="tmCloseTerm()" disabled>关掉</button>
+        <div class="tm-tabs" id="tm-tabs"></div>
+      </div>
       <div class="tm-head">
         <span class="tm-led" id="tm-led"></span>
         <b id="tm-title">还没启动</b>
         <span class="tm-state" id="tm-state"></span>
-        <button class="btn btn-sm ghost" id="tm-stop" onclick="tmStop()" disabled>停止这一轮</button>
+        <button class="btn btn-sm ghost" onclick="tmCopy()">复制选中</button>
         <button class="btn btn-sm ghost" onclick="tmClear()">清屏</button>
       </div>
-      <div class="tm-out" id="tm-out"><div class="feed-empty">启动后在这里对话。回车发送，Shift+回车换行。</div></div>
-      <div class="tm-quick" id="tm-quick"></div>
-      <div class="tm-input">
-        <span class="tm-caret">&gt;</span>
-        <textarea id="tm-text" rows="2" placeholder="例如：看看这台电脑上有哪些能发的应用，挑一个发布，给我一个手机上能打开的网址"></textarea>
-        <button class="btn" id="tm-send" onclick="tmSend()">发送</button>
+      <div class="tm-screen" id="tm-screen"></div>
+      <div class="tm-foot">
+        <div class="tm-quick" id="tm-quick"></div>
+        <div class="tm-note"><b id="tm-note">选一个 Agent、指一个目录，点「开终端」。</b><span>点一句话就替你打进终端，回车由你按；离开这一页或换标签都不停 Agent，回来画面自己续上。</span></div>
       </div>
     </div>
   </section>
@@ -179,15 +172,27 @@
     </div>
 
     <div class="card section-card">
+      <div class="sc-title">版本与更新 <span class="row-hint">买断含 1 年更新</span></div>
+      <div class="sc-sub" id="up-line">升级包只取到本机并给出校验和，替换正在运行的 App 由你拖拽确认。</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn" id="up-check-btn" onclick="checkUpdate()">🔍 检查更新</button>
+        <button class="btn btn-primary" id="up-get-btn" style="display:none" onclick="applyUpdate()">⬇️ 取回升级包</button>
+      </div>
+      <div class="d-hint" id="up-notes" style="display:none;white-space:pre-wrap"></div>
+    </div>
+
+    <div class="card section-card">
       <div class="sc-title">管理操作</div>
       <div class="sc-sub">数据都保存在本机，随时可查可备份。</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button class="btn" onclick="openDataDir()">📂 打开数据目录</button>
         <button class="btn" onclick="recoverAll()">🩺 重启全部通道</button>
         <button class="btn" id="notify-visits-btn" onclick="toggleVisitNotify()">访客提醒：读取中…</button>
+        <button class="btn" onclick="exportReport()">🧬 导出诊断包</button>
         <button class="btn btn-danger" onclick="shutdownConsole()">⏻ 停止控制台</button>
         <button class="btn" onclick="installMenubar()">🖥 安装菜单栏常驻</button>
       </div>
+      <div class="d-hint" id="report-line">诊断包只含版本、环境、发布状态、最近动态与日志尾部；凭据目录、访问口令、访客记录与许可密钥本体都不打包，发不发由你决定。</div>
       <div class="d-hint">访客打开分享页或应用时，控制台会发 macOS 系统通知（需在系统设置中允许）；控制台关闭后不再提醒。</div>
     </div>
 

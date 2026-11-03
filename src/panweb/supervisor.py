@@ -9,8 +9,9 @@ from .errors import PanwebError, TunnelError
 from .lifecycle import prune_dead_entries, sweep_expired
 from .models import entry_local_port
 from .pins import migrate_legacy_pins
-from .processes import (cleanup_orphan_proxies, find_cloudflared, kill_process,
-                        pid_alive, port_listening, stop_process)
+from .processes import (cleanup_orphan_proxies, cleanup_orphan_tunnels,
+                        find_cloudflared, kill_process, pid_alive,
+                        port_listening, stop_process)
 from .publish import _spawn_proxy
 from .store import (ensure_private_dirs, load_domain, load_state, log_activity,
                     save_state, state_lock)
@@ -188,6 +189,9 @@ def cleanup_runtime_files():
     ensure_private_dirs()
     forwarder.cleanup_pool_state()
     cleanup_orphan_proxies()
+    stray = cleanup_orphan_tunnels()
+    if stray:
+        log_activity("system", "回收了 %d 条没有归属的隧道" % len(stray))
     migrate_legacy_pins()
     prune_dead_entries()
     state_ids = {e.get("id") for e in load_state()}

@@ -46,7 +46,7 @@
     <div class="aurora" aria-hidden="true"></div>
     <div class="wrap hero-grid">
       <div class="hero-copy">
-        <p class="eyebrow reveal"><span class="dot"></span>macOS · Python 标准库 · 无 pip 依赖 · 1.5.0</p>
+        <p class="eyebrow reveal"><span class="dot"></span>macOS · Python 标准库 · 无 pip 依赖 · 1.6.0</p>
         <h1 class="reveal">把这台电脑上的应用<br><em>一条命令</em>发到公网</h1>
         <p class="lede reveal">正在跑的网页、接口、静态文件夹，拿到网址的人用手机或其他电脑直接打开。
           不需要申请服务器，不需要注册账号，不需要实名，也不用改网络设备的端口映射。</p>
@@ -216,8 +216,10 @@
         <article class="card reveal" data-tilt><h3><span class="ico">📊</span>匿名统计</h3><p>访客数与访问次数、分享页浏览与应用打开拆分、24 小时/7 天走势、设备与来源分布。IP 经本机 HMAC 后截断，不存原始地址与 UA。</p></article>
         <article class="card reveal" data-tilt><h3><span class="ico">🌐</span>固定域名</h3><p>自有域名接入 Cloudflare 后走命名隧道：授权、建隧道、写 DNS、绑定应用一条向导做完，网址永久不变。</p></article>
         <article class="card reveal" data-tilt><h3><span class="ico">🤖</span>Agent 与 MCP</h3><p>内置 MCP stdio 服务（9 个工具）与 Agent 技能；对 Claude Code、Codex 等说「把 3000 端口发出去」即可，技能里带安全规则。</p></article>
-        <article class="card reveal" data-tilt><h3><span class="ico">🖥</span>控制台与菜单栏</h3><p>仅绑定 127.0.0.1 的三栏工作台：应用、动态与提醒、连接 Agent、系统与数据；Swift 原生菜单栏常驻，深色模式与 ⌘K 命令面板。</p></article>
+        <article class="card reveal" data-tilt><h3><span class="ico">💻</span>网页里的真终端</h3><p>控制台挂的是伪终端（PTY + xterm.js），不是聊天框：选本机已装的 Claude Code / Codex / OpenCode 和工作目录，以交互模式跑起来——彩色界面、进度条、分页器、Ctrl+C、↑↓ 翻历史都照原样，让它替你 discover → publish → check。</p></article>
+        <article class="card reveal" data-tilt><h3><span class="ico">🖥</span>控制台与菜单栏</h3><p>仅绑定 127.0.0.1 的五页工作台：我的应用、动态与提醒、连接 Agent、终端、系统与数据；Swift 原生菜单栏常驻，深色模式与 ⌘K 命令面板。</p></article>
         <article class="card reveal" data-tilt><h3><span class="ico">🔁</span>健康自愈</h3><p>每 60 秒巡检：内置代理死亡自动重启（网址不变）、陈旧条目清理、孤儿进程按 PID + 命令行双重校验后回收。</p></article>
+        <article class="card reveal" data-tilt><h3><span class="ico">🧬</span>诊断包与更新</h3><p>出问题一键导出脱敏诊断包（版本、环境、发布状态、动态、日志尾部）：凭据目录、口令、访客记录与许可密钥本体都不打包，出包前还会自审一遍。<code>panweb update</code> 在买断的 1 年窗口内取回新安装包，只落到本机并给出校验和——不偷偷替换正在运行的版本。</p></article>
         <article class="card reveal" data-tilt><h3><span class="ico">🔐</span>离线买断许可</h3><p>RSA PKCS#1 v1.5 + SHA-256 离线签名，14 天试用、默认 2 台设备、含 1 年更新；全程不联网校验，不采集使用数据。</p></article>
       </div>
     </div>
@@ -247,7 +249,7 @@
           <div class="get-main">
             <b>macOS 安装包</b>
             <span>自包含 App：内置 cloudflared，双击即用，无需 brew / 终端。ad-hoc 签名，首次打开请右键 →「打开」。</span>
-            <code class="mini">panweb-1.5.0-arm64.dmg · 9.5 MB</code>
+            <code class="mini">panweb-1.6.0-arm64.dmg · 9.5 MB</code>
           </div>
           <div class="get-side">
             <div class="cmd"><code>git clone 仓库后 ./install.sh</code><button class="copy" data-copy="./install.sh">复制</button></div>
@@ -286,7 +288,7 @@
 <footer>
   <div class="wrap foot">
     <span>panweb · 零服务器的本机应用公网发布台</span>
-    <span>v1.5.0 · Python 标准库 + cloudflared · <a href="https://github.com/pyf2818/panweb" rel="noopener">GitHub</a></span>
+    <span>v1.6.0 · Python 标准库 + cloudflared · <a href="https://github.com/pyf2818/panweb" rel="noopener">GitHub</a></span>
   </div>
 </footer>
 

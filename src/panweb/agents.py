@@ -1,4 +1,4 @@
-"""本机 Agent 技能安装与检测。"""
+"""本机 Agent 的技能安装、命令行白名单与检测。"""
 import os
 import re
 import shutil
@@ -102,3 +102,61 @@ def core_agent_disconnect(agent_id):
                 log_activity("ui", "已从 %s 移除 panweb 技能" % t["name"], dst)
             return {"id": agent_id, "removed": True}
     raise PanwebError(2, "not_found", "未知的 Agent：%s" % agent_id)
+
+
+# 交互模式下"允许它动手"的开关（主人选了直接可执行）
+TERMINALS = {
+    "claude": {
+        "bin": "claude", "name": "Claude Code",
+        "argv": ("--dangerously-skip-permissions",),
+        "note": "跳过全部权限检查：它会直接改本机文件、执行发布命令",
+    },
+    "codex": {
+        "bin": "codex", "name": "Codex",
+        "argv": ("--approve-for-me",),
+        "note": "工作区可写 + 自动批准：命令在 codex 的沙盒策略里执行",
+    },
+    "opencode": {
+        "bin": "opencode", "name": "OpenCode",
+        "argv": ("--auto",),
+        "note": "自动批准未被显式拒绝的权限请求",
+    },
+}
+
+
+def find_agent_binary(name):
+    """从 PATH 加常见安装目录找 Agent 二进制：从启动台打开的 App 里 PATH 很短。"""
+    path = shutil.which(name)
+    if path:
+        return path
+    for d in runtime.USER_BIN_DIRS:
+        candidate = os.path.join(d, name)
+        if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
+            return candidate
+    return None
+
+
+def terminal_for(agent_id):
+    item = TERMINALS.get(agent_id)
+    if not item:
+        raise PanwebError(2, "not_found", "不支持的终端 Agent：%s" % agent_id,
+                          "可选：%s" % "、".join(sorted(TERMINALS)))
+    path = find_agent_binary(item["bin"])
+    if not path:
+        raise PanwebError(3, "dependency_missing",
+                          "没找到 %s 命令" % item["bin"],
+                          "先装好这个 Agent；~/.local/bin、/opt/homebrew/bin "
+                          "这些常见位置也会一起找")
+    return item, path
+
+
+def core_terminal_agents():
+    """能开真终端的 Agent：二进制在不在、panweb 技能装没装、动手意味着什么。"""
+    connected = {a["id"]: a.get("connected") for a in core_agents()}
+    out = []
+    for agent_id, item in TERMINALS.items():
+        path = find_agent_binary(item["bin"])
+        out.append({"id": agent_id, "name": item["name"], "ready": bool(path),
+                    "path": path, "note": item["note"],
+                    "connected": bool(connected.get(agent_id))})
+    return out

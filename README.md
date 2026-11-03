@@ -1,6 +1,6 @@
 # panweb — 零服务器，把本机应用一键发布到公网
 
-当前版本 **1.5.0**（模块化架构 + 买断许可 + 前端工程化）。
+当前版本 **1.6.0**（模块化架构 + 买断许可 + 真终端 / 诊断 / 更新 / 签名公证）。
 
 UUMit 的复刻版（逆向自 UUMit 客户端），用 **Cloudflare 快速隧道** 替代自建 frp 服务端：
 不需要申请服务器、不需要账号、不需要实名，一条命令把本机端口或文件夹发到公网。
@@ -56,8 +56,9 @@ panweb doctor                             # 自检
 
 **不想碰终端**：在 macOS 上运行 `make dmg` 得到 `dist/panweb-<版本>-<架构>.dmg`——
 双击安装的自包含 App（内置 cloudflared，无需 brew/终端/python 环境配置），
-打开后是本机控制台 <http://127.0.0.1:7788>。App 为 ad-hoc 签名、未走苹果公证，
-首次打开请右键 →「打开」。
+打开后是本机控制台 <http://127.0.0.1:7788>。默认构建是 ad-hoc 签名、未走苹果公证，
+首次打开请右键 →「打开」；配置了 Developer ID 与公证凭据时，同一条 `make dmg`
+会自动签名 → 公证 → 装订（见「开发与测试」）。
 
 如果从非 git 渠道拿到文件后提示没有执行权限，先运行 `chmod +x panweb install.sh`。
 `doctor` 会同时检查 curl / lsof / gh / npm 等可选工具。
@@ -79,6 +80,8 @@ panweb doctor                             # 自检
 | `panweb stop <id\|名称\|all>` | 停止发布（隧道、静态服务器、由 panweb 启动的项目进程一并结束） |
 | `panweb status` / `panweb doctor` | 当前状态 / 环境自检 |
 | `panweb license status\|activate\|deactivate` | 查看试用/许可、离线激活、解除本机绑定 |
+| `panweb update [check\|apply]` | 查询 GitHub Releases 最新版并**取回升级包**：买断的 1 年更新窗口过期会直接拒绝；下载走 HTTPS、落地后按发布记录核对大小并打印 SHA-256；**不替换正在运行的 App**（拖拽覆盖由你确认） |
+| `panweb report [--out 目录]` | 导出**脱敏诊断包** zip：版本/环境/发布状态/最近动态/日志尾部；凭据目录、口令、访客记录与许可密钥本体一律排除，打包后还会自查一遍——混进未脱敏字段就拒绝出包并删掉 |
 
 ## 完整链路
 
@@ -91,7 +94,7 @@ panweb doctor                             # 自检
 
 `panweb run` 或控制台「启动项目」Tab 一次完成全链路；Python 等其他类型请手动启动后用「发布端口」。
 
-## 代码结构（1.5 模块化）
+## 代码结构（1.6 模块化）
 
 ```text
 panweb                  # 19 行薄启动器：找到 src/ 并调用 CLI
@@ -102,15 +105,19 @@ src/panweb/             # 按职责分包，单文件均 < 500 行
   proxy/forwarder       # 内置代理、预热隧道池
   publish/entries       # 发布、自动启动、生命周期
   upstream/healthcheck  # 上游兼容层（Host 模式/凭据注入）、访客视角自检
-  agentchat             # 控制台驱动本机 Agent CLI 的终端会话
+  term                  # 控制台里的真终端：PTY 会话、非阻塞读写、SSE 画面推流
+  agents                # 本机 Agent 探测与技能安装、终端可执行的 Agent 白名单
   folders               # 控制台「选文件夹」的本机目录浏览
   supervisor/domain     # 自愈、固定域名
   hosting/convert       # GitHub Pages、Markdown/Excel 转换
+  diagnostics           # 脱敏诊断包（打包后自审，混进密钥就拒绝出包）
+  codesign              # Developer ID 签名 + 苹果公证（没配凭据退回 ad-hoc）
+  update                # 检查 GitHub Releases / 取回升级包，受许可更新窗口约束
   ui_server/ui_actions  # 控制台 HTTP 与 API
   licensing             # 离线买断许可
   cli/cli_commands      # 参数解析与调度 / 命令输出渲染
   mcp_server            # MCP stdio（复用同一批 core_* 函数）
-ui/src/                 # 前端源码：4 个 CSS、9 个 JS、2 个 partials + index + manifest
+ui/src/                 # 前端源码：6 个 CSS、10 个 JS、2 个 partials + index + manifest
 ui/index.html           # tools/build_ui.py 组装的单文件产物（文件头标注「请勿直接编辑」）
 site/                   # 项目介绍页：独立静态站（index + 3 CSS + 4 JS），`panweb pages site` 即可发布
 tools/build_ui.py       # 前端组装 / --check
@@ -122,7 +129,7 @@ docs/licensing.md       # 许可运营手册
 
 依赖规则：底层 `runtime/store/processes` 不依赖业务；`publish` 不依赖 `supervisor/ui`；`domain` 不反向依赖 `entries`。详细分层见 [docs/architecture.md](docs/architecture.md)。
 
-单文件体积由测试守住（`tests/test_build.py`）：启动器 ≤50 行、后端模块 ≤500、前端模块 ≤400、工具 ≤220、测试 ≤320；只有构建产物 `ui/index.html` 与第三方库 `ui/vendor/qrcode.js` 豁免。
+单文件体积由测试守住（`tests/test_build.py`）：启动器 ≤50 行、后端模块 ≤500、前端模块 ≤400、工具 ≤220、测试 ≤320；只有构建产物 `ui/index.html` 与第三方库目录 `ui/vendor/`（qrcode.js、xterm.js）豁免。
 
 ## 控制台（`panweb ui`）
 
@@ -133,6 +140,7 @@ docs/licensing.md       # 许可运营手册
 - **路径不用复制粘贴**：终端的工作目录、发布弹窗的「发布文件夹」「启动项目」都带「选择…」，弹出本机目录浏览器（只列目录、隐藏项与符号链接不显示，还会提前告诉你这个目录能不能直接发布）
 - **动态与提醒**：发布/停止/自愈统计卡 + **访客动态（实时）** + 全宽事件时间线
 - **连接 Agent**：UUMit 风格大卡片网格，检测本机 Agent 一键装技能；安装说明复制 + 示例话术
+- **氛围层（会呼吸的背景）**：光带 + 颗粒质感 + **隧道流线粒子**三层画在内容背后，粒子走的就是本机→边缘这条链路——在线应用越多流得越密，发布/访客事件从本机节点放一圈脉冲。开销封死：30fps 上限、终端页淡出后彻底停笔、标签页隐藏自动挂起、系统「减少动态效果」时只留一张静构图
 
 **分享页**：代理模式的发布会自动带一个 `/__panweb/share/<token>` 分享页——收到链接的人先看到应用名、说明、有效期、在线状态和口令入口，再进入应用；链接带 OG 预览，适合直接发微信/飞书/邮件。详情抽屉里可编辑说明、预览分享页、生成分享图/文案。没有分享页的直连发布仍然零开销，只是没有统计。
 
@@ -141,7 +149,7 @@ docs/licensing.md       # 许可运营手册
 - **启动项目 Tab**：粘贴项目路径自动识别类型，静态直发、Node 自动 `npm run dev` 并嗅探端口
 - **动态页**：发布、停止、访客到达、控制台事件实时记录，4 秒自动刷新
 
-零依赖：Python 标准库 + 单文件前端（QR 库在 `ui/vendor/qrcode.js`，构建时内联，离线可用），无 npm、无运行时构建步骤。
+零依赖：Python 标准库 + 单文件前端（QR 库与终端渲染库 xterm.js + fit/canvas 插件放在 `ui/vendor/`，构建时原样内联进产物，离线可用），无 npm、无运行时构建步骤。
 修改 `ui/src/` 下的 CSS/JS/HTML 模块后运行 `python3 tools/build_ui.py` 重新生成 `ui/index.html`。
 
 所有命令支持 `--json`：成功输出 `{"ok":true,"data":…}`（退出码 0），失败输出 `{"ok":false,"error":{…}}`（退出码 2/3/8/9），与 uumit-connector 的输出契约一致。
@@ -184,7 +192,7 @@ CLI 现在由 `main()` 统一捕获业务错误；`--json` 模式下 stderr 最�
 - **无密码服务高危**：Ollama、ComfyUI、数据库、管理后台这类没有登录的服务，发出去=任何人可用你的算力/数据。
 - **文件夹只读但有边界**：`pages` 不会改动原文件，但文件夹内**非隐藏文件**都可被下载；隐藏文件/目录、指向发布根之外的符号链接会被拒绝。`/`、用户主目录、`/Volumes` 等系统根目录禁止直接发布。
 - **控制台不会被发布**：`discover` 与 `publish` 会识别并拒绝 panweb 自己的控制台/代理端口（`internal_port`），避免把本机管理权限暴露到公网。
-- **终端页会真的动手**：那里的 Agent 以你本人的身份执行命令——能改本机文件、能发布出公网网址。二进制只从固定白名单按 PATH 解析（界面传不进路径），命令不经过 shell，并发 2 个、每轮 600 秒超时、可随时停止；但请把这次对话当成「你把终端交给了它」来对待。
+- **终端页是真终端，会真的动手**：控制台在本机开一个伪终端（PTY），把选好的 Agent 以交互模式跑在里面——等价于你本人在终端里启动它，能改本机文件、能发布出公网网址。可执行文件只从固定白名单解析（PATH 加上 `/opt/homebrew/bin`、`~/.local/bin` 等常见安装目录），argv 固定拼装、不经过 shell，界面传不进路径也传不进命令行，进来的只有「选哪个 Agent」和键盘字节；并发最多 4 个、画面缓冲 300KB 上限、控制台退出时回收子进程。控制台只听 127.0.0.1 并校验 Host/Origin，但请把开终端当成「你把终端交给了它」来对待。
 - **口令是哈希存储**：口令文件为 600 权限、加盐哈希，登录失败 10 分钟内 8 次后限流；Cookie 带 `Secure; HttpOnly; SameSite=Lax`。
 - **panweb 口令 ≠ 应用登录**：口令只决定"能不能打开这个网址"。应用自己要的账号（Jupyter/Grafana/n8n…）是另一道门，分享页会明确告诉访客进去还要登录；要么访客向主人索取账号，要么主人用 `compat` 代填一份凭据。
 - **代填的凭据只在本机**：`compat` 存的 bearer/basic/自定义头写在 `~/.panweb/secrets/<id>.auth.json`（600），只有本机代理进程读取；状态文件、控制台接口、CLI、MCP 与分享页最多出现"已设置哪种凭据"的掩码标签，永不回显密钥；头部名称与值经 RFC 7230 校验，拒绝 CR/LF 注入，也不允许覆盖 `Host`/`Connection`/`Upgrade`/`Content-Length`。
@@ -257,6 +265,8 @@ panweb status            # 查看运行状态（含后台 pid）
 | 🖥 菜单栏常驻 | Swift 编译的原生菜单栏（在线应用数 + 停止全部 + 打开控制台） |
 | 🔌 MCP Server | `panweb mcp` 以 MCP stdio 协议暴露 9 个工具（含自检与上游兼容设置），任何 MCP 客户端可接入 |
 | 📊 统计增强 | 24 小时 / 7 天视图切换 + 分享页浏览/应用打开拆分 + 设备/浏览器/国家/来源分布 |
+| 🧬 一键诊断包 | 「系统与数据」页或 `panweb report` 导出脱敏 zip（版本/环境/发布状态/动态/日志尾部）；凭据目录、口令、访客记录与许可密钥本体不打包，出包前还会自审一遍 |
+| ⬆️ 检查更新 | 界面与 `panweb update` 都能查 GitHub Releases 最新版；买断的 1 年窗口内可取回升级包（核对大小、打印 SHA-256），过期如实拒绝——**不偷偷替换正在运行的 App** |
 
 ## 进阶能力
 
@@ -271,10 +281,10 @@ panweb status            # 查看运行状态（含后台 pid）
 | 🌓 深色模式 | 墨青暗色主题，跟随系统 + 手动切换，记忆偏好 |
 | 🗂 详情抽屉 | 网址/统计/改名/口令/实时日志一站式管理 |
 | 🤖 Agent 连接器 | 检测本机 Agent（Claude Code/Codex/ZCode/通用目录/OpenCode），一键安装 panweb 技能（只写技能目录）；装好用「把 3000 端口发出去」对话即发布；支持复制安装说明接入任意 Agent |
-| 💻 终端 | 控制台里直接启动本机 Agent 命令行（Claude Code / Codex / OpenCode），选一个连好的 Agent 对话，让它替你 discover → publish → check 完成部署。输出按块回流、可中途停止；它拥有你本人的权限，所以提示词里写明了高危先说风险、不许翻口令文件 |
+| 💻 真终端 | 控制台里挂的是**真终端**（伪终端 PTY + xterm.js）：选本机已装的 Agent（Claude Code / Codex / OpenCode）和工作目录，以交互模式跑起来——彩色界面、进度条、分页器、Ctrl+C、↑↓ 翻历史都照原样，网页里的键盘直通它手上；画面按字节用 SSE 推回来，换个标签页接着看，关掉页面 Agent 不停。让它替你 discover → publish → check 完成部署 |
 | 📐 三栏工作台 | 左（导航）/中（应用）/右（动态·连接器）三栏，拖拽手柄手动伸缩，宽度记忆 |
 
-安全架构：设置口令或分享页的发布经由 panweb 内置代理（口令校验 + 访问统计 + WebSocket 透传），隧道只指向本机 127.0.0.1，源站永不直接暴露；无口令/分享的发布默认直连（零开销）。控制台启动时自动清理孤儿代理/预热隧道并恢复池化通道；退出时回收预热池。
+安全架构：设置口令或分享页的发布经由 panweb 内置代理（口令校验 + 访问统计 + WebSocket 透传），隧道只指向本机 127.0.0.1，源站永不直接暴露；无口令/分享的发布默认直连（零开销）。控制台启动时自动清理孤儿代理/预热隧道、回收**没有归属的 cloudflared 快速隧道**（父进程已退出、不在状态里、目标端口也不再监听才动手）并恢复池化通道；退出时回收预热池与终端会话。界面是每次请求现读的、后端是进程加载时的，版本错配时控制台会直接提示"这个功能要重启才生效"。
 
 ## 进阶路线
 
@@ -301,6 +311,7 @@ panweb license deactivate             # 换机前解除本机绑定
 ```
 
 - 首次运行开始 **14 天试用**；到期后仍可查看/停止已有发布，但不能新建发布或云端托管。
+- **1 年更新**落在 `panweb update`：窗口内可取回新 dmg，窗口过期后命令直接拒绝（`license_expired`），已装版本继续可用不受影响——买断的"永久使用"与"限时更新"是两件事。
 - 许可是 RSA PKCS#1 v1.5 + SHA-256 离线签名，与本机指纹绑定；不建账号、不上传设备信息。
 - **源码开发模式**：仓库默认不含公钥，`mode=development`，不限制功能；发行构建由所有者生成密钥并把公钥放到 `assets/license_public_key.pem` 后启用校验。
 - 卖家侧签发与构建流程：见 [docs/licensing.md](docs/licensing.md) 与 `tools/license_tool.py`。
@@ -316,9 +327,10 @@ make test                          # 等价于上面两步
 make dmg                           # macOS 安装包 → dist/panweb-<版本>-<架构>.dmg
 ```
 
-- `tests/` 现为分包结构：路径/状态/访问/许可/管道单元测试、CLI 合约、代理分享页/PIN/过期、WebSocket 透传、上游兼容（转发头构造、凭据归一化与注入拒绝）、访客自检（结论判定/资源抽样/裸 TLS WebSocket/Host 取证修正）、隧道传输（QUIC 探测与 http2 回退）、Agent 终端（假 Agent 回显 argv，验证命令行构造、会话生命周期与并发上限）、控制台安全、前端构建与模块体积约束、子进程代理集成（真实拉起 `_spawn_proxy` 后转发/分享页/口令/代填凭据）。
+- `tests/` 现为分包结构：路径/状态/访问/许可/管道单元测试、CLI 合约、代理分享页/PIN/过期、WebSocket 透传、上游兼容（转发头构造、凭据归一化与注入拒绝）、访客自检（结论判定/资源抽样/裸 TLS WebSocket/Host 取证修正）、隧道传输（QUIC 探测与 http2 回退）、真终端（假 Agent 跑在 PTY 里，验证 argv 白名单、尺寸传递、退出码、缓冲上限与 SSE 游标补发）、自愈与孤儿隧道回收（死隧道不进取用池、恢复未验证通过就不写状态）、诊断包（脱敏字段与"混进密钥就拒绝出包"的自审）、签名与公证（没配身份退回 ad-hoc、配了就先里后外）、更新（版本比较、按架构挑包、许可窗口拒绝、下载大小核对与 SHA-256）、控制台安全、前端构建与模块体积约束、子进程代理集成（真实拉起 `_spawn_proxy` 后转发/分享页/口令/代填凭据）。
+- **发行构建的可控项**（都靠环境变量，缺省即安全退回）：`PANWEB_SIGN_IDENTITY`（Developer ID 身份，空则 ad-hoc）、`PANWEB_NOTARY_PROFILE` 或 `PANWEB_APPLE_KEY_ID`/`PANWEB_APPLE_ISSUER_ID`/`PANWEB_APPLE_P8`（公证凭据，缺则跳过公证）、`PANWEB_RELEASE_REPO`（更新来源仓库，默认 `pyf2818/panweb`）、`PANWEB_LICENSE_PUBKEY`（发行时注入公钥后许可校验才生效）。
 - 状态目录可用 `PANWEB_HOME` 隔离（测试与便携模式）；panweb 拉起的代理/控制台子进程会继承它。
-- CI：`.github/workflows/test.yml` 在 Python 3.9/3.11/3.12 上跑语法编译、134 项测试、前端产物一致性检查与 zipapp 构建。
+- CI：`.github/workflows/test.yml` 在 Python 3.9/3.11/3.12 上跑语法编译、195 项测试、前端产物一致性检查与 zipapp 构建。
 - 第三方组件与许可证：见 `THIRD_PARTY_NOTICES.md`（cloudflared Apache-2.0、QR 库 MIT）。
 - 打包自包含 App：`panweb install-app`（复制包、UI、技能、第三方声明与可选许可公钥）。
 - 打包单文件分发：`python3 tools/build_zipapp.py` → `dist/panweb.pyz`（含 UI/技能/公钥，可独立运行）。

@@ -12,14 +12,20 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SRC = ROOT / "ui" / "src"
 MANIFEST = SRC / "manifest.json"
-LIB = ROOT / "ui" / "vendor" / "qrcode.js"
+VENDOR = ROOT / "ui" / "vendor"
 OUT = ROOT / "ui" / "index.html"
 
 STYLE_SLOT = "/*__PANWEB_STYLES__*/"
 SCRIPT_SLOT = "/*__PANWEB_SCRIPTS__*/"
-QR_SLOT = "/*__QR_LIBRARY__*/"
 PAGES_SLOT = "<!--__PANWEB_PAGES__-->"
 OVERLAYS_SLOT = "<!--__PANWEB_OVERLAYS__-->"
+# 第三方库原样内联：控制台是单文件产物，断网也要能开箱就用
+LIBRARY_SLOTS = [("/*__QR_LIBRARY__*/", "qrcode.js"),
+                 ("/*__XTERM_LIBRARY__*/", "xterm.js"),
+                 ("/*__FIT_LIBRARY__*/", "addon-fit.js"),
+                 ("/*__CANVAS_LIBRARY__*/", "addon-canvas.js"),
+                 ("/*__XTERM_CSS__*/", "xterm.css")]
+LIB_SLOTS = [slot for slot, _ in LIBRARY_SLOTS]
 DOCTYPE = "<!DOCTYPE html>"
 BANNER = ("<!-- 生成文件，请勿直接编辑：由 tools/build_ui.py 从 ui/src/ 组装；"
           "改样式或脚本请动 ui/src/，然后运行 python3 tools/build_ui.py -->")
@@ -36,17 +42,18 @@ def build():
     scripts = "\n\n".join(read(rel) for rel in manifest["scripts"])
     partials = {name: read(rel)
                 for name, rel in (manifest.get("partials") or {}).items()}
-    library = LIB.read_text(encoding="utf-8").rstrip("\n")
+    slots = [(STYLE_SLOT, styles), (SCRIPT_SLOT, scripts),
+             (PAGES_SLOT, partials["pages"]), (OVERLAYS_SLOT, partials["overlays"])]
+    slots += [(slot, (VENDOR / name).read_text(encoding="utf-8").rstrip("\n"))
+              for slot, name in LIBRARY_SLOTS]
 
-    for slot, value in ((STYLE_SLOT, styles), (SCRIPT_SLOT, scripts),
-                        (QR_SLOT, library), (PAGES_SLOT, partials["pages"]),
-                        (OVERLAYS_SLOT, partials["overlays"])):
+    for slot, value in slots:
         if slot not in index:
             raise SystemExit("ui/src/index.html 缺少占位符 %s" % slot)
         index = index.replace(slot, value, 1)
 
-    leftovers = [s for s in (STYLE_SLOT, SCRIPT_SLOT, QR_SLOT,
-                             PAGES_SLOT, OVERLAYS_SLOT) if s in index]
+    leftovers = [s for s in ([STYLE_SLOT, SCRIPT_SLOT] + LIB_SLOTS +
+                             [PAGES_SLOT, OVERLAYS_SLOT]) if s in index]
     if leftovers:
         raise SystemExit("组装后仍有未替换占位符：%s" % ", ".join(leftovers))
     if not index.startswith(DOCTYPE):

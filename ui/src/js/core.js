@@ -52,13 +52,22 @@ function toast(msg, ok = true) {
   document.getElementById("toasts").appendChild(t);
   setTimeout(() => { t.style.opacity = "0"; t.style.transition = "opacity .4s"; setTimeout(() => t.remove(), 400); }, 3600);
 }
+let lastSkewAt = 0;
 async function api(path, body) {
   try {
     const opt = body ? {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)} : {};
     const r = await fetch(path, opt);
-    return await r.json();
+    const d = await r.json();
+    // 页面是每次从磁盘读的，Python 却是进程启动时加载的：新页面配旧进程会一路"未知路径"，
+    // 只报"未知路径"没人知道该重启，所以这里把话说明白（一分钟最多提醒一次）
+    if (d && d.ok === false && d.error && d.error.type === "not_found" &&
+        /^未知路径/.test(d.error.message || "") && Date.now() - lastSkewAt > 60000) {
+      lastSkewAt = Date.now();
+      toast("控制台还是旧进程：这个功能要重启才生效（系统页 → 停止控制台，再 panweb console start）", false);
+    }
+    return d;
   } catch (e) {
-    return {ok: false, error: {type: "network", message: "控制台连接失败，请确认 panweb 控制台仍在运行"}};
+    return {ok: false, error: {type: "network", message: "控制台连接失败，请确认 panweb 仍在运行"}};
   }
 }
 
@@ -79,6 +88,7 @@ async function refreshInner(showToast = false) {
   STATE = d.data;
   render();
   checkNotifs();
+  fx.sync(STATE);
   if (showToast) toast("已刷新");
 }
 function render() {

@@ -3,7 +3,9 @@
     "styles/base.css",
     "styles/layout.css",
     "styles/components.css",
-    "styles/overlays.css"
+    "styles/terminal.css",
+    "styles/overlays.css",
+    "styles/decor.css"
   ],
   "scripts": [
     "js/core.js",
@@ -12,8 +14,9 @@
     "js/license.js",
     "js/workspace.js",
     "js/diagnose.js",
-    "js/agentterm.js",
+    "js/term.js",
     "js/picker.js",
+    "js/fx.js",
     "js/boot.js"
   ],
   "partials": {

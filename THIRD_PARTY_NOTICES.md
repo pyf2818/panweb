@@ -19,6 +19,18 @@ panweb 本体使用 Python 标准库，并在运行时/发布产物中包含以�
 - 说明：源码位于 `ui/vendor/qrcode.js`，构建时内联进 `ui/index.html`。
   "QR Code" 是 DENSO WAVE INCORPORATED 的注册商标。
 
+## xterm.js（终端渲染）
+
+- 项目：`@xterm/xterm` 5.5.0、`@xterm/addon-fit` 0.10.0、`@xterm/addon-canvas` 0.7.0
+- 版权：The xterm.js authors；早期代码 Copyright (c) 2012-2013, Christopher Jeffrey
+- 许可证：MIT License（全文见 `ui/vendor/LICENSE.xterm`、`ui/vendor/LICENSE.addon-fit`、
+  `ui/vendor/LICENSE.addon-canvas`）
+- 来源：https://github.com/xtermjs/xterm.js
+- 说明：控制台「终端」页用它渲染伪终端画面（canvas 渲染器 + 自适应尺寸）。源码位于
+  `ui/vendor/xterm.js`、`ui/vendor/xterm.css`、`ui/vendor/addon-fit.js`、
+  `ui/vendor/addon-canvas.js`，构建时原样内联进 `ui/index.html`，离线可用；
+  除删除指向未随包分发的 `.map` 的 `sourceMappingURL` 注释行外未作改动。
+
 ## OpenSSL（仅卖家工具）
 
 - 项目：OpenSSL

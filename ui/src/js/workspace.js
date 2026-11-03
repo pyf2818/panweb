@@ -36,7 +36,7 @@ const PAGE_META = {
   apps: ["我的发布台", null],
   feed: ["动态与提醒", "发布、停止与通道事件都会记录在这里"],
   agents: ["连接 Agent", "让 Agent 替你发布这台电脑上的应用 —— 装好技能，一句话就发布"],
-  term: ["终端", "启动本机 Agent、选一个连好的 Agent 对话 —— 说人话，它替你部署"],
+  term: ["终端", "本机 Agent 的真终端（伪终端 PTY）搬进网页 —— 键盘直通，画面原样"],
   system: ["系统与数据", "版本、存储、运行状态与管理操作 —— 数据全部在本机"],
 };
 function updateSub() {
@@ -56,6 +56,8 @@ function updateSub() {
 function switchPage(page) {
   currentPage = page;
   localStorage.setItem("panweb-page", page);
+  document.body.dataset.page = page;
+  fx.page(page);
   document.querySelectorAll(".page").forEach(x =>
     x.classList.toggle("show", x.id === "page-" + page));
   document.querySelectorAll("[data-page]").forEach(x =>
@@ -64,7 +66,7 @@ function switchPage(page) {
   updateSub();
   document.getElementById("topbar-pub").style.display = page === "agents" ? "none" : "";
   if (page === "agents") loadAgents();
-  if (page === "term") tmInitPage(); else tmStopPolling();
+  if (page === "term") tmEnterPage(); else tmLeavePage();
   if (page === "system") { loadSystem(); loadDomain(); }
 }
 
@@ -119,6 +121,87 @@ async function shutdownConsole() {
   if (refreshTimer) clearInterval(refreshTimer);
   toast("控制台已停止，页面将无法刷新");
 }
+async function exportReport() {
+  const line = document.getElementById("report-line");
+  if (line) line.textContent = "正在打包诊断信息…";
+  const d = await api("/api/report", {});
+  if (!d.ok) {
+    if (line) line.textContent = "导出失败：" + (d.error ? d.error.message : "未知错误");
+    return toast("诊断包导出失败", false);
+  }
+  if (line) line.textContent = "已导出：" + d.data.zip + "（" + humanSize(d.data.size) + "）";
+  toast("诊断包已导出，可发给卖家排查");
+}
+
+// ---------- 版本与更新 ----------
+let UPDATE = null;
+function _upLine(text) {
+  const el = document.getElementById("up-line");
+  if (el) el.textContent = text;
+}
+function _upShowGet(show) {
+  const btn = document.getElementById("up-get-btn");
+  if (btn) btn.style.display = show ? "" : "none";
+}
+function _upBusy(busy) {
+  ["up-check-btn", "up-get-btn"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = busy;
+  });
+}
+function _upRight(data) {
+  if (data.license_mode === "development") return "开发版 · 不受更新窗口限制";
+  return data.updates_active
+    ? "更新权益有效至 " + (data.updates_until_text || "未知")
+    : "更新权益已到期，取回升级包会被拒绝";
+}
+async function checkUpdate() {
+  _upBusy(true);
+  _upLine("正在查询发布仓库…");
+  const d = await api("/api/update");
+  _upBusy(false);
+  if (!d.ok) {
+    _upShowGet(false);
+    _upLine("查询失败：" + (d.error ? d.error.message : "未知错误"));
+    return toast("检查更新失败", false);
+  }
+  UPDATE = d.data;
+  const notes = document.getElementById("up-notes");
+  if (notes) {
+    notes.style.display = UPDATE.latest_notes ? "" : "none";
+    notes.textContent = UPDATE.latest_notes;
+  }
+  if (!UPDATE.newer) {
+    _upShowGet(false);
+    _upLine("已是最新（本机 " + UPDATE.current + "，发布 "
+      + (UPDATE.latest || "无版本记录") + "）· " + _upRight(UPDATE));
+      return toast("已经是最新版");
+  }
+  _upShowGet(!!UPDATE.asset);
+  _upLine("发现新版本 " + (UPDATE.latest || "") + "（本机 " + UPDATE.current
+    + "）· " + _upRight(UPDATE)
+    + (UPDATE.asset ? "" : " · 这个 Release 里没有可用的安装包"));
+}
+async function applyUpdate() {
+  if (!UPDATE || !UPDATE.asset) return toast("这个发布里没有可用的安装包", false);
+  if (!confirm("要为本机 " + UPDATE.current + " 取回升级包 " + UPDATE.asset.name
+    + "（约 " + Math.max(1, Math.round((UPDATE.asset.size || 0) / 1048576))
+    + " MB）吗？下载不会替换正在运行的版本。")) return;
+  _upBusy(true);
+  _upLine("正在下载 " + UPDATE.asset.name + "…");
+  const d = await api("/api/update/apply", {});
+  _upBusy(false);
+  if (!d.ok) {
+    _upLine("取回失败：" + (d.error ? d.error.message : "未知错误"));
+    return toast(d.error ? d.error.message : "取回失败", false);
+  }
+  UPDATE = d.data;
+  _upShowGet(false);
+  _upLine(d.data.message + " · SHA-256 " + (d.data.sha256 || "").slice(0, 16)
+    + "… · 挂载后把 panweb.app 拖进「应用程序」覆盖，再重启控制台");
+  toast("升级包已取回");
+}
+
 async function doPack() {
   const folder = document.getElementById("in-pack").value.trim();
   if (!folder) return toast("请输入文件夹路径", false);

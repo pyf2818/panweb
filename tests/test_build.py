@@ -57,7 +57,7 @@ class BuildTests(unittest.TestCase):
             run = subprocess.run([sys.executable, str(out), "--version"],
                                  capture_output=True, text=True, timeout=30)
             self.assertEqual(run.returncode, 0, run.stderr)
-            self.assertIn("1.5.0", run.stdout)
+            self.assertIn("1.6.0", run.stdout)
 
             with zipfile.ZipFile(out) as z:
                 names = z.namelist()

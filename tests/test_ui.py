@@ -1,14 +1,16 @@
 import json
 import os
 import shutil
+import tempfile
 import threading
 import unittest
 import urllib.parse
 from http.client import HTTPConnection
 from http.server import ThreadingHTTPServer
+from unittest import mock
 
-from helpers import ROOT, temp_home
-from panweb import runtime, store
+from helpers import FAKE_PTY, ROOT, make_executable, temp_home
+from panweb import agents, runtime, store, term
 from panweb.publish import core_publish
 from panweb.ui_server import UiHandler
 
@@ -189,6 +191,63 @@ class UiSecurityTests(unittest.TestCase):
                                     body='{"id":"missing"}', headers=good)
         self.assertFalse(json.loads(data)["ok"])
         store.save_json(runtime.STATE_FILE, [])
+
+    def test_term_routes_replaced_the_chat_panel(self):
+        """旧的「一次性对话」接口拿掉了，换成真终端；坏输入要说清而不是 500。"""
+        good = {"Host": "127.0.0.1:%d" % self.port,
+                "Content-Type": "application/json"}
+        agents = json.loads(self.request("GET", "/api/term/agents",
+                                         headers=good)[1])["data"]["agents"]
+        self.assertEqual({a["id"] for a in agents},
+                         {"claude", "codex", "opencode"})
+        self.assertEqual(self.request("GET", "/api/agent/agents",
+                                      headers=good)[0], 404)
+        body = json.loads(self.request("POST", "/api/term/open",
+                                       body='{"agent":"sh"}',
+                                       headers=good)[1])
+        self.assertEqual(body["error"]["type"], "not_found")
+        # 推流前先查会话：查不到就回 JSON，不会挂一条没人收尾的流
+        body = json.loads(self.request("GET", "/api/term/output?id=nope",
+                                       headers=good)[1])
+        self.assertEqual(body["error"]["type"], "not_found")
+
+    def test_term_open_and_close_over_http(self):
+        """真的通过 HTTP 开一个伪终端：列得出来、关得掉、坏目录说得清。"""
+        bin_dir = tempfile.mkdtemp(prefix="panweb-uipty-")
+        self.addCleanup(shutil.rmtree, bin_dir, True)
+        make_executable(bin_dir, "fake-agent", FAKE_PTY)
+        good = {"Host": "127.0.0.1:%d" % self.port,
+                "Content-Type": "application/json"}
+        terminals = {"fake": {"bin": "fake-agent", "name": "Fake Agent",
+                              "argv": (), "note": "测试用"}}
+        with mock.patch.dict(agents.TERMINALS, terminals, clear=True), \
+             mock.patch.dict(os.environ, {"PATH": bin_dir}):
+            payload = json.loads(self.request(
+                "POST", "/api/term/open",
+                body='{"agent":"fake","cwd":"%s","cols":80,"rows":20}' % bin_dir,
+                headers=good)[1])
+            self.assertTrue(payload["ok"], payload)
+            sid = payload["data"]["id"]
+            self.assertEqual((payload["data"]["cols"],
+                              payload["data"]["rows"]), (80, 20))
+            self.addCleanup(lambda: self.request(
+                "POST", "/api/term/close", body='{"id":"%s"}' % sid,
+                headers=good))
+            listed = json.loads(self.request("GET", "/api/term/sessions",
+                                             headers=good)[1])["data"]["sessions"]
+            self.assertEqual([s["id"] for s in listed], [sid])
+            bad = json.loads(self.request(
+                "POST", "/api/term/open",
+                body='{"agent":"fake","cwd":"/definitely/not/here"}',
+                headers=good)[1])
+            self.assertEqual(bad["error"]["type"], "invalid_argument")
+            closed = json.loads(self.request(
+                "POST", "/api/term/close", body='{"id":"%s"}' % sid,
+                headers=good)[1])
+            self.assertTrue(closed["data"]["closed"])
+            left = json.loads(self.request("GET", "/api/term/sessions",
+                                           headers=good)[1])["data"]["sessions"]
+            self.assertEqual(left, [])
 
 
 if __name__ == "__main__":

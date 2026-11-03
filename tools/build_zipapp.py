@@ -41,6 +41,11 @@ def build(out):
         notices = ROOT / "THIRD_PARTY_NOTICES.md"
         if notices.is_file():
             shutil.copy2(notices, stage / "THIRD_PARTY_NOTICES.md")
+        # xterm.js 等库内联进产物，但 MIT 声明要跟着分发物一起走
+        for name in ("LICENSE.xterm", "LICENSE.addon-fit", "LICENSE.addon-canvas"):
+            src_license = ui / "vendor" / name
+            if src_license.is_file():
+                shutil.copy2(src_license, stage / name)
         (stage / "__main__.py").write_text(
             "from panweb.cli import main\n\nmain()\n", encoding="utf-8")
         if out.exists():

@@ -1,11 +1,15 @@
+import base64
 import contextlib
 import os
 import pathlib
 import shutil
 import socket
+import stat
 import sys
 import tempfile
 import threading
+import time
+import unittest
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -13,7 +17,9 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from panweb import discovery, forwarder, pins, runtime, ui_context  # noqa: E402
+from panweb import (agents, discovery, forwarder, pins, runtime, term,
+                     ui_context)  # noqa: E402
+from panweb.errors import PanwebError  # noqa: E402
 
 
 def reset_caches():
@@ -125,3 +131,128 @@ def serve(handler_class=FakeApp, **attrs):
 def stop_server(srv):
     srv.shutdown()
     srv.server_close()
+
+
+# ---- 真终端测试共用的假 Agent ----
+# 逐字回显键盘，认 exit / crash / size / spam 四条指令，把 argv 打在横幅里
+FAKE_PTY = """#!/usr/bin/env python3
+import fcntl, os, struct, sys, termios
+def w(t):
+    os.write(1, t if isinstance(t, bytes) else t.encode())
+w("\\x1b[32mARGV " + " ".join(sys.argv[1:]) + "\\x1b[0m\\r\\n")
+w("BANNER-HEAD\\r\\n")
+w("BANNER-TAIL\\r\\n")
+line = b""
+while True:
+    try:
+        chunk = os.read(0, 64)
+    except OSError:
+        break
+    if not chunk:
+        break
+    for ch in chunk:
+        if ch in (13, 10):
+            w("\\r\\n")
+            text = line.decode()
+            line = b""
+            if text == "exit":
+                sys.exit(0)
+            if text == "crash":
+                sys.exit(3)
+            if text == "size":
+                rows, cols = struct.unpack("HHHH", fcntl.ioctl(
+                    0, termios.TIOCGWINSZ, b"\\0" * 8))[0:2]
+                w("SIZE %d %d\\r\\n" % (rows, cols))
+            if text == "spam":
+                w(("A" * 4000 + "\\r\\n") * 200)
+        elif ch == 3:
+            w("^C\\r\\n")
+        else:
+            line += bytes([ch])
+            w(bytes([ch]))
+"""
+
+
+def make_executable(directory, name, body):
+    """在临时目录里放一个可执行脚本，供 PATH 白名单解析。"""
+    path = os.path.join(directory, name)
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(body)
+    os.chmod(path, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP |
+             stat.S_IROTH | stat.S_IXOTH)
+    return path
+
+
+class PtyCase(unittest.TestCase):
+    """真终端测试共用：把假 Agent 塞进 PATH、换掉白名单、每个用例清空会话。"""
+
+    TERM_ID = "fake"
+
+    def setUp(self):
+        from unittest import mock
+        self.ctx = temp_home("panweb-term-")
+        self.ctx.__enter__()
+        self.addCleanup(self.ctx.__exit__, None, None, None)
+        self.bin = tempfile.mkdtemp(prefix="panweb-fakepty-")
+        self.addCleanup(shutil.rmtree, self.bin, True)
+        make_executable(self.bin, "fake-agent", FAKE_PTY)
+        old_path = os.environ.get("PATH", "")
+        os.environ["PATH"] = self.bin + os.pathsep + old_path
+        self.addCleanup(os.environ.__setitem__, "PATH", old_path)
+        terminals = {
+            self.TERM_ID: {"bin": "fake-agent", "name": "Fake Agent",
+                           "argv": ("--approve-for-me",), "note": "测试用"},
+            "missing": {"bin": "definitely-not-installed", "name": "Missing",
+                        "argv": (), "note": "测试用"},
+        }
+        patcher = mock.patch.dict(agents.TERMINALS, terminals, clear=True)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.close_all()
+        self.addCleanup(self.close_all)
+
+    def tearDown(self):
+        term._stopping = False
+
+    def close_all(self):
+        for sid in list(term._sessions):
+            try:
+                term.core_terminal_close(sid)
+            except PanwebError:
+                pass
+        term._sessions.clear()
+        del term._order[:]
+
+    def open_fake(self):
+        return term.core_terminal_open(self.TERM_ID, cwd=self.bin, cols=90,
+                                       rows=24)
+
+    def boot(self):
+        sid = self.open_fake()["id"]
+        self.wait_for(sid, "BANNER-TAIL")
+        return sid
+
+    def screen(self, sid):
+        session = term._sessions[sid]
+        with session["cond"]:
+            return session["buf"].decode("utf-8", "replace")
+
+    def wait_for(self, sid, needle, timeout=15.0):
+        deadline, text = time.time() + timeout, ""
+        while time.time() < deadline:
+            text = self.screen(sid)
+            if needle in text:
+                return text
+            time.sleep(0.05)
+        self.fail("终端画面里没等到 %r：%s" % (needle, text[-200:]))
+
+    def wait_dead(self, sid, timeout=15.0):
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            if not term._sessions[sid]["alive"]:
+                return term._summary(term._sessions[sid])
+            time.sleep(0.05)
+        self.fail("终端里的程序没有退出")
+
+    def type_(self, sid, text):
+        term.core_terminal_input(sid, base64.b64encode(text.encode()).decode())

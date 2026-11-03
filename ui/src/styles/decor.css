@@ -1,0 +1,138 @@
+/* ================= 氛围与装饰层 =================
+   这一层只往「内容背后」加东西：光带、颗粒、隧道粒子（#fx）、卡片与标题的细节。
+   卡片本身仍是不透明表面，所以动效只从缝隙与半透明侧栏里透出来，不跟文字抢对比。
+   终端页（body[data-page="term"]）整体压暗到几乎没有，把位置让给 Agent 的画面。 */
+
+/* ---------- 背景三层：光带 → 颗粒 → 粒子 ---------- */
+#fx {
+  position: fixed; inset: 0; z-index: -1;
+  width: 100%; height: 100%;
+  pointer-events: none;
+}
+body::before {
+  content: ""; position: fixed; inset: -18% -12%; z-index: -3; pointer-events: none;
+  background:
+    radial-gradient(38% 28% at 16% 86%, rgba(51,121,107,.15), transparent 70%),
+    radial-gradient(30% 24% at 84% 10%, rgba(185,151,91,.13), transparent 72%),
+    radial-gradient(44% 30% at 62% 58%, rgba(51,121,107,.06), transparent 78%);
+  animation: drift 54s ease-in-out infinite alternate;
+}
+body::after {
+  content: ""; position: fixed; inset: 0; z-index: -2; pointer-events: none;
+  opacity: .42; mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='140' height='140' filter='url(%23n)' opacity='.4'/></svg>");
+  background-size: 140px 140px;
+}
+html[data-theme="dark"] body::before {
+  background:
+    radial-gradient(38% 28% at 16% 86%, rgba(77,160,143,.16), transparent 70%),
+    radial-gradient(30% 24% at 84% 10%, rgba(201,168,106,.12), transparent 72%),
+    radial-gradient(44% 30% at 62% 58%, rgba(77,160,143,.07), transparent 78%);
+}
+html[data-theme="dark"] body::after {
+  opacity: .3; mix-blend-mode: soft-light;
+}
+@keyframes drift {
+  from { transform: translate3d(-1.6%, 1%, 0) scale(1.02); }
+  to   { transform: translate3d(1.8%, -1.6%, 0) scale(1.06); }
+}
+body[data-page="term"]::before { animation: none; opacity: .35; }
+body[data-page="term"]::after { opacity: .16; }
+
+/* ---------- 卡片：抬升时顶部透出一道色线 ---------- */
+.section-card, .fstat, .app-card { position: relative; }
+.section-card::before, .fstat::before {
+  content: ""; position: absolute; left: 14px; right: 14px; top: -1px; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(51,121,107,.42) 22%,
+              rgba(185,151,91,.4) 62%, transparent);
+  opacity: 0; transition: opacity .35s ease; pointer-events: none;
+}
+.section-card:hover, .fstat:hover { transform: translateY(-1px); box-shadow: var(--shadow-lift); }
+.section-card:hover::before, .fstat:hover::before { opacity: 1; }
+.app-card::after {
+  content: ""; position: absolute; left: 0; top: 18px; bottom: 18px; width: 2px;
+  border-radius: 0 2px 2px 0; background: linear-gradient(180deg, var(--accent), var(--gold));
+  opacity: 0; transition: opacity .3s ease; pointer-events: none;
+}
+.app-card:hover::after { opacity: .8; }
+
+/* ---------- 标题与分隔线 ---------- */
+.section-card .sc-title { display: flex; align-items: center; gap: 9px; }
+.section-card .sc-title::before {
+  content: ""; flex: none; width: 7px; height: 7px; transform: rotate(45deg);
+  border-radius: 2px; background: linear-gradient(135deg, var(--accent), var(--gold));
+  opacity: .8;
+}
+.topbar { position: relative; border-bottom-color: transparent; }
+.topbar::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px;
+  background: linear-gradient(90deg, rgba(51,121,107,.5), rgba(185,151,91,.32) 24%,
+              var(--border) 58%, transparent);
+}
+.topbar h1 { letter-spacing: .045em; }
+
+/* ---------- 侧栏：当前页有一道渐变书签，状态点在呼吸 ---------- */
+.nav a { position: relative; }
+.nav a.active::before {
+  content: ""; position: absolute; left: -18px; top: 7px; bottom: 7px; width: 3px;
+  border-radius: 0 3px 3px 0; background: linear-gradient(180deg, var(--accent), var(--gold));
+}
+.mini-dot { animation: halo 2.9s ease-out infinite; }
+.mini-dot.bad { animation: none; }
+@keyframes halo {
+  0% { box-shadow: 0 0 0 0 rgba(51,121,107,.34); }
+  70% { box-shadow: 0 0 0 7px rgba(51,121,107,0); }
+  100% { box-shadow: 0 0 0 0 rgba(51,121,107,0); }
+}
+.brand-mark { position: relative; overflow: hidden; }
+.brand-mark::after {
+  content: ""; position: absolute; inset: -45%;
+  background: linear-gradient(115deg, transparent 42%, rgba(255,255,255,.4) 50%, transparent 58%);
+  animation: sheen 7s ease-in-out infinite;
+}
+@keyframes sheen {
+  0%, 68% { transform: translateX(-130%); }
+  84%, 100% { transform: translateX(130%); }
+}
+
+/* ---------- 空状态 Hero：图形轻轻浮动，标题有墨色渐变 ---------- */
+.hero-glyph { animation: float 7.5s ease-in-out infinite; }
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+@supports (-webkit-background-clip: text) {
+  .brand-name, .hero-title {
+    background: linear-gradient(120deg, var(--ink) 20%, var(--accent-deep) 78%, var(--gold) 108%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; color: var(--ink);
+  }
+}
+
+/* ---------- 实时感：live 标记的呼吸、进度条微光 ---------- */
+.live-pill:before { animation: halo 2.2s ease-out infinite; }
+
+/* ---------- 进页入场：整幅面板依次浮起 ---------- */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(9px); }
+  to { opacity: 1; transform: none; }
+}
+.page.show:not(#page-term) > * { animation: rise .46s cubic-bezier(.2,.7,.3,1) both; }
+.page.show:not(#page-term) > *:nth-child(2) { animation-delay: .05s; }
+.page.show:not(#page-term) > *:nth-child(3) { animation-delay: .1s; }
+.page.show:not(#page-term) > *:nth-child(4) { animation-delay: .15s; }
+.page.show:not(#page-term) > *:nth-child(n+5) { animation-delay: .2s; }
+
+/* ---------- 焦点：键盘可见时给一圈青色 ---------- */
+:focus-visible {
+  outline: 2px solid rgba(51,121,107,.5);
+  outline-offset: 2px;
+}
+html[data-theme="dark"] :focus-visible { outline-color: rgba(108,184,167,.6); }
+
+/* ---------- 尊重系统的"少动效" ---------- */
+@media (prefers-reduced-motion: reduce) {
+  body::before, .brand-mark::after, .hero-glyph, .mini-dot, .live-pill:before { animation: none !important; }
+  .page.show > * { animation: none !important; }
+  .card, .btn { transition: none !important; }
+}

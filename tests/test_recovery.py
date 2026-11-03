@@ -1,9 +1,11 @@
-"""自愈不能骗人：死隧道不进取用池，恢复失败就说失败。"""
+"""自愈不能骗人：死隧道不进取用池，恢复失败就说失败；孤儿隧道要收得干净也杀得保守。"""
 import os
+import types
 import unittest
+from unittest import mock
 
 from helpers import temp_home
-from panweb import forwarder, store, supervisor
+from panweb import forwarder, processes, store, supervisor
 from panweb.errors import TunnelError
 
 DEAD_PID = 999999
@@ -101,6 +103,60 @@ class RecoveryTests(unittest.TestCase):
         self.assertEqual(supervisor.restart_entry_tunnel(dict(self.entry)),
                          "https://new.test")
         self.assertEqual(store.load_state()[0]["url"], "https://new.test")
+
+
+class OrphanTunnelTests(unittest.TestCase):
+    """控制台被强杀后 cloudflared 会变成 ppid=1 的孤儿；回收要准也要保守。"""
+
+    def setUp(self):
+        self.ctx = temp_home("panweb-orphan-")
+        self.ctx.__enter__()
+        self.addCleanup(self.ctx.__exit__, None, None, None)
+        store.ensure_private_dirs()
+        self.killed = []
+
+    def reap(self, ps, listening=(), state=()):
+        store.save_state(list(state))
+        fake = types.SimpleNamespace(stdout=ps)
+        with mock.patch.object(processes.subprocess, "run",
+                               return_value=fake), \
+             mock.patch.object(processes, "port_listening",
+                               lambda port, host="127.0.0.1": port in listening), \
+             mock.patch.object(processes, "kill_process", self.record):
+            return processes.cleanup_orphan_tunnels()
+
+    def record(self, pid, expected=()):
+        self.killed.append(pid)
+        return True
+
+    def line(self, pid, ppid, port, extra="--no-autoupdate"):
+        return "%d %d /opt/homebrew/bin/cloudflared tunnel --url " \
+               "http://127.0.0.1:%d %s" % (pid, ppid, port, extra)
+
+    def test_orphan_quick_tunnel_is_reaped(self):
+        got = self.reap("\n".join([self.line(101, 1, 5001)]))
+        self.assertEqual(got, [101])
+        self.assertEqual(self.killed, [101])
+
+    def test_tunnel_behind_a_live_proxy_is_kept(self):
+        # 端口还在监听 = 后面接着活的代理，可能是别人在用的发布
+        self.assertEqual(self.reap("\n".join([self.line(102, 1, 5002)]),
+                                   listening={5002}), [])
+
+    def test_pid_referenced_by_state_is_kept(self):
+        entry = {"id": "e1", "name": "在用", "pid": 103, "url": "https://x.test"}
+        self.assertEqual(self.reap("\n".join([self.line(103, 1, 5003)]),
+                                   state=[entry]), [])
+
+    def test_parented_and_foreign_tunnels_are_left_alone(self):
+        ps = "\n".join([
+            self.line(104, 8888, 5004),                      # 还有父进程
+            self.line(105, 1, 5005, extra=""),               # 主人自己跑的
+            "106 1 cloudflared tunnel run my-named-tunnel",  # 命名隧道
+            "107 1 /usr/bin/ssh -N -L 5006:localhost:80",    # 完全无关
+        ])
+        self.assertEqual(self.reap(ps), [])
+        self.assertEqual(self.killed, [])
 
 
 if __name__ == "__main__":

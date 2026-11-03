@@ -9,7 +9,7 @@ import sys
 import time
 import zipfile
 
-PANWEB_VERSION = "1.5.0"
+PANWEB_VERSION = "1.6.0"
 STARTED_AT = time.time()
 
 HOME_DIR = os.path.expanduser("~/.panweb")
@@ -41,6 +41,15 @@ CLOUDFLARED_CANDIDATES = [
     "/opt/homebrew/bin/cloudflared",
     "/usr/local/bin/cloudflared",
     os.path.expanduser("~/homebrew/bin/cloudflared"),
+]
+
+# Agent 命令行常待的位置：从启动台打开的 App 里 PATH 很短，只靠 which 会误报"未安装"
+USER_BIN_DIRS = [
+    "/opt/homebrew/bin",
+    "/usr/local/bin",
+    os.path.expanduser("~/.local/bin"),
+    os.path.expanduser("~/.npm-global/bin"),
+    os.path.expanduser("~/bin"),
 ]
 
 TUNNEL_URL_RE = re.compile(r"https://[a-zA-Z0-9-]+\.trycloudflare\.com")

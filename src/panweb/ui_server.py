@@ -14,6 +14,7 @@ from .errors import PanwebError
 from .share import ensure_share_tokens
 from .store import ensure_private_dirs, log_activity
 from .supervisor import cleanup_runtime_files, health_loop, recover_all
+from .term import close_all_terms
 from .ui_actions import handle_get, handle_post
 from .visits import VisitNotifier
 
@@ -49,7 +50,7 @@ class UiHandler(BaseHTTPRequestHandler):
         pass
 
     def _local_request_ok(self):
-        """只接受发往 localhost 的请求，阻断 DNS rebinding 与跨站表单 CSRF。"""
+        """只接受发往本机控制台自己的请求，阻断 DNS rebinding 与跨站表单 CSRF。"""
         host = self.headers.get("Host") or ""
         hostname = urllib.parse.urlsplit("//" + host).hostname
         if hostname not in ("127.0.0.1", "localhost", "::1"):
@@ -57,10 +58,13 @@ class UiHandler(BaseHTTPRequestHandler):
         origin = self.headers.get("Origin")
         if origin:
             try:
-                origin_host = urllib.parse.urlsplit(origin).hostname
+                parts = urllib.parse.urlsplit(origin)
             except ValueError:
                 return False
-            if origin_host not in ("127.0.0.1", "localhost", "::1"):
+            # 比整个 netloc 而不是只比主机名：本机另一个端口上的页面也别想冒充
+            if parts.hostname not in ("127.0.0.1", "localhost", "::1"):
+                return False
+            if parts.netloc != host:
                 return False
         return True
 
@@ -235,6 +239,7 @@ def cmd_ui(args):
     try:
         server.serve_forever()
     finally:
+        close_all_terms()
         if forwarder.CURRENT_POOL:
             forwarder.CURRENT_POOL.shutdown()
         if ui_context.VISIT_NOTIFIER:

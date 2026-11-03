@@ -7,6 +7,7 @@ import json
 import sys
 
 from .console import daemon_pid
+from .diagnostics import core_report
 from .discovery import core_discover, core_doctor
 from .entries import core_compat, core_list, core_stop
 from .errors import PanwebError
@@ -17,6 +18,7 @@ from .licensing import (activate_license, deactivate_license,
 from .pins import normalize_pin
 from .publish import core_pages, core_publish, core_run
 from .system import core_pack
+from .update import core_update_apply, core_update_status
 
 
 CHECK_ICONS = {"ok": "✅", "warn": "⚠️", "blocked": "❌"}
@@ -359,6 +361,55 @@ def cmd_pack(args):
     print("✅ 离线包已导出：%s（%d KB）" % (data["zip"], data["size"] // 1024))
     print("   上传到任意免费静态托管（Cloudflare Pages / Netlify / Vercel），")
     print("   关机后别人也能打开 —— 云托管地址固定不变。")
+
+
+def cmd_report(args):
+    data = core_report(args.out)
+    if args.json:
+        print(json.dumps({"ok": True, "data": data}, ensure_ascii=False))
+        return
+    print("✅ 诊断包已导出：%s（%d KB）" % (data["zip"], data["size"] // 1024))
+    print("   里面是：版本/环境、doctor、发布状态、最近动态与日志尾部。")
+    print("   已排除：%s 与许可密钥本体 —— 发给卖家前可以自己再翻一遍。"
+          % "、".join(data["excluded"]))
+
+
+def _update_head(data):
+    print("本机版本：panweb %s" % data["current"])
+    if data.get("latest"):
+        print("最新发布：%s%s" % (data["latest"],
+                                 "（可升级 ⬆️）" if data.get("newer") else "（已是最新）"))
+    lic = ("更新权益有效至 %s" % data["updates_until_text"]
+           if data.get("updates_active") else "更新权益已到期")
+    print("许可：%s（%s）" % (data.get("license_mode") or "-", lic))
+
+
+def cmd_update(args):
+    if args.action == "apply":
+        data = core_update_apply()
+    else:
+        data = core_update_status()
+    if args.json:
+        print(json.dumps({"ok": True, "data": data}, ensure_ascii=False))
+        return
+    _update_head(data)
+    if args.action == "apply":
+        if data.get("downloaded"):
+            print("✅ %s" % data["message"])
+            print("   SHA-256：%s" % data["sha256"])
+            print("   比对签名后把 panweb.app 拖进「应用程序」覆盖即可；"
+                  "正在运行的版本不会被替换。")
+            if not data.get("opened"):
+                print("   手动打开：%s" % data["downloaded"])
+        else:
+            print("ℹ️ %s" % data["message"])
+        return
+    asset = data.get("asset")
+    if not asset:
+        return
+    print("升级包：%s（%s，%.1f MB）"
+          % (asset["name"], asset["kind"], (asset.get("size") or 0) / 1048576.0))
+    print("   取回：panweb update apply")
 
 
 def cmd_host(args):
