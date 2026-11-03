@@ -29,6 +29,10 @@ def seed_home():
     store.save_meta(meta)
     with open(os.path.join(runtime.LOG_DIR, "e1.log"), "w",
               encoding="utf-8") as f:
+        # 日志正文没有结构化字段，得靠形态扫描；这几行是真实会出现的泄露形态
+        f.write("请求 /?share=SuperSecretToken123\n")
+        f.write("Authorization: Bearer BearerSecret9\n")
+        f.write("panweb_auth=deadbeefcafebabe\n")
         for i in range(4000):
             f.write("日志行 %d\n" % i)
     auth = upstream.auth_file_path("e1")
@@ -71,6 +75,12 @@ class ReportTests(unittest.TestCase):
         state = json.loads(self.bodies["state.json"])
         self.assertIn("已省略", state[0]["share_token"])
 
+    def test_log_text_secrets_are_scrubbed(self):
+        log = self.bodies["logs/e1.log"]
+        self.assertIn("已省略", log)
+        self.assertNotIn("deadbeefcafebabe", log, "panweb_auth 会话不能进包")
+        self.assertIn("日志行 3999", log, "脱敏不能把整段日志吞掉")
+
     def test_logs_are_tailed_not_dumped(self):
         with mock.patch.object(diagnostics, "MAX_LOG_BYTES", 2000):
             got = diagnostics.core_report()
@@ -90,6 +100,17 @@ class ReportTests(unittest.TestCase):
             with self.assertRaises(AssertionError) as e:
                 diagnostics.core_report(tmp)
             self.assertIn("没脱敏", str(e.exception))
+            self.assertEqual(os.listdir(tmp), [], "审查失败要删掉坏包")
+
+    def test_self_audit_blocks_unscrubbed_log(self):
+        """日志脱敏被绕过时也要拒绝出包，不能只依赖 JSON 字段检查。"""
+        original = diagnostics._scrub_text
+        diagnostics._scrub_text = lambda text: text
+        self.addCleanup(setattr, diagnostics, "_scrub_text", original)
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(AssertionError) as e:
+                diagnostics.core_report(tmp)
+            self.assertIn("未脱敏凭据", str(e.exception))
             self.assertEqual(os.listdir(tmp), [], "审查失败要删掉坏包")
 
     def test_out_dir_is_honoured(self):

@@ -6,6 +6,7 @@
 import json
 import os
 import platform
+import re
 import time
 import zipfile
 
@@ -21,6 +22,23 @@ ACTIVITY_KEEP = 300
 SECRET_WORDS = ("token", "password", "passwd", "secret", "pin", "key",
                 "cookie", "authorization")
 EXCLUDED_DIRS = ("secrets", "pins", "visits")
+# 日志正文没有结构化字段可依，只能按凭据形态扫：key=value、Cookie、
+# panweb_auth、JWT/Bearer 这几类在真实日志里出现过就抹掉。
+_SECRET_TEXT_RE = re.compile(
+    r"(?i)(panweb_auth=)[0-9a-f]{8,}"
+    r"|((?:authorization)[\"']?\s*[=:]\s*[\"']?"
+    r"(?:(?:bearer|basic|token)\s+)?)"
+    r"[^\s\"'&,;}]{6,}"
+    r"|((?:share_token|share|api_key|access_token|token|password|passwd|"
+    r"secret|pin)[\"']?\s*[=:]\s*[\"']?)"
+    r"[^\s\"'&,;}]{6,}"
+    r"|(eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,})"
+    r"|(Bearer\s+)[A-Za-z0-9._~+/=-]{8,}")
+
+
+def _scrub_text(text):
+    """把日志正文里的凭据形态统一抹掉，保留其余可诊断信息。"""
+    return _SECRET_TEXT_RE.sub("***已省略***", text)
 
 
 def _is_secret(key):
@@ -71,9 +89,10 @@ def _log_tails():
         except OSError:
             continue
         out.append(("logs/%s" % name,
-                    ("（原文件 %d 字节，这里只保留尾部 %d 字节）\n"
-                     % (size, MAX_LOG_BYTES) if size > MAX_LOG_BYTES else "")
-                    + body))
+                    _scrub_text(
+                        ("（原文件 %d 字节，这里只保留尾部 %d 字节）\n"
+                         % (size, MAX_LOG_BYTES) if size > MAX_LOG_BYTES else "")
+                        + body)))
     return out
 
 
@@ -94,7 +113,8 @@ def _summary_text(meta, apps):
             a.get("name"), a.get("id"), a.get("url"),
             "在线" if a.get("alive") else "已停止"))
     lines += ["", "已排除的内容：" + "、".join(EXCLUDED_DIRS) +
-              "（凭据、口令、访客记录）与许可密钥本体"]
+              "（凭据、口令、访客记录）与许可密钥本体；"
+              "日志正文已按凭据形态扫描，命中即抹成掩码"]
     return "\n".join(lines) + "\n"
 
 
@@ -161,6 +181,9 @@ def _audit(path):
                 bad.append(rel)
                 continue
             if not rel.endswith(".json"):
+                text = z.read(name).decode("utf-8", "replace")
+                if _SECRET_TEXT_RE.search(text):
+                    bad.append("%s 含未脱敏凭据" % rel)
                 continue
             try:
                 _check_masked(json.loads(z.read(name).decode("utf-8")), rel,
