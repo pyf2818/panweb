@@ -3,7 +3,7 @@ import unittest
 from unittest import mock
 
 from helpers import temp_home
-from panweb import ui_actions
+from panweb import publish, ui_actions
 from panweb.errors import PanwebError
 from panweb.store import load_state, save_state
 
@@ -33,8 +33,8 @@ class SetPinTests(unittest.TestCase):
         with temp_home("panweb-pin-"):
             save_state([dict(OLD)])
             handler = FakeHandler()
-            with mock.patch.object(ui_actions, "require_publish_license"), \
-                    mock.patch.object(ui_actions, "_publish_port",
+            with mock.patch.object(publish, "require_publish_license"), \
+                    mock.patch.object(publish, "_publish_port",
                                       side_effect=PanwebError(
                                           9, "tunnel_failed", "新隧道挂了")):
                 with self.assertRaises(PanwebError):
@@ -45,10 +45,10 @@ class SetPinTests(unittest.TestCase):
         with temp_home("panweb-pin-"):
             save_state([dict(OLD)])
             handler = FakeHandler()
-            with mock.patch.object(ui_actions, "require_publish_license"), \
-                    mock.patch.object(ui_actions, "_publish_port",
+            with mock.patch.object(publish, "require_publish_license"), \
+                    mock.patch.object(publish, "_publish_port",
                                       return_value=dict(NEW)), \
-                    mock.patch.object(ui_actions, "stop_entry") as stop:
+                    mock.patch.object(publish, "stop_entry") as stop:
                 self.assertTrue(ui_actions._set_pin(
                     handler, {"id": "old", "pin": "1234"}))
             self.assertEqual([e["id"] for e in load_state()], ["new"])
@@ -58,12 +58,12 @@ class SetPinTests(unittest.TestCase):
     def test_replace_failure_cleans_new_without_killing_app(self):
         with temp_home("panweb-pin-"):
             save_state([dict(OLD)])
-            with mock.patch.object(ui_actions, "require_publish_license"), \
-                    mock.patch.object(ui_actions, "_publish_port",
+            with mock.patch.object(publish, "require_publish_license"), \
+                    mock.patch.object(publish, "_publish_port",
                                       return_value=dict(NEW)), \
-                    mock.patch.object(ui_actions, "replace_entry",
+                    mock.patch.object(publish, "replace_entry",
                                       side_effect=OSError("state 写失败")), \
-                    mock.patch.object(ui_actions, "stop_entry") as stop:
+                    mock.patch.object(publish, "stop_entry") as stop:
                 with self.assertRaises(OSError):
                     ui_actions._set_pin(
                         FakeHandler(), {"id": "old", "pin": "1234"})

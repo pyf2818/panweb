@@ -15,22 +15,18 @@ from .diagnostics import core_report
 from .domain import (core_domain_bind, core_domain_login,
                      core_domain_setup, core_domain_status,
                      core_domain_teardown)
-from .entries import (core_compat, core_list, core_stats, core_stop,
-                      stop_entry)
-from .errors import PanwebError
+from .entries import core_compat, core_list, core_stats, core_stop
 from .folders import core_folders
 from .healthcheck import core_check
 from .hosting import core_host, core_host_redeploy, load_hosted
 from .installer import core_install_cf, core_install_cf_status
 from .licensing import (activate_license, deactivate_license,
-                        license_status, require_publish_license)
+                        license_status)
 from .menubar import core_install_menubar
 from .models import entry_share_url
-from .pins import normalize_pin, write_pin
-from .publish import (_publish_port, core_detect, core_pages, core_publish,
-                      core_run)
+from .publish import (core_detect, core_pages, core_publish, core_run,
+                      core_set_pin)
 from .share import new_share_token
-from .entries import replace_entry, stop_entry
 from .store import (json_lock, load_activity, load_domain, load_meta,
                     load_state, log_activity, save_meta, save_state,
                     state_lock)
@@ -305,49 +301,8 @@ def _rename(handler, body):
 
 
 def _set_pin(handler, body):
-    entry_id, pin = body.get("id"), (body.get("pin") or "").strip()
-    hits = [e for e in load_state() if e.get("id") == entry_id]
-    if not hits:
-        handler.send_json({"ok": False, "error": {
-            "type": "not_found", "message": "应用不存在"}})
-        return True
-    entry = hits[0]
-    if pin:
-        try:
-            pin = normalize_pin(pin)
-        except PanwebError as e:
-            handler.send_json(e.to_dict())
-            return True
-    had_proxy = bool(entry.get("proxy_port"))
-    if not had_proxy and pin:
-        require_publish_license()
-        extra = {k: entry[k] for k in
-                 ("app_pid", "app_log", "launched", "risky", "host_mode",
-                  "desc") if k in entry}
-        # 先建新代理/新隧道，成功后再换 state，最后才停旧隧道。
-        # 这样新发布失败时旧条目和本地应用都还在，不会把用户的服务打没。
-        new_entry = _publish_port(entry.get("target"), entry.get("name"),
-                                  pin=pin, extra=extra,
-                                  expires_at=entry.get("expires_at"),
-                                  register=False, auto_check=False)
-        try:
-            replace_entry(entry_id, new_entry)
-        except BaseException:
-            stop_entry(new_entry, keep_app=True)
-            raise
-        try:
-            stop_entry(entry, keep_app=True)
-        except Exception as e:
-            log_activity("ui", "旧发布清理失败：%s" % e)
-        log_activity("ui", "为「%s」设置了访问口令（网址已更新）"
-                     % entry.get("name"), new_entry["url"])
-        handler.send_json({"ok": True, "data": {
-            "updated": True, "entry": new_entry}})
-        return True
-    write_pin(entry_id, pin or None)
-    log_activity("ui", ("为「%s」设置了访问口令" if pin
-                        else "「%s」的访问口令已移除") % entry.get("name"))
-    handler.send_json({"ok": True, "data": {"updated": True, "entry": entry}})
+    data = core_set_pin(body.get("id"), (body.get("pin") or "").strip())
+    handler.send_json({"ok": True, "data": data})
     return True
 
 

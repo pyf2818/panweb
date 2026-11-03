@@ -8,7 +8,8 @@ import time
 import uuid
 
 from . import forwarder, healthcheck, runtime
-from .entries import register_entry, stop_entry, write_menubar_state
+from .entries import replace_entry, register_entry, stop_entry, \
+    write_menubar_state
 from .errors import PanwebError
 from .licensing import require_publish_license
 from .lifecycle import parse_expires
@@ -19,7 +20,7 @@ from .processes import (find_cloudflared, free_port, internal_ports,
                         port_listening, stop_process)
 from .safety import check_pages_folder
 from .share import new_share_token
-from .store import log_activity
+from .store import load_state, log_activity
 from .tunnel import TunnelError, start_tunnel, verify_public
 
 NODE_DEV_PORTS = [3000, 3001, 5173, 5174, 4321, 1420, 8000, 8080, 8888]
@@ -181,6 +182,43 @@ def core_publish(port, name=None, pin=None, expires=None, share=False,
         "（已设置访问口令）" if pin else "",
         "（含分享页与访问统计）" if entry.get("share_url") else ""), entry["url"])
     return entry
+
+
+def core_set_pin(entry_id, pin, actor="ui"):
+    """改/移除访问口令：需要新建代理时按“先建新、换 state、再停旧”收尾。
+
+    失败时保留旧条目与本地应用；只有新发布已就绪并成功换入 state，才停旧隧道。
+    """
+    hits = [e for e in load_state() if e.get("id") == entry_id]
+    if not hits:
+        raise PanwebError(4, "not_found", "应用不存在")
+    entry = hits[0]
+    pin = normalize_pin(pin) if pin else None
+    if not entry.get("proxy_port") and pin:
+        require_publish_license()
+        extra = {k: entry[k] for k in
+                 ("app_pid", "app_log", "launched", "risky", "host_mode",
+                  "desc") if k in entry}
+        new_entry = _publish_port(entry.get("target"), entry.get("name"),
+                                  pin=pin, extra=extra,
+                                  expires_at=entry.get("expires_at"),
+                                  register=False, auto_check=False)
+        try:
+            replace_entry(entry_id, new_entry)
+        except BaseException:
+            stop_entry(new_entry, keep_app=True)
+            raise
+        try:
+            stop_entry(entry, keep_app=True)
+        except Exception as e:
+            log_activity(actor, "旧发布清理失败：%s" % e)
+        log_activity(actor, "为「%s」设置了访问口令（网址已更新）"
+                     % entry.get("name"), new_entry["url"])
+        return {"updated": True, "entry": new_entry}
+    write_pin(entry_id, pin)
+    log_activity(actor, ("为「%s」设置了访问口令" if pin
+                         else "「%s」的访问口令已移除") % entry.get("name"))
+    return {"updated": True, "entry": entry}
 
 
 def core_detect(folder):
