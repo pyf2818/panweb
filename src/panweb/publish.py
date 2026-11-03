@@ -8,14 +8,14 @@ import time
 import uuid
 
 from . import forwarder, healthcheck, runtime
-from .entries import register_entry, write_menubar_state
+from .entries import register_entry, stop_entry, write_menubar_state
 from .errors import PanwebError
 from .licensing import require_publish_license
 from .lifecycle import parse_expires
 from .models import entry_share_url
 from .pins import normalize_pin, write_pin
 from .processes import (find_cloudflared, free_port, internal_ports,
-                        is_panweb_service, kill_process, listening_ports,
+                        is_panweb_service, listening_ports,
                         port_listening, stop_process)
 from .safety import check_pages_folder
 from .share import new_share_token
@@ -71,59 +71,68 @@ def _publish_port(port, name, extra=None, pin=None, serve_dir=None,
     entry_id = uuid.uuid4().hex[:6]
     entry_extra = {"pinned": bool(pin)}
 
-    if pin or serve_dir or share:
-        proxy_port = free_port()
-        proxy_proc = _spawn_proxy(proxy_port, entry_id,
-                                  target_port=None if serve_dir else port,
-                                  serve_dir=serve_dir, pin=pin)
-        if not proxy_proc:
-            raise PanwebError(9, "server_failed", "无法启动内置代理进程")
-        deadline = time.time() + 6
-        while time.time() < deadline and not port_listening(proxy_port):
-            time.sleep(0.2)
-        if not port_listening(proxy_port):
-            stop_process(proxy_proc, ("--internal-proxy",))
-            raise PanwebError(9, "server_failed", "内置代理启动失败",
-                              "查看日志：%s" % os.path.join(
-                                  runtime.LOG_DIR, "%s-proxy.log" % entry_id))
-        entry_extra["proxy_port"] = proxy_port
-        entry_extra["server_pid"] = proxy_proc.pid
-        if share or serve_dir:
-            entry_extra["share_token"] = new_share_token()
-        tunnel_target = proxy_port
-    else:
-        tunnel_target = port
+    proxy_proc = None
+    tunnel_pid = None
+    try:
+        if pin or serve_dir or share:
+            proxy_port = free_port()
+            proxy_proc = _spawn_proxy(proxy_port, entry_id,
+                                      target_port=None if serve_dir else port,
+                                      serve_dir=serve_dir, pin=pin)
+            if not proxy_proc:
+                raise PanwebError(9, "server_failed", "无法启动内置代理进程")
+            deadline = time.time() + 6
+            while time.time() < deadline and not port_listening(proxy_port):
+                time.sleep(0.2)
+            if not port_listening(proxy_port):
+                raise PanwebError(9, "server_failed", "内置代理启动失败",
+                                  "查看日志：%s" % os.path.join(
+                                      runtime.LOG_DIR,
+                                      "%s-proxy.log" % entry_id))
+            entry_extra["proxy_port"] = proxy_port
+            entry_extra["server_pid"] = proxy_proc.pid
+            if share or serve_dir:
+                entry_extra["share_token"] = new_share_token()
+            tunnel_target = proxy_port
+        else:
+            tunnel_target = port
 
-    item = (forwarder.acquire_pooled_tunnel(tunnel_target, entry_id)
-            if forwarder.CURRENT_POOL else None)
-    if item:
-        url, pid = item["url"], item["pid"]
-        entry_extra["pooled"] = True
-    else:
-        log_path = os.path.join(runtime.LOG_DIR, "%s.log" % entry_id)
-        try:
-            url, proc = start_tunnel(cf, tunnel_target, log_path)
-        except TunnelError as e:
-            raise PanwebError(9, "tunnel_failed", str(e),
-                              "查看日志：%s" % log_path)
-        pid = proc.pid
+        item = (forwarder.acquire_pooled_tunnel(tunnel_target, entry_id)
+                if forwarder.CURRENT_POOL else None)
+        if item:
+            url, tunnel_pid = item["url"], item["pid"]
+            entry_extra["pooled"] = True
+        else:
+            log_path = os.path.join(runtime.LOG_DIR, "%s.log" % entry_id)
+            try:
+                url, proc = start_tunnel(cf, tunnel_target, log_path)
+            except TunnelError as e:
+                raise PanwebError(9, "tunnel_failed", str(e),
+                                  "查看日志：%s" % log_path)
+            tunnel_pid = proc.pid
 
-    entry = {
-        "id": entry_id,
-        "name": name or ("port-%d" % port),
-        "kind": "port",
-        "target": port,
-        "url": url,
-        "pid": pid,
-        "risky": is_risky_port(port),
-        "started": time.strftime("%Y-%m-%d %H:%M:%S"),
-    }
-    if expires_at:
-        entry_extra["expires_at"] = expires_at
-    if extra:
-        entry.update(extra)
-    entry.update(entry_extra)
-    register_entry(entry)
+        entry = {
+            "id": entry_id,
+            "name": name or ("port-%d" % port),
+            "kind": "port",
+            "target": port,
+            "url": url,
+            "pid": tunnel_pid,
+            "risky": is_risky_port(port),
+            "started": time.strftime("%Y-%m-%d %H:%M:%S"),
+        }
+        if expires_at:
+            entry_extra["expires_at"] = expires_at
+        if extra:
+            entry.update(extra)
+        entry.update(entry_extra)
+        register_entry(entry)
+    except BaseException:
+        # 发布没登记成功时，代理/隧道/PIN 都是半成品，必须当场回收，
+        # 否则下一次控制台启动前它们会一直占着端口和子进程。
+        stop_entry({"id": entry_id, "pid": tunnel_pid,
+                    "server_pid": proxy_proc.pid if proxy_proc else None})
+        raise
     write_menubar_state()
     reachable, dns_slow = verify_public(
         url, initial_wait=0 if entry_extra.get("pooled") else 3)
@@ -250,32 +259,38 @@ def core_run(folder, name=None, share=False, auto_check=True):
     logf.close()
 
     port = None
-    deadline = time.time() + 120
-    while time.time() < deadline:
-        if proc.poll() is not None:
+    try:
+        deadline = time.time() + 120
+        while time.time() < deadline:
+            if proc.poll() is not None:
+                raise PanwebError(9, "app_start_failed",
+                                  "项目进程提前退出（码 %s）" % proc.returncode,
+                                  "查看日志：%s" % app_log)
+            port = _sniff_port(app_log)
+            if not port and shutil.which("lsof"):
+                new_ports = [p for p, _ in listening_ports()
+                             if p not in baseline_ports]
+                port = next((p for p in NODE_DEV_PORTS if p in new_ports), None)
+                if not port and new_ports:
+                    port = new_ports[0]
+            if port:
+                break
+            time.sleep(1)
+        if not port:
             raise PanwebError(9, "app_start_failed",
-                              "项目进程提前退出（码 %s）" % proc.returncode,
-                              "查看日志：%s" % app_log)
-        port = _sniff_port(app_log)
-        if not port and shutil.which("lsof"):
-            new_ports = [p for p, _ in listening_ports()
-                         if p not in baseline_ports]
-            port = next((p for p in NODE_DEV_PORTS if p in new_ports), None)
-            if not port and new_ports:
-                port = new_ports[0]
-        if port:
-            break
-        time.sleep(1)
-    if not port:
-        kill_process(proc.pid, ("npm", "node", "pnpm", "yarn", "bun"))
-        raise PanwebError(9, "app_start_failed",
-                          "120 秒内没有检测到项目监听的端口",
-                          "查看日志：%s；也可手动启动后用「发布端口」" % app_log)
+                              "120 秒内没有检测到项目监听的端口",
+                              "查看日志：%s；也可手动启动后用「发布端口」"
+                              % app_log)
 
-    entry = _publish_port(
-        port, name or os.path.basename(folder),
-        extra={"app_pid": proc.pid, "app_log": app_log, "launched": True},
-        share=share, auto_check=auto_check)
+        entry = _publish_port(
+            port, name or os.path.basename(folder),
+            extra={"app_pid": proc.pid, "app_log": app_log, "launched": True},
+            share=share, auto_check=auto_check)
+    except BaseException:
+        # 发布失败就回收刚拉起的项目进程；否则用户只能看到一个不知从哪来的
+        # npm/node 进程继续占着端口，重试还会撞端口。
+        stop_process(proc, ("npm", "node", "pnpm", "yarn", "bun"))
+        raise
     log_activity("publish", "启动并发布了「%s」（npm run %s，端口 %d）"
                  % (entry["name"], info["script"], port), entry["url"])
     return entry
