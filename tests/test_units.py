@@ -9,11 +9,31 @@ import unittest
 from unittest import mock
 
 from helpers import temp_home
-from panweb import models, pins, share, static, store, visits
+from panweb import models, pins, proxy, share, static, store, visits
 from panweb.errors import PanwebError
 from panweb.forwarder import duplex
 from panweb.lifecycle import parse_expires
 from panweb.safety import safe_upload_rel_path
+
+
+class WebSocketHeadTests(unittest.TestCase):
+    class FakeUpstream:
+        def __init__(self, chunks):
+            self.chunks = list(chunks)
+
+        def recv(self, size):
+            return self.chunks.pop(0) if self.chunks else b""
+
+    def test_normal_head_is_returned(self):
+        head = proxy._read_websocket_head(
+            self.FakeUpstream([b"HTTP/1.1 101 Switching\r\n"
+                               b"Upgrade: websocket\r\n\r\n"]))
+        self.assertTrue(head.endswith(b"\r\n\r\n"))
+
+    def test_oversized_head_is_rejected(self):
+        with self.assertRaises(OSError):
+            proxy._read_websocket_head(
+                self.FakeUpstream([b"x" * 4096] * 3), limit=8192)
 
 
 class PathTests(unittest.TestCase):

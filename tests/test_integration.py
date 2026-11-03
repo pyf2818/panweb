@@ -120,5 +120,31 @@ class ProxySpawnTests(unittest.TestCase):
             store.save_json(runtime.STATE_FILE, [])
 
 
+    def test_spawned_proxy_rejects_oversized_body(self):
+        entry_id = "itest3"
+        proxy_port = free_port()
+        store.save_json(runtime.STATE_FILE, [{
+            "id": entry_id, "name": "超大请求", "kind": "port",
+            "target": self.backend_port, "proxy_port": proxy_port,
+            "url": "https://big.trycloudflare.com"}])
+        proc = _spawn_proxy(proxy_port, entry_id,
+                            target_port=self.backend_port)
+        self.assertIsNotNone(proc)
+        try:
+            deadline = time.time() + 8
+            while time.time() < deadline and not port_listening(proxy_port):
+                time.sleep(0.1)
+            self.assertTrue(port_listening(proxy_port), "代理未启动")
+            status, _, body = self.request(
+                proxy_port, "POST", "/", body=b"",
+                headers={"Content-Length":
+                         str(runtime.MAX_PROXY_BODY + 1)})
+            self.assertEqual(status, 413)
+            self.assertIn("上限", body.decode("utf-8"))
+        finally:
+            stop_process(proc, ("--internal-proxy",))
+            store.save_json(runtime.STATE_FILE, [])
+
+
 if __name__ == "__main__":
     unittest.main()

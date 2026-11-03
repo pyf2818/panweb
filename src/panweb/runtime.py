@@ -31,6 +31,10 @@ LICENSE_FILE = os.path.join(HOME_DIR, "license.json")
 UI_DEFAULT_PORT = 7788
 MAX_UI_BODY = 64 * 1024 * 1024
 MAX_UPLOAD_BYTES = 40 * 1024 * 1024
+# 公网反向代理直接面对任意访客，请求体和 WebSocket 握手的响应头都要有上限，
+# 否则一个超大 POST 就能把代理进程的内存吃满。
+MAX_PROXY_BODY = 64 * 1024 * 1024
+MAX_WS_HEAD = 64 * 1024
 
 UNSAFE_PAGE_ROOTS = ("/", "/etc", "/private", "/System", "/Library",
                      "/Applications", "/usr", "/bin", "/sbin", "/var",

@@ -21,6 +21,20 @@ from .store import ensure_private_dirs, load_state
 from .visits import log_visit
 
 
+def _read_websocket_head(up, limit=None):
+    """读上游 WebSocket 握手响应头；超过上限必须中止，不能无限攒内存。"""
+    limit = runtime.MAX_WS_HEAD if limit is None else limit
+    head = b""
+    while b"\r\n\r\n" not in head:
+        chunk = up.recv(4096)
+        if not chunk:
+            break
+        head += chunk
+        if len(head) > limit:
+            raise OSError("握手响应头超过 %d KB" % (limit // 1024))
+    return head
+
+
 class ProxyHandler(BaseHTTPRequestHandler):
     """由 panweb 以子进程方式运行：
 
@@ -273,7 +287,16 @@ class ProxyHandler(BaseHTTPRequestHandler):
         return host_value, upstream.auth_header(self.server.entry_id)
 
     def _forward(self, host, port):
-        length = int(self.headers.get("Content-Length") or 0)
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            length = 0
+        if length < 0:
+            length = 0
+        if length > runtime.MAX_PROXY_BODY:
+            return self._text_error(
+                413, "请求体超过 %d MB 上限"
+                % (runtime.MAX_PROXY_BODY // (1024 * 1024)))
         body = self.rfile.read(length) if length else None
         host_value, auth = self._upstream_plan(host, port)
         headers = dict(upstream.forward_headers(
@@ -320,12 +343,10 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 lines.append("%s: %s" % (k, v))
             up.sendall(("\r\n".join(lines) + "\r\n\r\n").encode("latin-1",
                                                                "replace"))
-            head = b""
-            while b"\r\n\r\n" not in head:
-                chunk = up.recv(4096)
-                if not chunk:
-                    break
-                head += chunk
+            try:
+                head = _read_websocket_head(up)
+            except OSError as e:
+                return self._text_error(502, "WebSocket 握手失败（%s）" % e)
             self.connection.sendall(head)
             self.close_connection = True
             up.settimeout(None)
