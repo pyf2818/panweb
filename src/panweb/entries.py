@@ -18,6 +18,15 @@ def register_entry(entry):
         save_state(entries)
 
 
+def replace_entry(old_id, entry):
+    """新发布已就绪后，一次性把旧条目换成新条目，避免中间态。"""
+    with state_lock():
+        entries = [e for e in load_state() if e.get("id") != old_id]
+        entries.append(entry)
+        save_state(entries)
+    write_menubar_state()
+
+
 def remove_entry_files(entry_id):
     if not entry_id:
         return
@@ -30,14 +39,15 @@ def remove_entry_files(entry_id):
             pass
 
 
-def stop_entry(entry):
+def stop_entry(entry, keep_app=False):
     fw = forwarder.FORWARDERS.pop(entry.get("id"), None)
     if fw:
         fw.stop()
     kill_process(entry.get("pid"), ("cloudflared",))
     kill_process(entry.get("server_pid"), ("--internal-proxy",))
-    kill_process(entry.get("app_pid"),
-                 ("npm", "node", "pnpm", "yarn", "bun"))
+    if not keep_app:
+        kill_process(entry.get("app_pid"),
+                     ("npm", "node", "pnpm", "yarn", "bun"))
     write_pin(entry.get("id"), None)
     remove_entry_files(entry.get("id"))
 

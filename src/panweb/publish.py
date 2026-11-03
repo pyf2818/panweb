@@ -58,7 +58,8 @@ def _spawn_proxy(listen_port, entry_id, target_port=None, serve_dir=None,
 
 
 def _publish_port(port, name, extra=None, pin=None, serve_dir=None,
-                  expires_at=None, share=False, auto_check=True):
+                  expires_at=None, share=False, auto_check=True,
+                  register=True):
     """发布端口的共用实现（CLI / API / run 共用）。"""
     require_publish_license()
     cf = find_cloudflared()
@@ -126,13 +127,18 @@ def _publish_port(port, name, extra=None, pin=None, serve_dir=None,
         if extra:
             entry.update(extra)
         entry.update(entry_extra)
-        register_entry(entry)
+        if register:
+            register_entry(entry)
     except BaseException:
         # 发布没登记成功时，代理/隧道/PIN 都是半成品，必须当场回收，
         # 否则下一次控制台启动前它们会一直占着端口和子进程。
         stop_entry({"id": entry_id, "pid": tunnel_pid,
                     "server_pid": proxy_proc.pid if proxy_proc else None})
         raise
+    if not register:
+        # 供改 PIN 等“先建新、再换旧”的调用方使用；此时还没写进 state，
+        # 不能刷新菜单栏或把临时检查结果混进条目。
+        return entry
     write_menubar_state()
     reachable, dns_slow = verify_public(
         url, initial_wait=0 if entry_extra.get("pooled") else 3)

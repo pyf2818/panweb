@@ -30,6 +30,7 @@ from .pins import normalize_pin, write_pin
 from .publish import (_publish_port, core_detect, core_pages, core_publish,
                       core_run)
 from .share import new_share_token
+from .entries import replace_entry, stop_entry
 from .store import (json_lock, load_activity, load_domain, load_meta,
                     load_state, log_activity, save_meta, save_state,
                     state_lock)
@@ -321,14 +322,23 @@ def _set_pin(handler, body):
     if not had_proxy and pin:
         require_publish_license()
         extra = {k: entry[k] for k in
-                 ("app_pid", "app_log", "launched", "risky") if k in entry}
-        stop_entry(entry)
-        with state_lock():
-            entries = [e for e in load_state() if e.get("id") != entry_id]
-            save_state(entries)
+                 ("app_pid", "app_log", "launched", "risky", "host_mode",
+                  "desc") if k in entry}
+        # 先建新代理/新隧道，成功后再换 state，最后才停旧隧道。
+        # 这样新发布失败时旧条目和本地应用都还在，不会把用户的服务打没。
         new_entry = _publish_port(entry.get("target"), entry.get("name"),
                                   pin=pin, extra=extra,
-                                  expires_at=entry.get("expires_at"))
+                                  expires_at=entry.get("expires_at"),
+                                  register=False, auto_check=False)
+        try:
+            replace_entry(entry_id, new_entry)
+        except BaseException:
+            stop_entry(new_entry, keep_app=True)
+            raise
+        try:
+            stop_entry(entry, keep_app=True)
+        except Exception as e:
+            log_activity("ui", "旧发布清理失败：%s" % e)
         log_activity("ui", "为「%s」设置了访问口令（网址已更新）"
                      % entry.get("name"), new_entry["url"])
         handler.send_json({"ok": True, "data": {
