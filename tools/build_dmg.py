@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """构建 macOS 安装包 dist/panweb-<版本>-<架构>.dmg。
 
-安装包里的 App 由 ``panweb install-app`` 生成（自包含：内置 Python 包、UI、
+安装包里的 App 由 ``panweb install-app`` 生成（内置 Python 包、UI、
 Agent 技能与 cloudflared），本脚本只负责把它装进一个可拖拽安装的磁盘映像。
 只能在 macOS 上运行（依赖 hdiutil）。
 
@@ -54,6 +54,7 @@ def write_readme(stage, signed):
 """ + first_open + """3. 双击图标即启动本机控制台并打开浏览器 http://127.0.0.1:7788。
 
 无需 brew、无需终端、无需额外下载：cloudflared 已内置。
+运行仍依赖 macOS 自带的 python3；缺少 Command Line Tools 时首次启动会引导安装。
 状态与口令存在 ~/.panweb；命令行版仍在终端里用 ./panweb 或 install.sh。
 
 签名：%s

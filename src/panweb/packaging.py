@@ -1,4 +1,4 @@
-"""构建自包含 macOS App（内置包、UI、技能与 cloudflared）。"""
+"""构建 macOS App（内置包、UI、技能与 cloudflared；Python 用系统解释器）。"""
 import json
 import os
 import shutil
@@ -123,7 +123,8 @@ open "http://127.0.0.1:7788"
                                                "signed": signed}},
                          ensure_ascii=False))
     else:
-        print("✅ 自包含应用已构建：%s（%.0f MB）" % (app, size / 1048576))
+        print("✅ macOS 应用已构建：%s（%.0f MB）" % (app, size / 1048576))
         print("   双击即可使用 —— 无需 brew / 终端 / install.sh（cloudflared 已内置）")
+        print("   仍依赖系统 python3；缺少 Command Line Tools 时启动器会引导安装")
         print("   控制台已有实例运行时会直接打开浏览器（幂等）")
     print("   %s" % codesign.describe(signed))

@@ -55,7 +55,8 @@ panweb doctor                             # 自检
 ```
 
 **不想碰终端**：在 macOS 上运行 `make dmg` 得到 `dist/panweb-<版本>-<架构>.dmg`——
-双击安装的自包含 App（内置 cloudflared，无需 brew/终端/python 环境配置），
+双击安装的 macOS App（内置 cloudflared，无需 brew/终端；运行仍依赖 macOS 自带的
+python3，缺失时首次启动会引导安装 Command Line Tools），
 打开后是本机控制台 <http://127.0.0.1:7788>。默认构建是 ad-hoc 签名、未走苹果公证，
 首次打开请右键 →「打开」；配置了 Developer ID 与公证凭据时，同一条 `make dmg`
 会自动签名 → 公证 → 装订（见「开发与测试」）。

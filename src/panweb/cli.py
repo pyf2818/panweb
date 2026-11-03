@@ -139,7 +139,7 @@ def build_parser():
     p.set_defaults(func=cmd_console)
 
     p = sub.add_parser("install-app",
-                       help="构建自包含的 macOS 应用（内置 cloudflared，双击即用）")
+                       help="构建 macOS 应用（内置 cloudflared，双击即用；需系统 python3）")
     p.add_argument("--out", help="输出路径（默认 ~/Applications/panweb.app）")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_install_app)

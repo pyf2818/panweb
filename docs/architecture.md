@@ -2,7 +2,7 @@
 
 本文描述 panweb 1.6 的代码结构、依赖规则、运行模型与商业许可边界。目标是：
 后端按职责分包、单文件不超过约 450 行、前端样式与脚本可独立维护，同时保留
-“本机运行、离线自包含、单条命令发布”的交付方式。
+“本机运行、离线可用、单条命令发布”的交付方式。
 
 ## 1. 设计原则
 
@@ -294,8 +294,9 @@ ui/src/manifest.json       # 组装顺序
 ## 8. 打包与分发
 
 - **源码运行**：`./panweb` 薄启动器 + `src/panweb` + `ui/index.html`。
-- **自包含 App**：`panweb install-app` 复制 `src/panweb`、`ui`、`skill`、`assets`、cloudflared，
+- **macOS App**：`panweb install-app` 复制 `src/panweb`、`ui`、`skill`、`assets`、cloudflared，
   生成 `~/Applications/panweb.app`；launcher 设置 `PANWEB_RESOURCE_ROOT` 与入口路径。
+  Python 解释器不随包分发，运行时使用系统 `python3`；没有命令行工具时 launcher 会引导安装。
 - **macOS 安装包**：`python3 tools/build_dmg.py`（`make dmg`）先用同一条 `install-app` 命令在临时
   目录造 App，再用 `hdiutil` 打成 `dist/panweb-<版本>-<架构>.dmg`（UDZO，内含拖拽用的
   `Applications` 软链与安装说明）。安装包只是构建产物，`dist/`、`*.dmg` 与 `keys/` 都在
