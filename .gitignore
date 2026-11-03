@@ -4,6 +4,7 @@ __pycache__/
 dist/
 *.dmg
 *.log
+.coverage
 keys/
 *.pem
 !assets/license_public_key.pem

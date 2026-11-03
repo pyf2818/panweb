@@ -24,3 +24,54 @@ jobs:
         run: python3 tools/build_ui.py --check
       - name: Build single-file distribution
         run: python3 tools/build_zipapp.py --out /tmp/panweb.pyz && python3 /tmp/panweb.pyz --version
+
+  macos:
+    # 打包、签名、dmg 与内置 cloudflared 都只在 macOS 上成立，Linux 矩阵测不到
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install cloudflared
+        run: brew install cloudflared
+      - name: Unit & CLI tests
+        run: python3 -m unittest discover -s tests -v
+      - name: UI build consistency
+        run: python3 tools/build_ui.py --check
+      - name: Build App and verify bundled third-party license
+        run: |
+          python3 panweb install-app --out /tmp/panweb.app --json
+          test -f "/tmp/panweb.app/Contents/Resources/third_party/cloudflared/LICENSE"
+          test -f "/tmp/panweb.app/Contents/Resources/THIRD_PARTY_NOTICES.md"
+          plutil -lint "/tmp/panweb.app/Contents/Info.plist"
+      - name: Build dmg
+        run: python3 tools/build_dmg.py --out /tmp/dmg && ls -l /tmp/dmg
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install ruff
+        run: python3 -m pip install ruff
+      # 只拦语法/未定义名这类真错误；行宽与风格由现有代码自行约束，不在这里一刀切
+      - name: Ruff critical rules
+        run: ruff check --select E9,F63,F7,F82 src tools tests
+
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install coverage
+        run: python3 -m pip install coverage
+      - name: Measure coverage
+        # 子进程 CLI 测试不计入覆盖率，阈值取当前实测值（约 55%）下方，先防明显倒退
+        run: |
+          coverage run --source=src/panweb -m unittest discover -s tests
+          coverage report --fail-under=50
