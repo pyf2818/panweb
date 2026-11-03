@@ -203,6 +203,10 @@ class ProxyHandler(BaseHTTPRequestHandler):
         value = (value or "/").strip()
         if not value.startswith("/") or value.startswith("//") or "\\" in value:
             return "/"
+        # Location 是要直接写进响应头的：CR/LF 或其它控制字符会被解析成额外头，
+        # 这里一并拒掉，只接受本机路径。
+        if any(ord(ch) < 0x20 or ord(ch) == 0x7f for ch in value):
+            return "/"
         return value
 
     def _query_share_token(self):

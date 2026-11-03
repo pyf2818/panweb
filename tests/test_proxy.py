@@ -113,6 +113,17 @@ class ProxyShareTests(unittest.TestCase):
         self.assertEqual(body, "INDEX")
         self.assertEqual(self.request("GET", "/")[0], 302)
 
+    def test_next_rejects_header_injection(self):
+        pins.write_pin("abc123", "secret99")
+        status, headers, _ = self.request(
+            "POST", "/__panweb/login?share=tok_123",
+            body="pw=secret99&next=%2F%0D%0AX-Evil%3A%201",
+            headers={"Content-Type": "application/x-www-form-urlencoded"})
+        self.assertEqual(status, 302)
+        self.assertEqual(headers.get("Location"), "/",
+                         "带 CR/LF 的 next 不能写进 Location")
+        self.assertIsNone(headers.get("X-Evil"), "响应头不能被 next 注入")
+
     def test_expired_share_and_root(self):
         entry = dict(self.entry, expires_at=time.time() - 10)
         store.save_json(runtime.STATE_FILE, [entry])
