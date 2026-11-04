@@ -1,4 +1,5 @@
 """有效期解析、到期收回与陈旧条目清理。"""
+import math
 import time
 
 from . import events
@@ -32,16 +33,30 @@ def sweep_expired():
         keep = []
         for entry in entries:
             exp = entry.get("expires_at")
-            if exp and exp < now:
+            broken = False
+            ts = None
+            if exp:
+                try:
+                    if isinstance(exp, bool):
+                        raise ValueError
+                    ts = float(exp)
+                    if not math.isfinite(ts):
+                        raise ValueError
+                except (TypeError, ValueError):
+                    # 脏数据不能把整个巡检线程打死；按立即到期收回并留证。
+                    ts, broken = now, True
+            if ts is not None and ts <= now:
                 stop_entry(entry)
                 swept.append(entry.get("name"))
-                log_activity("stop", "「%s」已到期，自动收回" % entry.get("name"),
-                             entry.get("url"))
-                events.log_event(entry.get("id"), "expire",
-                                 "「%s」已到期，自动收回" % entry.get("name"),
+                reason = "invalid_expires_at" if broken else "expired"
+                message = ("「%s」有效期字段损坏（%r），已按到期自动收回"
+                           % (entry.get("name"), exp)) if broken else (
+                    "「%s」已到期，自动收回" % entry.get("name"))
+                log_activity("stop", message, entry.get("url"))
+                events.log_event(entry.get("id"), "expire", message,
                                  url_before=entry.get("url"),
                                  expires_at=entry.get("expires_at"),
-                                 source="system", reason="expired")
+                                 source="system", reason=reason)
             else:
                 keep.append(entry)
         if swept:

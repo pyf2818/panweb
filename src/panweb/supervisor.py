@@ -135,7 +135,10 @@ def restart_entry_proxy(entry):
 
 def recover_all():
     """控制台启动时恢复上一进程遗留的池化条目。"""
-    sweep_expired()
+    try:
+        sweep_expired()
+    except Exception as e:  # noqa: BLE001
+        log_activity("ui", "到期巡检失败：%s" % e)
     try:
         domain.core_domain_recover()
     except Exception as e:  # noqa: BLE001
@@ -249,25 +252,33 @@ def _needs_recovery(entry):
             and pinned_status(url, 6) in (0, 502, 530))
 
 
+def health_tick():
+    """单次巡检；sweep_expired 的异常不能打死整个后台循环。"""
+    write_menubar_state()
+    try:
+        if sweep_expired():
+            return
+    except Exception as e:  # noqa: BLE001
+        log_activity("ui", "到期巡检失败：%s" % e)
+    try:
+        d = load_domain() or {}
+        if d.get("domain") and not pid_alive(d.get("pid")):
+            domain.core_domain_recover()
+    except Exception as e:  # noqa: BLE001
+        log_activity("ui", "固定域名巡检失败：%s" % e)
+    for entry in load_state():
+        try:
+            _health_step(entry)
+        except Exception as e:  # noqa: BLE001
+            log_activity("ui", "「%s」自愈失败：%s"
+                         % (entry.get("name"), e))
+
+
 def health_loop():
     """控制台内每 60 秒巡检：代理/隧道失联则自动恢复。"""
     while True:
         time.sleep(60)
-        write_menubar_state()
-        if sweep_expired():
-            continue
-        try:
-            d = load_domain() or {}
-            if d.get("domain") and not pid_alive(d.get("pid")):
-                domain.core_domain_recover()
-        except Exception as e:  # noqa: BLE001
-            log_activity("ui", "固定域名巡检失败：%s" % e)
-        for entry in load_state():
-            try:
-                _health_step(entry)
-            except Exception as e:  # noqa: BLE001
-                log_activity("ui", "「%s」自愈失败：%s"
-                             % (entry.get("name"), e))
+        health_tick()
 
 
 def cleanup_runtime_files():

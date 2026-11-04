@@ -4,7 +4,7 @@ from unittest import mock
 
 from helpers import temp_home
 from panweb import supervisor, ui_actions
-from panweb.store import save_state
+from panweb.store import load_state, save_state
 
 
 def entry(eid="e1", url="https://e1.trycloudflare.com"):
@@ -108,6 +108,28 @@ class ProxySourceHealthTests(unittest.TestCase):
             proxy.assert_not_called()
             tun.assert_not_called()
         self.assertIsNone(supervisor.HEALTH_FAILS.get("e1"))
+
+
+class HealthTickTests(unittest.TestCase):
+    def test_sweep_error_does_not_kill_tick(self):
+        with temp_home("panweb-health-tick-"):
+            with mock.patch.object(supervisor, "sweep_expired",
+                                   side_effect=TypeError("bad expires")), \
+                    mock.patch.object(supervisor, "write_menubar_state"), \
+                    mock.patch.object(supervisor, "load_state",
+                                      return_value=[]), \
+                    mock.patch.object(supervisor, "log_activity") as log:
+                supervisor.health_tick()
+        log.assert_called_once()
+        self.assertIn("到期巡检失败", log.call_args[0][1])
+
+    def test_dirty_expires_at_is_swept_by_tick(self):
+        with temp_home("panweb-health-dirty-"):
+            save_state([{"id": "e1", "name": "bad", "kind": "pages",
+                         "target": "/tmp/bad", "expires_at": {"x": 1},
+                         "url": "https://x.trycloudflare.com"}])
+            supervisor.health_tick()
+            self.assertEqual(load_state(), [])
 
 
 class RecoverFailingTests(unittest.TestCase):

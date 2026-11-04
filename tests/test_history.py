@@ -246,3 +246,14 @@ class HistoryHookTests(unittest.TestCase):
         row = events.read_events("e1", 1)[0]
         self.assertEqual(row["type"], "expire")
         self.assertEqual(row["details"]["expires_at"], 1)
+
+    def test_dirty_expires_at_expires_immediately_with_alert(self):
+        store.save_state([{"id": "e1", "name": "bad", "kind": "pages",
+                           "target": "/tmp/bad", "expires_at": "not-a-time",
+                           "url": "https://x.trycloudflare.com"}])
+        swept = sweep_expired()
+        self.assertEqual(swept, ["bad"])
+        self.assertEqual(store.load_state(), [])
+        row = events.read_events("e1", 1)[0]
+        self.assertEqual(row["details"]["reason"], "invalid_expires_at")
+        self.assertIn("损坏", row["summary"])
