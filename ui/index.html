@@ -3784,6 +3784,12 @@ html[data-theme="dark"] :focus-visible { outline-color: rgba(108,184,167,.6); }
     <div class="field"><label>应用名称（可选）</label>
       <input type="text" id="in-name" placeholder="例如 周报页面、演示版">
     </div>
+    <div class="field" id="title-field"><label>分享页标题（可选，最多 80 字）</label>
+      <input type="text" id="in-title" maxlength="80" placeholder="默认使用应用名称">
+    </div>
+    <div class="field" id="desc-field"><label>分享页说明（可选，最多 300 字）</label>
+      <input type="text" id="in-desc" maxlength="300" placeholder="默认使用内置说明">
+    </div>
     <div class="field" id="pin-field"><label>访问口令（可选，打开网址需先输入）</label>
       <input type="text" id="in-pin" placeholder="留空则公开访问；例如 8668" maxlength="32">
     </div>
@@ -3923,7 +3929,7 @@ html[data-theme="dark"] :focus-visible { outline-color: rgba(108,184,167,.6); }
         </button>
       </div>
       <div class="d-field" id="dw-share-desc-row" style="display:none;margin-top:9px">
-        <input type="text" id="dw-share-desc" maxlength="120" placeholder="分享页说明（可选，例如：给客户看的演示版）">
+        <input type="text" id="dw-share-desc" maxlength="300" placeholder="分享页说明（可选，例如：给客户看的演示版）">
         <button class="btn btn-sm" onclick="saveShareDesc()">保存</button>
       </div>
       <div class="d-hint" id="dw-share-hint"></div>
@@ -4182,7 +4188,7 @@ function appCard(a) {
       '<div class="app-ic">' + (a.kind === "pages"
         ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>'
         : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a13.5 13.5 0 010 18M12 3a13.5 13.5 0 000 18"/></svg>') + '</div>' +
-      '<div class="app-name">' + esc(a.name) + '</div>' +
+      '<div class="app-name">' + esc(a.title || a.name) + '</div>' +
       '<span class="kind-badge">' + (a.kind === "pages" ? "只读网页" : "端口 " + a.target) + '</span>' +
       checkBadge(a) +
     '</div>' +
@@ -4340,6 +4346,8 @@ function openPublish(tab) {
   pubTab = tab || "port";
   switchTab(pubTab);
   document.getElementById("in-name").value = "";
+  document.getElementById("in-title").value = "";
+  document.getElementById("in-desc").value = "";
   document.getElementById("in-port").value = "";
   document.getElementById("in-folder").value = "";
   document.getElementById("in-project").value = "";
@@ -4388,6 +4396,8 @@ function switchTab(tab) {
   document.getElementById("pane-project").style.display = tab === "project" ? "" : "none";
   document.getElementById("pane-cloud").style.display = tab === "cloud" ? "" : "none";
   document.getElementById("pin-field").style.display = tab === "cloud" ? "none" : "";
+  document.getElementById("title-field").style.display = tab === "cloud" ? "none" : "";
+  document.getElementById("desc-field").style.display = tab === "cloud" ? "none" : "";
   document.getElementById("share-line").style.display = tab === "cloud" ? "none" : "flex";
   document.getElementById("share-hint").style.display = tab === "cloud" ? "none" : "";
   document.getElementById("in-share").disabled = tab === "pages";
@@ -4516,23 +4526,25 @@ async function doPublish() {
   const pin = document.getElementById("in-pin").value.trim() || null;
   const expires = document.getElementById("in-exp").value || null;
   const share = document.getElementById("in-share").checked;
+  const title = document.getElementById("in-title").value.trim() || null;
+  const desc = document.getElementById("in-desc").value.trim() || null;
   let path, body;
   if (pubTab === "port") {
     const port = parseInt(document.getElementById("in-port").value, 10);
     if (!port) {
       // 留空不拦：服务端会挑上次端口或唯一候选；拿不准时会直接告诉我们
-      body = {port: null, name: document.getElementById("in-name").value.trim() || null, pin, expires, share};
+      body = {port: null, name: document.getElementById("in-name").value.trim() || null, pin, expires, share, title, desc};
       path = "/api/publish";
     } else {
       if (selPortRisky && String(port) === String(selPort) && !document.getElementById("risk-ack").checked)
         return toast("请先勾选「我了解风险」", false);
-      body = {port, name: document.getElementById("in-name").value.trim() || null, pin, expires, share};
+      body = {port, name: document.getElementById("in-name").value.trim() || null, pin, expires, share, title, desc};
       path = "/api/publish";
     }
   } else if (pubTab === "pages") {
     const folder = document.getElementById("in-folder").value.trim();
     if (!folder) return toast("请输入文件夹路径", false);
-    body = {folder, name: document.getElementById("in-name").value.trim() || null, pin, expires, share: true};
+    body = {folder, name: document.getElementById("in-name").value.trim() || null, pin, expires, share: true, title, desc};
     path = "/api/pages";
   } else if (pubTab === "cloud") {
     const fileEl = document.getElementById("in-files");
@@ -4564,7 +4576,7 @@ async function doPublish() {
     if (detected && (detected.type === "python" || detected.type === "unknown"))
       return toast(detected.detail, false);
     body = {folder, name: document.getElementById("in-name").value.trim() || null,
-            share, pin, expires};
+            share, pin, expires, title, desc};
     path = "/api/run";
   }
   hidePubError();
@@ -4742,7 +4754,7 @@ function loadDetail() {
         ? '<button class="btn btn-sm" onclick="bindDomain(null)">解绑固定域名</button>'
         : '<button class="btn btn-sm" onclick="bindDomain(' + jsq(currentDrawerId) + ')">设为固定域名应用</button>')
     : "";
-  document.getElementById("dw-name").textContent = a.name;
+  document.getElementById("dw-name").textContent = a.title || a.name;
   document.getElementById("dw-kind").textContent = a.kind === "pages" ? "只读网页" : "端口 " + a.target;
   document.getElementById("dw-url").textContent = a.url;
   const src = a.kind === "pages" ? a.target : "127.0.0.1:" + a.target;

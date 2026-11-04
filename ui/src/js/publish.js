@@ -23,6 +23,8 @@ function openPublish(tab) {
   pubTab = tab || "port";
   switchTab(pubTab);
   document.getElementById("in-name").value = "";
+  document.getElementById("in-title").value = "";
+  document.getElementById("in-desc").value = "";
   document.getElementById("in-port").value = "";
   document.getElementById("in-folder").value = "";
   document.getElementById("in-project").value = "";
@@ -71,6 +73,8 @@ function switchTab(tab) {
   document.getElementById("pane-project").style.display = tab === "project" ? "" : "none";
   document.getElementById("pane-cloud").style.display = tab === "cloud" ? "" : "none";
   document.getElementById("pin-field").style.display = tab === "cloud" ? "none" : "";
+  document.getElementById("title-field").style.display = tab === "cloud" ? "none" : "";
+  document.getElementById("desc-field").style.display = tab === "cloud" ? "none" : "";
   document.getElementById("share-line").style.display = tab === "cloud" ? "none" : "flex";
   document.getElementById("share-hint").style.display = tab === "cloud" ? "none" : "";
   document.getElementById("in-share").disabled = tab === "pages";
@@ -199,23 +203,25 @@ async function doPublish() {
   const pin = document.getElementById("in-pin").value.trim() || null;
   const expires = document.getElementById("in-exp").value || null;
   const share = document.getElementById("in-share").checked;
+  const title = document.getElementById("in-title").value.trim() || null;
+  const desc = document.getElementById("in-desc").value.trim() || null;
   let path, body;
   if (pubTab === "port") {
     const port = parseInt(document.getElementById("in-port").value, 10);
     if (!port) {
       // 留空不拦：服务端会挑上次端口或唯一候选；拿不准时会直接告诉我们
-      body = {port: null, name: document.getElementById("in-name").value.trim() || null, pin, expires, share};
+      body = {port: null, name: document.getElementById("in-name").value.trim() || null, pin, expires, share, title, desc};
       path = "/api/publish";
     } else {
       if (selPortRisky && String(port) === String(selPort) && !document.getElementById("risk-ack").checked)
         return toast("请先勾选「我了解风险」", false);
-      body = {port, name: document.getElementById("in-name").value.trim() || null, pin, expires, share};
+      body = {port, name: document.getElementById("in-name").value.trim() || null, pin, expires, share, title, desc};
       path = "/api/publish";
     }
   } else if (pubTab === "pages") {
     const folder = document.getElementById("in-folder").value.trim();
     if (!folder) return toast("请输入文件夹路径", false);
-    body = {folder, name: document.getElementById("in-name").value.trim() || null, pin, expires, share: true};
+    body = {folder, name: document.getElementById("in-name").value.trim() || null, pin, expires, share: true, title, desc};
     path = "/api/pages";
   } else if (pubTab === "cloud") {
     const fileEl = document.getElementById("in-files");
@@ -247,7 +253,7 @@ async function doPublish() {
     if (detected && (detected.type === "python" || detected.type === "unknown"))
       return toast(detected.detail, false);
     body = {folder, name: document.getElementById("in-name").value.trim() || null,
-            share, pin, expires};
+            share, pin, expires, title, desc};
     path = "/api/run";
   }
   hidePubError();

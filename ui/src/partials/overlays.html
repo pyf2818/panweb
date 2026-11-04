@@ -64,6 +64,12 @@
     <div class="field"><label>应用名称（可选）</label>
       <input type="text" id="in-name" placeholder="例如 周报页面、演示版">
     </div>
+    <div class="field" id="title-field"><label>分享页标题（可选，最多 80 字）</label>
+      <input type="text" id="in-title" maxlength="80" placeholder="默认使用应用名称">
+    </div>
+    <div class="field" id="desc-field"><label>分享页说明（可选，最多 300 字）</label>
+      <input type="text" id="in-desc" maxlength="300" placeholder="默认使用内置说明">
+    </div>
     <div class="field" id="pin-field"><label>访问口令（可选，打开网址需先输入）</label>
       <input type="text" id="in-pin" placeholder="留空则公开访问；例如 8668" maxlength="32">
     </div>
@@ -203,7 +209,7 @@
         </button>
       </div>
       <div class="d-field" id="dw-share-desc-row" style="display:none;margin-top:9px">
-        <input type="text" id="dw-share-desc" maxlength="120" placeholder="分享页说明（可选，例如：给客户看的演示版）">
+        <input type="text" id="dw-share-desc" maxlength="300" placeholder="分享页说明（可选，例如：给客户看的演示版）">
         <button class="btn btn-sm" onclick="saveShareDesc()">保存</button>
       </div>
       <div class="d-hint" id="dw-share-hint"></div>

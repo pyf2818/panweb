@@ -85,7 +85,7 @@ function loadDetail() {
         ? '<button class="btn btn-sm" onclick="bindDomain(null)">解绑固定域名</button>'
         : '<button class="btn btn-sm" onclick="bindDomain(' + jsq(currentDrawerId) + ')">设为固定域名应用</button>')
     : "";
-  document.getElementById("dw-name").textContent = a.name;
+  document.getElementById("dw-name").textContent = a.title || a.name;
   document.getElementById("dw-kind").textContent = a.kind === "pages" ? "只读网页" : "端口 " + a.target;
   document.getElementById("dw-url").textContent = a.url;
   const src = a.kind === "pages" ? a.target : "127.0.0.1:" + a.target;
