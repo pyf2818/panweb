@@ -25,8 +25,8 @@ _EXPIRES = {"type": "string", "enum": ["1h", "1d", "7d", "permanent"],
             "description": ("有效期；省略时依次取 .panweb.json、上次发布记忆，"
                             "内置为 permanent（永久）")}
 _PIN = {"type": "string",
-        "description": ("访问口令（4-32 位）。只在本次调用内存中使用，"
-                        "经现有口令校验，不落盘、不进回执")}
+        "description": ("访问口令（4-32 位）。明文只在本次调用内存中使用，"
+                        "校验记录沿用现有加盐哈希；口令原文不落盘、不进回执")}
 _NAME = {"type": "string", "maxLength": 120, "description": "应用名称"}
 _TITLE = {"type": "string", "maxLength": 80, "description": "分享页标题"}
 _DESC = {"type": "string", "maxLength": 300, "description": "分享页说明"}
