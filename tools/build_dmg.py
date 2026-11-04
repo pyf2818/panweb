@@ -54,7 +54,7 @@ def write_readme(stage, signed):
 """ + first_open + """3. 双击图标即启动本机控制台并打开浏览器 http://127.0.0.1:7788。
 
 无需 brew、无需终端、无需额外下载：cloudflared 已内置。
-运行仍依赖 macOS 自带的 python3；缺少 Command Line Tools 时首次启动会引导安装。
+但不内置 Python 解释器：运行需系统 python3 3.9+；缺少或过旧时首次启动会引导安装。
 状态与口令存在 ~/.panweb；命令行版仍在终端里用 ./panweb 或 install.sh。
 
 签名：%s

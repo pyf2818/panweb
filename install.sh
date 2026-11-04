@@ -28,6 +28,16 @@ if [ -f "$DIR/THIRD_PARTY_NOTICES.md" ]; then
   cp -R "$DIR/assets/third_party" "$HOME/.panweb/third_party"
 fi
 
+PYTHON="$(command -v python3 || true)"
+if [ -z "$PYTHON" ]; then
+  echo "⚠️  运行前提: 缺少 python3（python3 3.9+ 才能运行 panweb）"
+  echo "             可运行 xcode-select --install，或安装 python.org 的 3.9+"
+elif "$PYTHON" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)' 2>/dev/null; then
+  echo "✅ 运行前提: python3 $("$PYTHON" -c 'import sys; print(sys.version.split()[0])' 2>/dev/null)"
+else
+  echo "⚠️  运行前提: python3 版本过低（$("$PYTHON" -c 'import sys; print(sys.version.split()[0])' 2>/dev/null)，需要 3.9+）"
+fi
+
 if command -v cloudflared >/dev/null 2>&1 \
    || [ -x "$HOME/homebrew/bin/cloudflared" ] \
    || [ -x /opt/homebrew/bin/cloudflared ] \

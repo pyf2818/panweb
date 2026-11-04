@@ -8,6 +8,12 @@ App 打包时由 launcher 设置 PANWEB_RESOURCE_ROOT / PANWEB_ENTRYPOINT。
 import os
 import sys
 
+if sys.version_info < (3, 9):
+    sys.stderr.write("panweb 需要 Python 3.9 或更高版本（当前 %s）。\n"
+                     % sys.version.split()[0])
+    sys.stderr.write("macOS 可运行 xcode-select --install，或安装 python.org 的 3.9+。\n")
+    raise SystemExit(1)
+
 ROOT = os.path.dirname(os.path.realpath(__file__))
 SRC = os.path.join(ROOT, "src")
 if SRC not in sys.path:

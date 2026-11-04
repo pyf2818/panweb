@@ -49,14 +49,15 @@ panweb publish 3000 --share
 
 ```bash
 git clone <本仓库> panweb && cd panweb   # 或直接拿到 panweb 文件
-./install.sh                              # 装到 ~/.local/bin + Agent 技能
-brew install cloudflared                  # 唯一外部依赖（install.sh 会检查）
-panweb doctor                             # 自检
+./install.sh                              # 装到 ~/.local/bin + Agent 技能（检查 python3）
+brew install cloudflared                  # 唯一需要 brew 安装的依赖
+panweb doctor                             # 自检（含 python3 版本）
 ```
 
 **不想碰终端**：在 macOS 上运行 `make dmg` 得到 `dist/panweb-<版本>-<架构>.dmg`——
-双击安装的 macOS App（内置 cloudflared，无需 brew/终端；运行仍依赖 macOS 自带的
-python3，缺失时首次启动会引导安装 Command Line Tools），
+双击安装的 macOS App（内置 cloudflared、UI 与技能，无需 brew/终端；但**不内置 Python
+解释器**，运行需系统 python3 ≥ 3.9，缺失或过旧时首次启动会给出提示并引导安装
+Command Line Tools），
 打开后是本机控制台 <http://127.0.0.1:7788>。默认构建是 ad-hoc 签名、未走苹果公证，
 首次打开请右键 →「打开」；配置了 Developer ID 与公证凭据时，同一条 `make dmg`
 会自动签名 → 公证 → 装订（见「开发与测试」）。
@@ -153,7 +154,7 @@ docs/licensing.md       # 许可运营手册
 - **启动项目 Tab**：粘贴项目路径自动识别类型，静态直发、Node 自动 `npm run dev` 并嗅探端口
 - **动态页**：发布、停止、访客到达、控制台事件实时记录，4 秒自动刷新
 
-零依赖：Python 标准库 + 单文件前端（QR 库与终端渲染库 xterm.js + fit/canvas 插件放在 `ui/vendor/`，构建时原样内联进产物，离线可用），无 npm、无运行时构建步骤。
+无 pip 依赖：Python 3.9+ 标准库 + 单文件前端（QR 库与终端渲染库 xterm.js + fit/canvas 插件放在 `ui/vendor/`，构建时原样内联进产物，离线可用），无 npm、无运行时构建步骤。
 修改 `ui/src/` 下的 CSS/JS/HTML 模块后运行 `python3 tools/build_ui.py` 重新生成 `ui/index.html`。
 
 所有命令支持 `--json`：成功输出 `{"ok":true,"data":…}`（退出码 0），失败输出 `{"ok":false,"error":{…}}`（退出码 2/3/8/9），与 uumit-connector 的输出契约一致。

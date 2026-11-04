@@ -6,7 +6,7 @@ build-ui:
 zipapp:
 	python3 tools/build_zipapp.py
 
-# 安装包：先由 panweb install-app 造自包含 App，再 hdiutil 打成 .dmg（仅 macOS）
+# 安装包：先由 panweb install-app 造内置 cloudflared/UI 的 App（仍需系统 python3 3.9+），再 hdiutil 打成 .dmg（仅 macOS）
 dmg:
 	python3 tools/build_dmg.py
 

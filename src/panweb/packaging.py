@@ -1,4 +1,4 @@
-"""构建 macOS App（内置包、UI、技能与 cloudflared；Python 用系统解释器）。"""
+"""构建 macOS App（内置包、UI、技能与 cloudflared；Python 用系统解释器 3.9+）。"""
 import json
 import os
 import shutil
@@ -18,6 +18,43 @@ def _copy_tree(src, dst):
     shutil.copytree(src, dst,
                     ignore=shutil.ignore_patterns("__pycache__", "*.pyc",
                                                   "._*", ".DS_Store"))
+
+
+def app_launcher_script():
+    """App 双击启动器：不内置 Python，所以要先确认系统的 python3 够新。"""
+    return """#!/bin/bash
+# panweb 双击启动器：已运行则直接打开浏览器，否则后台拉起
+DIR="$(cd "$(dirname "$0")/../Resources" && pwd)"
+export PANWEB_CLOUDFLARED="$DIR/cloudflared"
+export PANWEB_RESOURCE_ROOT="$DIR"
+export PANWEB_ENTRYPOINT="$DIR/panweb"
+LOG="$HOME/.panweb/app.log"
+mkdir -p "$HOME/.panweb"
+
+if curl -s -o /dev/null --max-time 2 http://127.0.0.1:7788; then
+  open "http://127.0.0.1:7788"
+  exit 0
+fi
+
+PY="$(command -v python3 || true)"
+if [ -z "$PY" ]; then
+  osascript -e 'display dialog "panweb 需要 macOS 命令行工具（python3）。\\n点击「安装」后按系统提示装好，再双击本应用。" with title "panweb" buttons {"好的"} default button 1' >/dev/null 2>&1
+  xcode-select --install >/dev/null 2>&1
+  exit 1
+fi
+
+if ! "$PY" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)' >/dev/null 2>&1; then
+  osascript -e 'display dialog "panweb 需要 Python 3.9 或更高版本。\\n请安装新版 Python 后重新打开本应用；当前解释器版本过低。" with title "panweb" buttons {"好的"} default button 1' >/dev/null 2>&1
+  exit 1
+fi
+
+nohup "$PY" "$DIR/panweb" ui --no-open --port 7788 >> "$LOG" 2>&1 &
+for i in $(seq 1 40); do
+  curl -s -o /dev/null --max-time 1 http://127.0.0.1:7788 && break
+  sleep 0.5
+done
+open "http://127.0.0.1:7788"
+"""
 
 
 def cmd_install_app(args):
@@ -69,34 +106,7 @@ def cmd_install_app(args):
     os.chmod(os.path.join(res, "cloudflared"), 0o755)
     launcher = os.path.join(macos, "panweb-launcher")
     with open(launcher, "w", encoding="utf-8") as f:
-        f.write("""#!/bin/bash
-# panweb 双击启动器：已运行则直接打开浏览器，否则后台拉起
-DIR="$(cd "$(dirname "$0")/../Resources" && pwd)"
-export PANWEB_CLOUDFLARED="$DIR/cloudflared"
-export PANWEB_RESOURCE_ROOT="$DIR"
-export PANWEB_ENTRYPOINT="$DIR/panweb"
-LOG="$HOME/.panweb/app.log"
-mkdir -p "$HOME/.panweb"
-
-if curl -s -o /dev/null --max-time 2 http://127.0.0.1:7788; then
-  open "http://127.0.0.1:7788"
-  exit 0
-fi
-
-PY="$(command -v python3 || true)"
-if [ -z "$PY" ]; then
-  osascript -e 'display dialog "panweb 需要 macOS 命令行工具（python3）。\\n点击「安装」后按系统提示装好，再双击本应用。" with title "panweb" buttons {"好的"} default button 1' >/dev/null 2>&1
-  xcode-select --install >/dev/null 2>&1
-  exit 1
-fi
-
-nohup "$PY" "$DIR/panweb" ui --no-open --port 7788 >> "$LOG" 2>&1 &
-for i in $(seq 1 40); do
-  curl -s -o /dev/null --max-time 1 http://127.0.0.1:7788 && break
-  sleep 0.5
-done
-open "http://127.0.0.1:7788"
-""")
+        f.write(app_launcher_script())
     os.chmod(launcher, 0o755)
     with open(os.path.join(app, "Contents", "Info.plist"), "w",
               encoding="utf-8") as f:
@@ -125,6 +135,7 @@ open "http://127.0.0.1:7788"
     else:
         print("✅ macOS 应用已构建：%s（%.0f MB）" % (app, size / 1048576))
         print("   双击即可使用 —— 无需 brew / 终端 / install.sh（cloudflared 已内置）")
-        print("   仍依赖系统 python3；缺少 Command Line Tools 时启动器会引导安装")
+        print("   不内置 Python 解释器：运行需系统 python3 ≥ 3.9，"
+              "缺失时启动器会引导安装")
         print("   控制台已有实例运行时会直接打开浏览器（幂等）")
     print("   %s" % codesign.describe(signed))

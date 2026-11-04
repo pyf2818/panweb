@@ -48,7 +48,7 @@ src/panweb/
   agents.py                 # 本机 Agent 技能安装、终端可执行的 Agent 白名单与命令行
   installer.py              # 一键安装 cloudflared
   menubar.py                # Swift 菜单栏构建
-  packaging.py              # 自包含 macOS App 构建
+  packaging.py              # macOS App 构建（内置资源，仍需系统 python3 3.9+）
   console.py                # 控制台守护进程
   system.py                 # 系统全景、离线打包
   diagnostics.py            # 脱敏诊断包：字段掩码 + 出包前自审（混进密钥就拒绝）

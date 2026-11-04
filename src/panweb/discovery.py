@@ -2,6 +2,7 @@
 import os
 import shutil
 import subprocess
+import sys
 import time
 
 from . import runtime
@@ -66,8 +67,12 @@ def core_doctor(force=False):
     ensure_private_dirs()
     tools = {name: shutil.which(name) for name in
              ("curl", "lsof", "ps", "git", "npm", "gh", "swiftc")}
-    data = {"ready": bool(cf), "cloudflared": cf,
+    py_ok = sys.version_info >= (3, 9)
+    data = {"ready": bool(cf) and py_ok, "cloudflared": cf,
             "cloudflared_version": version, "state_dir": runtime.HOME_DIR,
+            "python": {"path": sys.executable,
+                       "version": "%d.%d.%d" % sys.version_info[:3],
+                       "ok": py_ok},
             "tools": tools}
     _DOCTOR_CACHE["data"] = data
     _DOCTOR_CACHE["ts"] = now

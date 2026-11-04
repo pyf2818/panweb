@@ -345,6 +345,10 @@ def cmd_doctor(args):
         "✅" if data["cloudflared"]
         else "❌ 未安装（brew install cloudflared）",
         data["cloudflared_version"] or ""))
+    py = data.get("python") or {}
+    print("  python：%s %s" % (
+        "✅" if py.get("ok") else "❌ 需要 3.9+（xcode-select --install）",
+        py.get("version") or ""))
     tools = data.get("tools") or {}
     for name in ("curl", "lsof", "ps", "git", "npm", "gh", "swiftc"):
         state = "✅" if tools.get(name) else "— 未安装（可选）"
