@@ -288,12 +288,7 @@ body[data-page="feed"] #viz-backdrop,
 body[data-page="agents"] #viz-backdrop,
 body[data-page="system"] #viz-backdrop { display: none; }
 
-body[data-page="term"] .rail,
-body[data-page="term"] .rail-drag,
-body[data-page="term"] .viz,
-body[data-page="term"] .viz-drag,
-body[data-page="term"] #rail-backdrop,
-body[data-page="term"] #viz-backdrop { display: none; }
+/* 终端只占中栏：左右两栏保留；移动端仍按既有单栏抽屉策略 */
 
 /* 终端 / 全幅功能页的面板质感 */
 body[data-page="term"] .main,

@@ -34,12 +34,14 @@ function openDrawer(id) {
   loadDetail();
   clearInterval(drawerTimer);
   drawerTimer = setInterval(() => { if (currentDrawerId) loadDetail(); }, 2500);
+  if (typeof tmFitSoon === "function") setTimeout(tmFitSoon, 260);
 }
 function closeDrawer() {
   currentDrawerId = null;
   clearInterval(drawerTimer);
   document.getElementById("drawer-mask").classList.remove("show");
   document.getElementById("drawer").classList.remove("show");
+  if (typeof tmFitSoon === "function") setTimeout(tmFitSoon, 260);
 }
 const TIMELINE_LABELS = {publish:"发布", restart:"重启", url_change:"换网址",
   pin_change:"改口令", expire:"到期", stop:"停止", error:"出错"};

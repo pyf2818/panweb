@@ -1,0 +1,84 @@
+/* ---------- 右栏：部署详情 ---------- */
+.viz-panel { gap: 7px; padding-top: 8px; }
+.viz-url { display: none; }
+.dep-sec { border-top: 1px solid var(--border); padding-top: 8px; }
+.dep-label {
+  display: flex; align-items: baseline; gap: 7px; margin-bottom: 6px;
+  font-size: 10px; letter-spacing: .14em; color: var(--faint); text-transform: uppercase;
+}
+.dep-note { font-family: var(--mono); font-size: 9px; letter-spacing: 0; text-transform: none; }
+.dep-link {
+  display: grid; grid-template-columns: 28px minmax(0, 1fr) auto auto;
+  gap: 5px; align-items: center; padding: 2px 0;
+}
+.dep-key { font-family: var(--mono); font-size: 9.5px; color: var(--faint); }
+.dep-url {
+  font-family: var(--mono); font-size: 9.5px; color: var(--ink);
+  overflow-wrap: anywhere; line-height: 1.45;
+}
+.dep-link.is-empty .dep-url { color: var(--faint); }
+.dep-cp {
+  font-family: var(--mono); font-size: 9px; padding: 3px 6px; cursor: pointer;
+  border: 1px solid var(--border); border-radius: 6px;
+  background: var(--chip-bg); color: var(--muted);
+}
+.dep-cp:hover { color: var(--accent); border-color: var(--accent); }
+.dep-cp:disabled { opacity: .45; cursor: not-allowed; }
+.dep-link .btn { min-height: 22px; padding: 1px 7px; font-size: 9.5px; }
+.dep-qr-wrap { display: flex; gap: 12px; align-items: flex-start; }
+.dep-qr {
+  width: 96px; height: 96px; flex: none; padding: 5px; cursor: zoom-in;
+  border: 1px solid var(--border); border-radius: 10px; background: #fff;
+}
+.dep-qr svg { width: 100%; height: 100%; display: block; }
+.dep-qr-actions { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.dep-qr-actions .btn { min-height: 26px; padding: 2px 9px; font-size: 10.5px; }
+.dep-hint { font-size: 10px; color: var(--faint); line-height: 1.55; }
+.dep-links { display: flex; flex-direction: column; gap: 3px; max-height: 120px; overflow-y: auto; }
+.dep-link-item {
+  display: flex; flex-direction: column; gap: 1px; padding: 3px 7px;
+  border: 1px solid var(--border); border-radius: 7px; background: var(--node-bg);
+}
+.dep-link-item .u { font-family: var(--mono); font-size: 9.5px; overflow-wrap: anywhere; }
+.dep-link-item.current { border-color: var(--online-ring); }
+.dep-link-tag { display: flex; align-items: center; gap: 6px; font-size: 9.5px; color: var(--faint); }
+.dep-link-tag .tag-current { color: var(--online); }
+.dep-link-tag .tag-expired { color: var(--offline); }
+.dep-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px 12px; }
+.dep-row {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 6px;
+  padding: 1px 0; min-width: 0;
+}
+.dep-row span { font-size: 9.5px; color: var(--faint); white-space: nowrap; }
+.dep-row b {
+  font-family: var(--mono); font-size: 10.5px; color: var(--ink);
+  overflow-wrap: anywhere; text-align: right;
+}
+.dep-act-row { display: flex; flex-wrap: wrap; gap: 5px; }
+.dep-act-row .btn { min-height: 26px; font-size: 10.5px; }
+.dep-pin-row { display: flex; gap: 6px; margin-top: 5px; }
+.dep-pin-row input {
+  flex: 1; min-width: 0; height: 26px; padding: 0 8px; font-size: 10.5px;
+  border: 1px solid var(--border); border-radius: 7px;
+  background: var(--field-bg); color: var(--ink);
+}
+.dep-pin-row input:focus { outline: none; border-color: var(--accent); }
+.dep-actions .dep-hint { margin-top: 5px; }
+
+/* 进程可视化在详情里更紧凑，但节点与呼吸脉冲保持不变 */
+.viz-graph { padding: 0; }
+.viz-node { min-height: 24px; padding: 2px 9px; border-radius: 8px; gap: 8px; }
+.viz-node b { font-size: 11px; }
+.viz-node > div { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; width: 100%; }
+.viz-detail { margin-top: 0; font-size: 9px; }
+.viz-link { height: 6px; }
+.qr-modal { width: 360px; text-align: center; }
+.qr-zoom {
+  width: 252px; height: 252px; margin: 6px auto 8px; padding: 12px;
+  background: #fff; border-radius: 12px; border: 1px solid var(--border);
+}
+.qr-zoom svg { width: 100%; height: 100%; display: block; }
+.qr-target {
+  font-family: var(--mono); font-size: 9.5px; color: var(--faint);
+  overflow-wrap: anywhere; margin-bottom: 10px;
+}

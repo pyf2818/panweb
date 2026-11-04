@@ -81,19 +81,19 @@
 
 <div class="drag-h viz-drag" id="drag-viz" title="拖拽调宽 · 双击复位"></div>
 
-<!-- ======= 右栏：进程可视化 ======= -->
-<aside class="viz" id="viz-rail" aria-label="进程可视化">
+<!-- ======= 右栏：部署详情 ======= -->
+<aside class="viz" id="viz-rail" aria-label="部署详情">
   <div class="viz-head">
-    <span class="viz-kicker">PROCESS</span>
-    <b>进程可视化</b>
+    <span class="viz-kicker">DEPLOY</span>
+    <b>部署详情</b>
     <span class="viz-live" id="viz-live">4s</span>
-    <button class="drawer-x" id="viz-close" onclick="closeDrawers()" aria-label="关闭进程栏">×</button>
+    <button class="drawer-x" id="viz-close" onclick="closeDrawers()" aria-label="关闭部署详情">×</button>
   </div>
 
   <div class="viz-empty" id="viz-empty">
     <div class="viz-radar" aria-hidden="true"><span></span></div>
     <b>等待选择资产</b>
-    <p>从左侧选择一个应用，这里会显示内置代理、cloudflared 隧道与源应用的实时状态。</p>
+    <p>从左侧选择一个应用或网页，这里会显示链接、二维码、历史网址、状态与操作。</p>
   </div>
 
   <div class="viz-panel" id="viz-panel" hidden>
@@ -105,37 +105,86 @@
       <span class="viz-badge" id="viz-status">未知</span>
     </div>
 
-    <div class="viz-graph" id="viz-graph">
-      <div class="viz-node" id="viz-node-proxy" data-node="proxy">
-        <span class="viz-dot"></span>
-        <div><b>内置代理</b><span class="viz-detail">未知</span></div>
+    <section class="dep-sec">
+      <div class="dep-label">链接 <span class="dep-note">复制或直接打开</span></div>
+      <div class="dep-link">
+        <span class="dep-key">公网</span>
+        <span class="dep-url" id="dep-url">—</span>
+        <button class="dep-cp" onclick="copyText(document.getElementById('dep-url').textContent)" title="复制公网地址">复制</button>
+        <button class="btn btn-sm ghost" onclick="openUrl(document.getElementById('dep-url').textContent)">打开</button>
       </div>
-      <div class="viz-link" id="viz-link-proxy"><span></span></div>
-      <div class="viz-node" id="viz-node-tunnel" data-node="tunnel">
-        <span class="viz-dot"></span>
-        <div><b>cloudflared 隧道</b><span class="viz-detail">未知</span></div>
+      <div class="dep-link" id="dep-share-row">
+        <span class="dep-key">分享</span>
+        <span class="dep-url" id="dep-share-url">—</span>
+        <button class="dep-cp" onclick="copyText(document.getElementById('dep-share-url').textContent)" title="复制分享链接">复制</button>
+        <button class="btn btn-sm ghost" onclick="openUrl(document.getElementById('dep-share-url').textContent)">打开</button>
       </div>
-      <div class="viz-link" id="viz-link-source"><span></span></div>
-      <div class="viz-node" id="viz-node-source" data-node="source">
-        <span class="viz-dot"></span>
-        <div><b>源应用</b><span class="viz-detail">未知</span></div>
+    </section>
+
+    <section class="dep-sec">
+      <div class="dep-label">二维码 <span class="dep-note" id="dep-qr-note">本地生成</span></div>
+      <div class="dep-qr-wrap">
+        <div class="dep-qr" id="viz-qr" onclick="openQrZoom()" title="点击放大" role="button" tabindex="0"></div>
+        <div class="dep-qr-actions">
+          <button class="btn btn-sm ghost" onclick="openQrZoom()">放大</button>
+          <button class="btn btn-sm ghost" onclick="downloadVizQr()">下载 PNG</button>
+          <div class="dep-hint" id="dep-qr-target">—</div>
+        </div>
       </div>
-    </div>
+    </section>
 
-    <div class="viz-metrics">
-      <div class="viz-metric"><span>访问量</span><b id="viz-pv">未知</b></div>
-      <div class="viz-metric"><span>访客</span><b id="viz-uv">未知</b></div>
-      <div class="viz-metric"><span>最近访问</span><b id="viz-last">未知</b></div>
-      <div class="viz-metric"><span>隧道重建</span><b id="viz-rebuilds">未知</b></div>
-    </div>
+    <section class="dep-sec">
+      <div class="dep-label">历史链接 <span class="dep-note">重建后旧网址</span></div>
+      <div class="dep-links" id="dep-links"><div class="rail-empty">读取中…</div></div>
+    </section>
 
-    <div class="viz-section-title">最近访客</div>
-    <div class="viz-visitors" id="viz-visitors"><div class="rail-empty">暂无最近访客</div></div>
+    <section class="dep-sec">
+      <div class="dep-label">状态</div>
+      <div class="dep-grid">
+        <div class="dep-row"><span>口令</span><b id="dep-pin">未知</b></div>
+        <div class="dep-row"><span>有效期</span><b id="dep-exp">未知</b></div>
+        <div class="dep-row"><span>发布时间</span><b id="dep-pub">未知</b></div>
+        <div class="dep-row"><span>访问 PV</span><b id="viz-pv">未知</b></div>
+        <div class="dep-row"><span>访客 UV</span><b id="viz-uv">未知</b></div>
+        <div class="dep-row"><span>最近访问</span><b id="viz-last">未知</b></div>
+        <div class="dep-row"><span>最近重建</span><b id="dep-last-rebuild">未知</b></div>
+        <div class="dep-row"><span>重建次数</span><b id="viz-rebuilds">未知</b></div>
+      </div>
+    </section>
 
-    <div class="viz-foot">
-      <button class="btn btn-sm ghost" onclick="openDrawer(selectedAssetId)">打开详情抽屉</button>
-      <button class="btn btn-sm ghost" onclick="refresh(true)">刷新状态</button>
-    </div>
+    <section class="dep-sec">
+      <div class="dep-label">进程 <span class="dep-note">实时</span></div>
+      <div class="viz-graph" id="viz-graph">
+        <div class="viz-node" id="viz-node-proxy" data-node="proxy">
+          <span class="viz-dot"></span>
+          <div><b>内置代理</b><span class="viz-detail">未知</span></div>
+        </div>
+        <div class="viz-link" id="viz-link-proxy"><span></span></div>
+        <div class="viz-node" id="viz-node-tunnel" data-node="tunnel">
+          <span class="viz-dot"></span>
+          <div><b>cloudflared 隧道</b><span class="viz-detail">未知</span></div>
+        </div>
+        <div class="viz-link" id="viz-link-source"><span></span></div>
+        <div class="viz-node" id="viz-node-source" data-node="source">
+          <span class="viz-dot"></span>
+          <div><b>源应用</b><span class="viz-detail">未知</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="dep-sec dep-actions">
+      <div class="dep-label">操作</div>
+      <div class="dep-act-row">
+        <button class="btn btn-sm btn-danger" onclick="vizStop()">停止</button>
+        <button class="btn btn-sm" onclick="vizRetry()" title="检查并重建失联通道">重试通道</button>
+        <button class="btn btn-sm" onclick="vizCheck()">重新自检</button>
+      </div>
+      <div class="dep-pin-row">
+        <input type="text" id="viz-pin-input" maxlength="32" placeholder="新口令；留空提交=移除" autocomplete="off" aria-label="新访问口令">
+        <button class="btn btn-sm" onclick="vizSetPin()">改口令</button>
+      </div>
+      <div class="dep-hint">口令只作为一次请求参数；详情仅显示「需要 / 无」，不会回显明文。</div>
+    </section>
   </div>
 </aside>
 

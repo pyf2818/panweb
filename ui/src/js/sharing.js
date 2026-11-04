@@ -204,8 +204,15 @@ async function doStop() {
   if (!stopTarget) return;
   const d = await api("/api/stop", {target: stopTarget});
   document.getElementById("stop-overlay").classList.remove("show");
-  if (!d.ok) return toast(d.error ? d.error.message : "停止失败", false);
+  if (!d.ok) {
+    const err = d.error || {};
+    toast(err.message || "停止失败", false);
+    if (typeof addError === "function") addError(err.message || "停止失败", err.hint || "稍后重试", null);
+    return;
+  }
   toast("已停止发布");
+  if (typeof addResult === "function") addResult("<b>已停止发布</b>");
+  if (stopTarget === selectedAssetId) selectedAssetId = null;
   stopTarget = null;
   await refresh();
 }

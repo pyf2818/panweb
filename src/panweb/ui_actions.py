@@ -5,7 +5,7 @@ import threading
 import time
 import urllib.parse
 
-from . import events, jobs, runtime, ui_context
+from . import deployment, events, jobs, runtime, ui_context
 from .agents import (AGENT_GUIDE, core_agent_connect, core_agent_disconnect,
                      core_agents, core_terminal_agents, skill_source_dir)
 from .browser import open_browser
@@ -124,8 +124,16 @@ def handle_get(handler, path):
                         events.MAX_LIMIT)
         except ValueError:
             limit = 30
-        return handler.send_json({"ok": True, "data": {
-            "events": events.read_events(entry_id, limit)}}) or True
+        rows = events.read_events(entry_id, limit)
+        data = {"events": rows}
+        if entry_id:
+            entry = next((e for e in load_state()
+                          if e.get("id") == entry_id), None)
+            if entry:
+                data["detail"] = deployment.build_detail(
+                    entry, events.read_events(entry_id, events.MAX_LIMIT),
+                    load_domain(), aggregate_visits(entry_id))
+        return handler.send_json({"ok": True, "data": data}) or True
     if path == "/api/agents":
         return handler.send_json({"ok": True, "data": {
             "agents": core_agents()}}) or True

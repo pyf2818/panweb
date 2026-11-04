@@ -273,4 +273,18 @@
   </div>
 </div>
 
+<!-- ======= 二维码放大 ======= -->
+<div class="overlay" id="qr-overlay" onclick="if(event.target===this) closeQrZoom()">
+  <div class="modal qr-modal">
+    <div class="modal-title">扫码打开</div>
+    <div class="modal-sub" id="qr-sub">二维码由本机生成，不经过外链服务。</div>
+    <div class="qr-zoom" id="qr-zoom"></div>
+    <div class="qr-target" id="qr-target-url"></div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeQrZoom()">关闭</button>
+      <button class="btn btn-primary" onclick="downloadVizQr()">下载 PNG</button>
+    </div>
+  </div>
+</div>
+
 <div class="toasts" id="toasts"></div>

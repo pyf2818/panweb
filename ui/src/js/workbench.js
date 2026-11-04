@@ -136,6 +136,7 @@ function loadAssetTimeline(id, force = false) {
     if (!d.ok) return renderTimelineEmpty("时间线读取失败：" +
       (d.error ? d.error.message : "未知错误"));
     TIMELINE_CACHE[id] = d.data.events || [];
+    DETAIL_CACHE[id] = d.data.detail || null;
     if (token === timelineToken) renderTimeline(id, TIMELINE_CACHE[id]);
     if (typeof renderViz === "function") renderViz();
   });
@@ -148,13 +149,16 @@ function reloadTimeline() {
 function openRail() {
   document.body.classList.remove("viz-open");
   document.body.classList.add("rail-open");
+  if (typeof tmFitSoon === "function") setTimeout(tmFitSoon, 260);
 }
 function openViz() {
   document.body.classList.remove("rail-open");
   document.body.classList.add("viz-open");
+  if (typeof tmFitSoon === "function") setTimeout(tmFitSoon, 260);
 }
 function closeDrawers() {
   document.body.classList.remove("rail-open", "viz-open");
+  if (typeof tmFitSoon === "function") setTimeout(tmFitSoon, 260);
 }
 document.getElementById("asset-search").addEventListener("input", renderAssetList);
 document.addEventListener("keydown", e => {

@@ -4,6 +4,7 @@
     "styles/layout.css",
     "styles/components.css",
     "styles/console.css",
+    "styles/deploy.css",
     "styles/terminal.css",
     "styles/overlays.css",
     "styles/decor.css",
