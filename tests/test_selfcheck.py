@@ -3,7 +3,7 @@ import time
 import unittest
 
 from helpers import (PUBLIC_HOST, AlwaysForbidden, HostGate, free_port,
-                     serve, stop_server, temp_home)
+                     proxy_log_tail, serve, stop_server, temp_home)
 from panweb import healthcheck, store, upstream
 from panweb.errors import PanwebError
 from panweb.processes import port_listening, stop_process
@@ -35,7 +35,8 @@ class CoreCheckTests(unittest.TestCase):
         deadline = time.time() + 8
         while time.time() < deadline and not port_listening(proxy_port):
             time.sleep(0.1)
-        self.assertTrue(port_listening(proxy_port), "代理未启动")
+        self.assertTrue(port_listening(proxy_port),
+                        "代理未启动\n" + proxy_log_tail(entry_id))
         return entry
 
     def test_host_validation_is_fixed_by_passing_the_public_host(self):

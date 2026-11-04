@@ -5,7 +5,7 @@ import unittest
 from http.client import HTTPConnection
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-from helpers import free_port, temp_home
+from helpers import free_port, proxy_log_tail, temp_home
 from panweb import runtime, store
 from panweb.pins import write_pin
 from panweb.processes import port_listening, stop_process
@@ -71,7 +71,8 @@ class ProxySpawnTests(unittest.TestCase):
             deadline = time.time() + 8
             while time.time() < deadline and not port_listening(proxy_port):
                 time.sleep(0.1)
-            self.assertTrue(port_listening(proxy_port), "代理未启动")
+            self.assertTrue(port_listening(proxy_port),
+                            "代理未启动\n" + proxy_log_tail(entry_id))
             status, _, body = self.request(proxy_port, "GET", "/")
             self.assertEqual(status, 200)
             self.assertIn(b"HELLO-FROM-BACKEND", body)
@@ -99,7 +100,8 @@ class ProxySpawnTests(unittest.TestCase):
             deadline = time.time() + 8
             while time.time() < deadline and not port_listening(proxy_port):
                 time.sleep(0.1)
-            self.assertTrue(port_listening(proxy_port), "代理未启动")
+            self.assertTrue(port_listening(proxy_port),
+                            "代理未启动\n" + proxy_log_tail(entry_id))
             status, headers, _ = self.request(
                 proxy_port, "GET", "/")
             self.assertEqual(status, 302)
@@ -134,7 +136,8 @@ class ProxySpawnTests(unittest.TestCase):
             deadline = time.time() + 8
             while time.time() < deadline and not port_listening(proxy_port):
                 time.sleep(0.1)
-            self.assertTrue(port_listening(proxy_port), "代理未启动")
+            self.assertTrue(port_listening(proxy_port),
+                            "代理未启动\n" + proxy_log_tail(entry_id))
             status, _, body = self.request(
                 proxy_port, "POST", "/", body=b"",
                 headers={"Content-Length":

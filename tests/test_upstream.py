@@ -7,7 +7,7 @@ import unittest
 from http.client import HTTPConnection
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-from helpers import free_port, temp_home
+from helpers import free_port, proxy_log_tail, temp_home
 from panweb import runtime, store, upstream
 from panweb.errors import PanwebError
 from panweb.processes import port_listening, stop_process
@@ -199,7 +199,8 @@ class ProxyUpstreamTests(unittest.TestCase):
         deadline = time.time() + 8
         while time.time() < deadline and not port_listening(proxy_port):
             time.sleep(0.1)
-        self.assertTrue(port_listening(proxy_port), "代理未启动")
+        self.assertTrue(port_listening(proxy_port),
+                        "代理未启动\n" + proxy_log_tail(entry_id))
         return proxy_port, proc
 
     def get(self, port):

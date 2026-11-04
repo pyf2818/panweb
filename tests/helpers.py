@@ -59,6 +59,17 @@ def free_port():
         return s.getsockname()[1]
 
 
+def proxy_log_tail(entry_id, limit=1500):
+    """把代理子进程日志带进断言信息：CI 上“代理未启动”时能直接看到根因。"""
+    path = os.path.join(runtime.LOG_DIR, "%s-proxy.log" % entry_id)
+    try:
+        with open(path, "rb") as f:
+            data = f.read().decode("utf-8", "replace")
+    except OSError:
+        return "（没有代理日志）"
+    return data[-limit:] or "（代理日志为空）"
+
+
 # ---- 自检与转发测试共用的假应用 ----
 PUBLIC_HOST = "alpha-beta-gamma.trycloudflare.com"
 GOOD_PAGE = ('<html><head><link rel="stylesheet" href="/app.css"></head>'

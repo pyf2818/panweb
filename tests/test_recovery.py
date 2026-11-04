@@ -54,6 +54,12 @@ class RecoveryTests(unittest.TestCase):
         self.ctx.__enter__()
         self.addCleanup(self.ctx.__exit__, None, None, None)
         store.ensure_private_dirs()
+        # 恢复流程不该依赖 runner 上是否装了 cloudflared；二进制发现由
+        # find_cloudflared 的独立用例覆盖，这里只验证重启与落库。
+        patcher = mock.patch.object(supervisor, "find_cloudflared",
+                                    return_value="/usr/local/bin/cloudflared")
+        patcher.start()
+        self.addCleanup(patcher.stop)
         self.entry = {"id": "e1", "name": "演示", "kind": "port", "target": 3000,
                       "url": "https://old.test", "pid": DEAD_PID}
         store.save_state([dict(self.entry)])

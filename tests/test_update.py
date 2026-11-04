@@ -159,6 +159,12 @@ class ApplyTests(unittest.TestCase):
         self.ctx = helpers.temp_home("panweb-update-")
         self.ctx.__enter__()
         self.addCleanup(self.ctx.__exit__, None, None, None)
+        # release() 的摘要清单按 arm64 命名；固定 fixture 架构，避免 x86_64
+        # runner 选到另一个 dmg 后把校验错误伪装成下载/地址错误。
+        patcher = mock.patch.object(update.platform, "machine",
+                                    return_value="arm64")
+        patcher.start()
+        self.addCleanup(patcher.stop)
         # 真打开 dmg 会在测试机上挂载磁盘镜像，必须拦掉
         patcher = mock.patch.object(update, "_open_quietly", return_value=True)
         patcher.start()
