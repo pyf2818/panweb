@@ -4,6 +4,7 @@ import re
 import secrets
 import time
 
+from .models import entry_title
 from .store import load_state, save_state, state_lock
 
 LOGIN_PAGE = """<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
@@ -148,7 +149,7 @@ def share_note(entry, pin=False):
 
 def build_share_page(entry, share_url, token="", expired=False, offline=False,
                      pin=False, err=""):
-    name = (entry.get("name") or "panweb").strip() or "panweb"
+    name = entry_title(entry).strip() or "panweb"
     desc = (entry.get("desc") or "").strip()
     if not desc:
         desc = ("这是一个从本机发布的静态网页。" if entry.get("kind") == "pages"
