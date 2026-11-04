@@ -79,6 +79,7 @@ function fillCommand(text) {
   input.value = text;
   input.focus();
   autoGrowCommand();
+  input.dispatchEvent(new Event("input"));
 }
 function autoGrowCommand() {
   const input = document.getElementById("cmd-input");
@@ -105,6 +106,7 @@ async function submitCommand(event) {
   const input = document.getElementById("cmd-input");
   const text = (input.value || "").trim();
   if (!text) return;
+  if (typeof rememberCommand === "function") rememberCommand(text);
   addUser(text);
   input.value = "";
   autoGrowCommand();
@@ -257,7 +259,7 @@ function resolveStopTarget(parsed) {
   if (parsed.scope === "all") return "all";
   if (parsed.scope === "current") {
     const found = findAsset(selectedAssetId);
-    if (!found || found.hosted) return null;
+    if (!found || found.hosted || found.snapshot) return null;
     return found.a.id;
   }
   if (parsed.port) {
@@ -270,8 +272,11 @@ function resolveStopTarget(parsed) {
 async function stopFromCommand(parsed) {
   const target = resolveStopTarget(parsed);
   if (!target) {
-    return addError(parsed.port ? "没有发布在端口 " + parsed.port + " 的应用" :
-      "没有选中的应用", "先从左侧选择资产，或写：停止 8080", null);
+    const snap = typeof currentSnapshot === "function" ? currentSnapshot() : null;
+    return addError(snap ? "当前选中条目已停止" : (parsed.port
+      ? "没有发布在端口 " + parsed.port + " 的应用" : "没有选中的应用"),
+      snap ? "在右栏点「用同样配置重新发布」，或先选择运行中的条目"
+        : "先从左侧选择资产，或写：停止 8080", null);
   }
   const d = await api("/api/stop", {target});
   if (!d.ok) {
@@ -283,7 +288,10 @@ async function stopFromCommand(parsed) {
   addResult("<b>已停止 " + stopped.length + " 个应用</b>" +
     stopped.map(s => '<div class="err-hint">' + esc(s.name || s.id || "") + "</div>").join(""),
     '<button class="btn btn-sm ghost" onclick="refresh(true)">刷新状态</button>');
-  if (stopped.some(s => s.id === selectedAssetId)) selectedAssetId = null;
+  if (stopped.some(s => s.id === selectedAssetId)) {
+    // 停止后会生成只读快照，保留选中，右栏直接切到「上次发布」状态。
+    loadAssetTimeline(selectedAssetId, true);
+  }
   await refresh(true);
   reloadTimeline();
 }
@@ -297,7 +305,7 @@ function stopCurrent() {
 function resolveCheckTarget(parsed) {
   if (parsed.scope === "current") {
     const found = findAsset(selectedAssetId);
-    if (!found || found.hosted) return null;
+    if (!found || found.hosted || found.snapshot) return null;
     return found.a.id;
   }
   if (parsed.port) {
@@ -310,8 +318,11 @@ function resolveCheckTarget(parsed) {
 async function doCheck(parsed) {
   const id = resolveCheckTarget(parsed);
   if (!id) {
-    return addError(parsed.port ? "没有发布在端口 " + parsed.port + " 的应用" :
-      "没有可检查的应用", "先从左侧选择资产，或写：检查 8080", null);
+    const snap = typeof currentSnapshot === "function" ? currentSnapshot() : null;
+    return addError(snap ? "当前选中条目已停止" : (parsed.port
+      ? "没有发布在端口 " + parsed.port + " 的应用" : "没有可检查的应用"),
+      snap ? "在右栏点「检查源状态」确认源端口或文件夹是否还在" :
+        "先从左侧选择资产，或写：检查 8080", null);
   }
   addStep("正在从访客视角自检…");
   const d = await api("/api/check", {id});

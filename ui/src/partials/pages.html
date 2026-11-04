@@ -64,22 +64,39 @@
           <button class="btn btn-sm ghost" onclick="openPublish('port')">高级发布</button>
         </div>
 
+        <div class="guide-card" id="guide-card" hidden>
+          <div class="guide-title">三步发出一个网址</div>
+          <ol class="guide-steps">
+            <li><b>选择要发布的东西</b><span>本机端口、静态文件夹，或让 panweb 启动一个项目。</span></li>
+            <li><b>确认能被访问</b><span>发布后打开链接自检；口令与有效期按需设置。</span></li>
+            <li><b>发送给别人</b><span>复制分享链接或二维码，手机扫码即可打开。</span></li>
+          </ol>
+          <div class="guide-actions">
+            <button class="btn btn-sm btn-primary" type="button" onclick="openPublish('port')">发布端口</button>
+            <button class="btn btn-sm" type="button" onclick="openPublish('pages')">发布文件夹</button>
+            <button class="btn btn-sm ghost" type="button" onclick="scanPorts('guide')">扫描本机端口</button>
+          </div>
+          <div class="guide-results" id="guide-results"></div>
+        </div>
+
         <div class="chat-log" id="chat-log" aria-live="polite"></div>
 
-        <div class="cmd-hints" id="cmd-hints">
-          <button type="button" class="cmd-chip" onclick="fillCommand('发布 3000')">发布 3000</button>
-          <button type="button" class="cmd-chip" onclick="fillCommand('发布 ~/Documents/site')">发布文件夹</button>
-          <button type="button" class="cmd-chip" onclick="fillCommand('停止 当前')">停止当前</button>
-          <button type="button" class="cmd-chip" onclick="fillCommand('检查 当前')">自检</button>
-          <button type="button" class="cmd-chip" onclick="fillCommand('帮助')">帮助</button>
+        <div class="cmd-hints" id="cmd-hints" role="group" aria-label="快捷指令">
+          <button type="button" class="cmd-chip" onclick="fillTemplate('发布 <端口>', '<端口>')" aria-label="填入发布端口的指令模板">发布端口</button>
+          <button type="button" class="cmd-chip" onclick="fillTemplate('发布 <文件夹路径>', '<文件夹路径>')" aria-label="填入发布文件夹的指令模板">发布文件夹</button>
+          <button type="button" class="cmd-chip" onclick="fillTemplate('停止 当前', '')" aria-label="填入停止当前发布的指令">停止当前</button>
+          <button type="button" class="cmd-chip" onclick="fillTemplate('检查 当前', '')" aria-label="填入重新自检的指令">检查一下</button>
+          <button type="button" class="cmd-chip" onclick="fillTemplate('帮助', '')" aria-label="填入帮助指令">帮助</button>
         </div>
+
+        <div class="cmd-hint-line" id="cmd-hint-line" role="status"></div>
 
         <form class="conv-composer" id="cmd-form" onsubmit="submitCommand(event)">
           <span class="cmd-prompt" aria-hidden="true">›</span>
           <textarea id="cmd-input" rows="1" placeholder="输入指令，例如 发布 3000 pin=1234 有效期=1d" autocomplete="off" spellcheck="false" aria-label="发布指令"></textarea>
           <button class="btn btn-primary cmd-run" id="cmd-run" type="submit">执行</button>
         </form>
-        <div class="conv-foot">Enter 执行 · Shift+Enter 换行 · 解析失败不会调用发布接口</div>
+        <div class="conv-foot">Enter 执行 · Shift+Enter 换行 · ↑ 回填上次指令（不含口令）· 解析失败不会调用发布接口</div>
       </div>
     </div>
   </section>

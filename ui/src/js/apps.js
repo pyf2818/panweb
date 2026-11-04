@@ -1,6 +1,16 @@
 // ---------- 动作 ----------
+function announce(text) {
+  const el = document.getElementById("sr-live");
+  if (!el) return;
+  el.textContent = "";
+  setTimeout(() => { el.textContent = text; }, 30);
+}
 function copyText(s) {
-  const done = () => toast("已复制：" + s);
+  const short = s && s.length > 120 ? s.slice(0, 117) + "…" : s;
+  const done = () => {
+    toast("已复制：" + s);
+    announce("已复制 " + (short || "内容") + " 到剪贴板");
+  };
   if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(s).then(done, () => fallbackCopy(s, done));
   else fallbackCopy(s, done);
 }
@@ -8,7 +18,10 @@ function fallbackCopy(s, done) {
   const ta = document.createElement("textarea");
   ta.value = s; ta.style.position = "fixed"; ta.style.opacity = "0";
   document.body.appendChild(ta); ta.select();
-  try { document.execCommand("copy"); done(); } catch (e) { toast("复制失败，请手动选择", false); }
+  try { document.execCommand("copy"); done(); } catch (e) {
+    toast("复制失败，请手动选择", false);
+    announce("复制失败，请手动选择");
+  }
   ta.remove();
 }
 function openUrl(url, entryId) {

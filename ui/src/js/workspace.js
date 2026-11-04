@@ -306,13 +306,27 @@ function renderKz(q) {
 }
 document.addEventListener("keydown", e => {
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+    const page = document.getElementById("page-apps");
+    if (page && page.classList.contains("show")) {
+      e.preventDefault();
+      const input = document.getElementById("cmd-input");
+      if (input) {
+        input.focus();
+        input.setSelectionRange(input.value.length, input.value.length);
+      }
+      return;
+    }
     e.preventDefault();
     toggleKz();
     return;
   }
+  if (e.key === "Escape") {
+    document.querySelectorAll(".overlay.show").forEach(o => o.classList.remove("show"));
+    if (typeof closeDrawer === "function") closeDrawer();
+    if (typeof closeDrawers === "function") closeDrawers();
+  }
   const ov = document.getElementById("kz-overlay");
   if (!ov.classList.contains("show")) return;
-  if (e.key === "Escape") { ov.classList.remove("show"); return; }
   if (e.key === "ArrowDown" || e.key === "ArrowUp") {
     e.preventDefault();
     kzSel = Math.max(0, Math.min(kzItems.length - 1, kzSel + (e.key === "ArrowDown" ? 1 : -1)));

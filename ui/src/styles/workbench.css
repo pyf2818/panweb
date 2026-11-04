@@ -1,0 +1,74 @@
+/* ---------- 工作台：左栏过滤 / 引导 / 中栏提示 ---------- */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+.rail-filters { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 2px 8px; }
+.rail-filter {
+  border: 1px solid var(--border); border-radius: 999px; background: transparent;
+  color: var(--faint); font-family: var(--mono); font-size: 9.5px;
+  padding: 3px 8px; min-height: 26px; cursor: pointer; transition: all .2s;
+}
+.rail-filter:hover { color: var(--accent); border-color: var(--accent); }
+.rail-filter[aria-pressed="true"] {
+  color: var(--accent); border-color: var(--accent); background: var(--accent-soft);
+}
+.rail-filter:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.rail-collapse {
+  display: flex; align-items: center; gap: 6px; padding: 0; border: 0;
+  background: none; color: var(--faint); cursor: pointer;
+  font: inherit; letter-spacing: inherit; text-transform: inherit;
+}
+.rail-collapse:hover { color: var(--ink); }
+.rail-collapse:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.rail-head-tools { display: flex; align-items: center; gap: 3px; }
+.rail-scope { font-family: var(--mono); font-size: 9px; color: var(--faint); letter-spacing: 0; text-transform: none; }
+.rail-steps { margin: 7px 0 8px; padding-left: 18px; color: var(--muted); }
+.rail-empty-guide b { color: var(--ink); font-size: 12px; }
+.rail-empty-actions { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.rail-empty-actions .btn { min-height: 26px; font-size: 10.5px; }
+.tl-scope-note {
+  font-family: var(--mono); font-size: 9px; color: var(--faint);
+  padding: 3px 5px 6px; letter-spacing: .04em;
+}
+.scan-list { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
+.scan-item {
+  display: flex; align-items: baseline; gap: 7px; width: 100%; padding: 6px 8px;
+  text-align: left; cursor: pointer; font-family: var(--mono); font-size: 10px;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: var(--node-bg); color: var(--muted);
+}
+.scan-item:hover { border-color: var(--accent); color: var(--ink); }
+.scan-item b { color: var(--accent); font-size: 10.5px; }
+.scan-item span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scan-tag { flex: none; color: var(--online); font-size: 9px; }
+.scan-note { font-size: 10px; color: var(--faint); }
+
+.guide-card {
+  margin: 12px 18px 0; padding: 14px 16px; border: 1px solid var(--border);
+  border-radius: 12px; background: var(--node-bg);
+}
+.guide-title { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+.guide-steps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 7px; }
+.guide-steps li { font-size: 12px; color: var(--muted); line-height: 1.6; }
+.guide-steps b { color: var(--ink); display: block; font-size: 12.5px; }
+.guide-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 11px; }
+.guide-results { margin-top: 9px; }
+.guide-results .scan-list { max-height: 220px; overflow-y: auto; }
+
+.cmd-hint-line {
+  min-height: 16px; padding: 0 16px 5px; font-size: 10px; color: var(--faint);
+  font-family: var(--mono); line-height: 1.5;
+}
+.cmd-hint-line.ok { color: var(--online); }
+.cmd-hint-line.warn { color: var(--expired); }
+.cmd-chip:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+
+@media (max-width: 900px) {
+  .guide-card { margin: 10px 12px 0; padding: 12px; }
+  .rail-filters { padding-bottom: 6px; }
+  .rail-filter { min-height: 30px; font-size: 10px; }
+  .dep-actions { padding-bottom: calc(4px + env(safe-area-inset-bottom)); }
+}
