@@ -147,23 +147,26 @@ def core_update_apply():
     expected = None
     if asset.get("checksums_url"):
         expected = _expected_sha256(asset["checksums_url"], asset["name"])
+    if not expected:
+        raise PanwebError(4, "checksum",
+                          "发布记录缺少 SHA256 校验清单，已拒绝取回升级包",
+                          "请发布者上传 SHA256SUMS 后再试；没有摘要就不下载")
     _download(asset["url"], target)
     size = os.path.getsize(target)
     if asset.get("size") and abs(size - int(asset["size"])) > 1024:
         _discard(target)
         raise PanwebError(4, "checksum", "下载大小与发布记录不符，已丢弃")
     digest = sha256_of(target)
-    if expected and digest.lower() != expected:
+    if digest.lower() != expected:
         _discard(target)
         raise PanwebError(4, "checksum",
                           "升级包 SHA-256 与 SHA256SUMS 不符，已丢弃",
                           "不要运行这个文件；请重新下载或联系发布者")
     opened = _open_quietly(target, asset["kind"])
-    log_activity("system", "已取回升级包 %s（%d MB，%s）"
-                 % (asset["name"], max(1, size // 1048576),
-                    "校验通过" if expected else "无校验清单"))
+    log_activity("system", "已取回升级包 %s（%d MB，SHA-256 校验通过）"
+                 % (asset["name"], max(1, size // 1048576)))
     return dict(status, downloaded=target, size=size, sha256=digest,
-                verified=bool(expected), opened=opened,
+                verified=True, opened=opened,
                 message="升级包已就绪：%s" % target)
 
 

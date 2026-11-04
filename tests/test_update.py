@@ -12,11 +12,14 @@ from panweb.errors import PanwebError
 
 
 def release(tag="v9.9.9", names=("panweb-9.9.9-arm64.dmg",
-                                 "panweb-9.9.9-x86_64.dmg"), body="修了几个坑"):
-    return {"tag_name": tag, "name": tag, "body": body,
-            "assets": [{"name": n,
-                        "browser_download_url": "https://dl.test/%s" % n,
-                        "size": 4096} for n in names]}
+                                 "panweb-9.9.9-x86_64.dmg"), body="修了几个坑",
+            with_sums=True):
+    assets = [{"name": n, "browser_download_url": "https://dl.test/%s" % n,
+               "size": 4096} for n in names]
+    if with_sums:
+        assets.append({"name": "SHA256SUMS", "size": 100,
+                       "browser_download_url": "https://dl.test/SHA256SUMS"})
+    return {"tag_name": tag, "name": tag, "body": body, "assets": assets}
 
 
 def lic(active=True, until="2027-03-01", mode="active"):
@@ -164,12 +167,17 @@ class ApplyTests(unittest.TestCase):
     def _run(self, payload=b"x" * 4096, lic_state=None, rel=None, sums=None,
              resp=None):
         urls = []
+        if sums is None and isinstance(payload, bytes):
+            sums = "%s  panweb-9.9.9-arm64.dmg\n" % hashlib.sha256(
+                payload).hexdigest()
+        if sums is None:
+            sums = "%s  panweb-9.9.9-arm64.dmg\n" % ("0" * 64)
 
         def spy(req, timeout=0):
             urls.append(req.full_url)
             if isinstance(payload, Exception):
                 raise payload
-            if sums is not None and req.full_url.endswith("SHA256SUMS"):
+            if req.full_url.endswith("SHA256SUMS"):
                 return FakeResp(sums.encode("utf-8"))
             return resp or FakeResp(payload)
 
@@ -201,7 +209,18 @@ class ApplyTests(unittest.TestCase):
         self.assertEqual(result["sha256"],
                          hashlib.sha256(b"x" * 4096).hexdigest())
         self.assertTrue(os.path.isfile(result["downloaded"]))
+        self.assertTrue(result["verified"])
         self.assertTrue(urls[0].startswith("https://"), "升级包必须走 HTTPS")
+
+    def test_missing_checksum_manifest_is_refused(self):
+        with mock.patch.object(update.platform, "machine",
+                               return_value="arm64"):
+            err, urls = self._run(rel=release(with_sums=False))
+        self.assertIsInstance(err, PanwebError, str(err))
+        self.assertEqual(err.err_type, "checksum")
+        self.assertEqual(urls, [], "拿不到 SHA256SUMS 就不能下载升级包")
+        out = os.path.join(runtime.HOME_DIR, "update")
+        self.assertEqual(os.listdir(out), [], "拒绝时不能留下临时文件")
 
     def test_size_mismatch_is_discarded(self):
         err, _ = self._run(payload=b"x" * 100)
