@@ -1,6 +1,7 @@
 """有效期解析、到期收回与陈旧条目清理。"""
 import time
 
+from . import events
 from .entries import entry_alive, stop_entry, write_menubar_state
 from .errors import PanwebError
 from .store import (bump_stopped, load_state, log_activity, save_state,
@@ -36,6 +37,11 @@ def sweep_expired():
                 swept.append(entry.get("name"))
                 log_activity("stop", "「%s」已到期，自动收回" % entry.get("name"),
                              entry.get("url"))
+                events.log_event(entry.get("id"), "expire",
+                                 "「%s」已到期，自动收回" % entry.get("name"),
+                                 url_before=entry.get("url"),
+                                 expires_at=entry.get("expires_at"),
+                                 source="system", reason="expired")
             else:
                 keep.append(entry)
         if swept:
@@ -62,6 +68,10 @@ def prune_dead_entries(max_age_days=7):
                     and not entry_alive(entry):
                 stop_entry(entry)
                 removed.append(entry.get("name"))
+                events.log_event(entry.get("id"), "stop",
+                                 "清理长期离线的「%s」" % entry.get("name"),
+                                 url_before=entry.get("url"),
+                                 source="system", reason="cleanup")
             else:
                 keep.append(entry)
         if removed:

@@ -2,7 +2,7 @@
 import os
 import time
 
-from . import forwarder, runtime, upstream
+from . import events, forwarder, runtime, upstream
 from .errors import PanwebError
 from .models import entry_share_url
 from .pins import write_pin
@@ -95,7 +95,7 @@ def find_entry(target):
                       "用 panweb list 查看已发布的应用")
 
 
-def core_stop(target):
+def core_stop(target, source="ui"):
     stopped = []
     with state_lock():
         entries = load_state()
@@ -113,6 +113,9 @@ def core_stop(target):
             stopped.append({"id": e.get("id"), "name": e.get("name"),
                             "url": e.get("url")})
             log_activity("stop", "停止了「%s」" % e.get("name"), e.get("url"))
+            events.log_event(e.get("id"), "stop", "停止了「%s」" % e.get("name"),
+                             url_before=e.get("url"), source=source,
+                             reason="user")
         remaining = [e for e in entries if e.get("id") not in hit_ids]
         save_state(remaining)
         bump_stopped(len(stopped))

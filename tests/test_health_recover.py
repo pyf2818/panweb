@@ -84,7 +84,7 @@ class RecoverFailingTests(unittest.TestCase):
                     mock.patch.object(supervisor, "pinned_status",
                                       side_effect=status), \
                     mock.patch.object(supervisor, "restart_entry_tunnel",
-                                      side_effect=lambda e: "https://new-" + e["id"]):
+                                      side_effect=lambda e, *a: "https://new-" + e["id"]):
                 result = supervisor.recover_failing()
         self.assertEqual([r["id"] for r in result["recovered"]], ["dead", "bad"])
         self.assertEqual(result["checked"], 2)

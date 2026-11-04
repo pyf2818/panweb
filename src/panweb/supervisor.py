@@ -3,7 +3,7 @@ import os
 import threading
 import time
 
-from . import domain, forwarder, runtime
+from . import domain, events, forwarder, runtime
 from .entries import entry_alive, write_menubar_state
 from .errors import PanwebError, TunnelError
 from .lifecycle import prune_dead_entries, sweep_expired
@@ -37,13 +37,14 @@ def _tunnel_serving(url, tries=3):
     return False
 
 
-def restart_entry_tunnel(entry):
+def restart_entry_tunnel(entry, reason="auto"):
     with RESTART_LOCK:
-        return _restart_entry_tunnel(entry)
+        return _restart_entry_tunnel(entry, reason)
 
 
-def _restart_entry_tunnel(entry):
+def _restart_entry_tunnel(entry, reason="auto"):
     """重启一条发布的隧道（健康监控自愈用），返回新 url。"""
+    old_url = entry.get("url")
     cf = find_cloudflared()
     if not cf:
         raise PanwebError(3, "dependency_missing", "未找到 cloudflared")
@@ -87,6 +88,13 @@ def _restart_entry_tunnel(entry):
         if fw:
             fw.stop()
         raise PanwebError(2, "not_found", "发布在恢复过程中已被停止")
+    if old_url and old_url != url:
+        events.log_event(entry["id"], "url_change", "通道重建，公网网址已更新",
+                         url_before=old_url, url_after=url,
+                         reason=reason, source="system")
+    else:
+        events.log_event(entry["id"], "restart", "通道已重建",
+                         url_after=url, reason=reason, source="system")
     return url
 
 
@@ -119,6 +127,9 @@ def restart_entry_proxy(entry):
         stop_process(proc, ("--internal-proxy",))
         return False
     log_activity("ui", "「%s」口令/静态代理已重启" % entry.get("name"))
+    events.log_event(entry["id"], "restart", "代理已重启（网址保留）",
+                     url_after=entry.get("url"), reason="proxy",
+                     source="system")
     return True
 
 
@@ -133,7 +144,7 @@ def recover_all():
     for entry in load_state():
         try:
             if entry.get("pooled"):
-                entry["url"] = restart_entry_tunnel(entry)
+                entry["url"] = restart_entry_tunnel(entry, "startup")
                 recovered += 1
         except Exception as e:  # noqa: BLE001
             log_activity("ui", "「%s」启动恢复失败：%s" % (entry.get("name"), e))
@@ -164,7 +175,7 @@ def _health_step(entry):
         return
     HEALTH_FAILS.pop(entry_id, None)
     if not pid_alive(entry.get("pid")):
-        new_url = restart_entry_tunnel(entry)
+        new_url = restart_entry_tunnel(entry, "health")
         log_activity("ui", "「%s」隧道进程已死，已重建通道"
                      % entry.get("name"), new_url)
         return
@@ -190,9 +201,11 @@ def recover_failing(progress=None):
             checked += 1
             if progress:
                 progress("恢复「%s」…" % entry.get("name"))
-            url = restart_entry_tunnel(entry)
+            url = restart_entry_tunnel(entry, "manual")
             recovered.append({"id": entry.get("id"), "url": url})
         except Exception as e:  # noqa: BLE001
+            events.log_event(entry.get("id"), "error", "手动恢复失败",
+                             reason=type(e).__name__, source="system")
             log_activity("ui", "「%s」手动恢复失败：%s"
                          % (entry.get("name"), e))
     if checked:

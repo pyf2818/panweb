@@ -7,7 +7,7 @@ import subprocess
 import time
 import uuid
 
-from . import forwarder, healthcheck, runtime
+from . import events, forwarder, healthcheck, runtime
 from .entries import replace_entry, register_entry, stop_entry, \
     write_menubar_state
 from .errors import PanwebError
@@ -194,7 +194,9 @@ def _publish_port(port, name, extra=None, pin=None, serve_dir=None,
         entry.update(entry_extra)
         if register:
             register_entry(entry)
-    except BaseException:
+    except BaseException as e:
+        events.log_event(entry_id, "error", "发布失败",
+                         reason=type(e).__name__, source="publish")
         # 发布没登记成功时，代理/隧道/PIN 都是半成品，必须当场回收，
         # 否则下一次控制台启动前它们会一直占着端口和子进程。
         stop_entry({"id": entry_id, "pid": tunnel_pid,
@@ -211,6 +213,9 @@ def _publish_port(port, name, extra=None, pin=None, serve_dir=None,
         url, initial_wait=0 if entry_extra.get("pooled") else 3)
     result = dict(entry, reachable=reachable, dns_slow=dns_slow,
                   share_url=entry_share_url(entry))
+    events.log_event(entry_id, "publish", "发布了「%s」" % entry["name"],
+                     url_after=entry.get("url"),
+                     expires_at=entry.get("expires_at"), source="publish")
     if auto_check:
         # 隧道通不代表应用能打开；后台按访客视角再走一遍，结论自己会进控制台。
         result["checking"] = healthcheck.schedule_check(entry_id)
@@ -297,10 +302,17 @@ def core_set_pin(entry_id, pin, actor="ui"):
             log_activity(actor, "旧发布清理失败：%s" % e)
         log_activity(actor, "为「%s」设置了访问口令（网址已更新）"
                      % entry.get("name"), new_entry["url"])
+        events.log_event(entry_id, "pin_change", "设置了访问口令（网址已更新）",
+                         url_before=entry.get("url"),
+                         url_after=new_entry.get("url"), source=actor)
         return {"updated": True, "entry": new_entry}
     write_pin(entry_id, pin)
     log_activity(actor, ("为「%s」设置了访问口令" if pin
                          else "「%s」的访问口令已移除") % entry.get("name"))
+    events.log_event(entry_id, "pin_change",
+                     "设置了访问口令" if pin else "移除了访问口令",
+                     url_before=entry.get("url"),
+                     url_after=entry.get("url"), source=actor)
     return {"updated": True, "entry": entry}
 
 
