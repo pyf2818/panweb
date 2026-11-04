@@ -15,6 +15,7 @@ from .healthcheck import await_check, core_check
 from .hosting import core_host
 from .licensing import (activate_license, deactivate_license,
                         license_status)
+from .models import entry_local_port
 from .pins import normalize_pin
 from .publish import (core_pages, core_publish, core_run,
                       load_publish_defaults)
@@ -23,6 +24,13 @@ from .update import core_update_apply, core_update_status
 
 
 CHECK_ICONS = {"ok": "✅", "warn": "⚠️", "blocked": "❌"}
+
+
+def _source_text(entry):
+    """target 是端口或文件夹的联合类型，渲染前必须按 kind 分支。"""
+    if entry.get("kind") == "pages":
+        return entry.get("target") or ""
+    return "http://127.0.0.1:%s" % entry_local_port(entry)
 
 
 def _resolve_cli_pin(args):
@@ -124,7 +132,7 @@ def cmd_publish(args):
     print("   公网网址：%s" % entry["url"])
     if entry.get("share_url"):
         print("   分享页：%s" % entry["share_url"])
-    print("   本地来源：http://127.0.0.1:%d" % entry["target"])
+    print("   本地来源：%s" % _source_text(entry))
     if entry["reachable"] and entry["dns_slow"]:
         print("   提示：本地 DNS 对新网址传播较慢，打不开时稍等几分钟再试"
               "（通道已就绪）。")
@@ -154,7 +162,7 @@ def cmd_pages(args):
     print("   公网网址：%s" % entry["url"])
     if entry.get("share_url"):
         print("   分享页：%s" % entry["share_url"])
-    print("   文件夹：%s（只读，原始文件不会被修改）" % entry["target"])
+    print("   文件夹：%s（只读，原始文件不会被修改）" % _source_text(entry))
     if entry["reachable"] and entry["dns_slow"]:
         print("   提示：本地 DNS 对新网址传播较慢，打不开时稍等几分钟再试"
               "（通道已就绪）。")
@@ -183,8 +191,7 @@ def cmd_run(args):
     print("   公网网址：%s" % entry["url"])
     if entry.get("share_url"):
         print("   分享页：%s" % entry["share_url"])
-    print("   本地来源：http://127.0.0.1:%d（由 panweb 启动）"
-          % entry["target"])
+    print("   本地来源：%s（由 panweb 启动）" % _source_text(entry))
     if entry["reachable"] and entry["dns_slow"]:
         print("   提示：本地 DNS 对新网址传播较慢，打不开时稍等几分钟再试"
               "（通道已就绪）。")
@@ -291,8 +298,7 @@ def cmd_list(args):
         return
     print("已发布 %d 个应用：" % len(entries))
     for e in entries:
-        src = (e["target"] if e["kind"] == "pages"
-               else "http://127.0.0.1:%d" % e["target"])
+        src = _source_text(e)
         print("  [%s] %s  %s" % (e["id"], e["name"], e["url"]))
         if e.get("share_url"):
             print("         分享页：%s" % e["share_url"])
