@@ -58,13 +58,25 @@
   </div>
 
   <div class="rail-head"><span>资产档案</span><span class="rail-count" id="asset-count">0</span></div>
+  <div class="rail-filters" id="asset-filters" role="group" aria-label="按状态筛选资产">
+    <button class="rail-filter" type="button" data-filter="all" aria-pressed="true" onclick="setAssetFilter('all')">全部</button>
+    <button class="rail-filter" type="button" data-filter="online" aria-pressed="false" onclick="setAssetFilter('online')">运行中</button>
+    <button class="rail-filter" type="button" data-filter="offline" aria-pressed="false" onclick="setAssetFilter('offline')">已停止</button>
+    <button class="rail-filter" type="button" data-filter="expired" aria-pressed="false" onclick="setAssetFilter('expired')">已到期</button>
+    <button class="rail-filter" type="button" data-filter="hosted" aria-pressed="false" onclick="setAssetFilter('hosted')">云端托管</button>
+  </div>
   <div class="asset-list" id="asset-list">
     <div class="rail-empty">正在读取资产…</div>
   </div>
 
-  <div class="rail-head rail-head-timeline"><span>变更时间线</span><button class="rail-mini" onclick="reloadTimeline()" title="刷新时间线">↻</button></div>
+  <div class="rail-head rail-head-timeline">
+    <button class="rail-collapse" id="rail-timeline-btn" type="button" aria-expanded="true" aria-controls="asset-timeline" onclick="toggleRailTimeline()">
+      <span class="dep-caret" aria-hidden="true">⌄</span><span>变更时间线</span>
+    </button>
+    <span class="rail-head-tools"><span class="rail-scope" id="timeline-scope">全局</span><button class="rail-mini" onclick="showGlobalTimeline()" title="查看全局最近 10 条变更" aria-label="查看全局最近 10 条变更">全局</button><button class="rail-mini" onclick="reloadTimeline()" title="刷新时间线" aria-label="刷新变更时间线">↻</button></span>
+  </div>
   <div class="asset-timeline" id="asset-timeline">
-    <div class="rail-empty">选择左侧资产后显示发布、改口令、重建、停止与到期记录。</div>
+    <div class="rail-empty">未选中条目时显示最近 10 条全局变更；发布、改口令、重建、停止与到期都会记录。</div>
   </div>
 
   <div class="sidebar-env">
@@ -94,6 +106,7 @@
     <div class="viz-radar" aria-hidden="true"><span></span></div>
     <b>等待选择资产</b>
     <p>从左侧选择一个应用或网页，这里会显示链接、二维码、历史网址、状态与操作。</p>
+    <button class="btn btn-sm" type="button" onclick="scanPorts('viz')">扫描本机端口</button>
   </div>
 
   <div class="viz-panel" id="viz-panel" hidden>
@@ -101,95 +114,126 @@
       <div>
         <div class="viz-name" id="viz-name">—</div>
         <div class="viz-url" id="viz-url">—</div>
+        <div class="viz-sub" id="viz-sub">—</div>
       </div>
       <span class="viz-badge" id="viz-status">未知</span>
     </div>
 
-    <section class="dep-sec">
-      <div class="dep-label">链接 <span class="dep-note">复制或直接打开</span></div>
-      <div class="dep-link">
-        <span class="dep-key">公网</span>
-        <span class="dep-url" id="dep-url">—</span>
-        <button class="dep-cp" onclick="copyText(document.getElementById('dep-url').textContent)" title="复制公网地址">复制</button>
-        <button class="btn btn-sm ghost" onclick="openUrl(document.getElementById('dep-url').textContent)">打开</button>
-      </div>
-      <div class="dep-link" id="dep-share-row">
-        <span class="dep-key">分享</span>
-        <span class="dep-url" id="dep-share-url">—</span>
-        <button class="dep-cp" onclick="copyText(document.getElementById('dep-share-url').textContent)" title="复制分享链接">复制</button>
-        <button class="btn btn-sm ghost" onclick="openUrl(document.getElementById('dep-share-url').textContent)">打开</button>
-      </div>
-    </section>
+    <div class="dep-stopped-note" id="dep-stopped-note" hidden></div>
 
-    <section class="dep-sec">
-      <div class="dep-label">二维码 <span class="dep-note" id="dep-qr-note">本地生成</span></div>
-      <div class="dep-qr-wrap">
-        <div class="dep-qr" id="viz-qr" onclick="openQrZoom()" title="点击放大" role="button" tabindex="0"></div>
-        <div class="dep-qr-actions">
-          <button class="btn btn-sm ghost" onclick="openQrZoom()">放大</button>
-          <button class="btn btn-sm ghost" onclick="downloadVizQr()">下载 PNG</button>
-          <div class="dep-hint" id="dep-qr-target">—</div>
+    <section class="dep-sec dep-group" id="dep-group-links">
+      <button class="dep-group-btn" type="button" aria-expanded="true" aria-controls="dep-body-links" onclick="toggleDepGroup('links')">
+        <span class="dep-label">链接 <span class="dep-note">复制或直接打开</span></span>
+        <span class="dep-caret" aria-hidden="true">⌄</span>
+      </button>
+      <div class="dep-group-body" id="dep-body-links">
+        <div class="dep-link">
+          <span class="dep-key">公网</span>
+          <span class="dep-url" id="dep-url">—</span>
+          <button class="dep-cp" onclick="copyText(document.getElementById('dep-url').textContent)" title="复制公网地址" aria-label="复制公网地址">复制</button>
+          <button class="btn btn-sm ghost" onclick="openUrl(document.getElementById('dep-url').textContent)">打开</button>
+        </div>
+        <div class="dep-link" id="dep-share-row">
+          <span class="dep-key">分享</span>
+          <span class="dep-url" id="dep-share-url">—</span>
+          <button class="dep-cp" onclick="copyText(document.getElementById('dep-share-url').textContent)" title="复制分享链接" aria-label="复制分享链接">复制</button>
+          <button class="btn btn-sm ghost" onclick="openUrl(document.getElementById('dep-share-url').textContent)">打开</button>
+        </div>
+        <div class="dep-qr-wrap">
+          <div class="dep-qr" id="viz-qr" onclick="openQrZoom()" title="点击放大" role="button" tabindex="0" aria-label="放大二维码"></div>
+          <div class="dep-qr-actions">
+            <button class="btn btn-sm ghost" onclick="openQrZoom()">放大</button>
+            <button class="btn btn-sm ghost" onclick="downloadVizQr()">下载 PNG</button>
+            <div class="dep-hint" id="dep-qr-target">—</div>
+          </div>
         </div>
       </div>
     </section>
 
-    <section class="dep-sec">
-      <div class="dep-label">历史链接 <span class="dep-note">重建后旧网址</span></div>
-      <div class="dep-links" id="dep-links"><div class="rail-empty">读取中…</div></div>
-    </section>
-
-    <section class="dep-sec">
-      <div class="dep-label">状态</div>
-      <div class="dep-grid">
-        <div class="dep-row"><span>口令</span><b id="dep-pin">未知</b></div>
-        <div class="dep-row"><span>有效期</span><b id="dep-exp">未知</b></div>
-        <div class="dep-row"><span>发布时间</span><b id="dep-pub">未知</b></div>
-        <div class="dep-row"><span>访问 PV</span><b id="viz-pv">未知</b></div>
-        <div class="dep-row"><span>访客 UV</span><b id="viz-uv">未知</b></div>
-        <div class="dep-row"><span>最近访问</span><b id="viz-last">未知</b></div>
-        <div class="dep-row"><span>最近重建</span><b id="dep-last-rebuild">未知</b></div>
-        <div class="dep-row"><span>重建次数</span><b id="viz-rebuilds">未知</b></div>
-      </div>
-    </section>
-
-    <section class="dep-sec">
-      <div class="dep-label">进程 <span class="dep-note">实时</span></div>
-      <div class="viz-graph" id="viz-graph">
-        <div class="viz-node" id="viz-node-proxy" data-node="proxy">
-          <span class="viz-dot"></span>
-          <div><b>内置代理</b><span class="viz-detail">未知</span></div>
+    <section class="dep-sec dep-group" id="dep-group-status">
+      <button class="dep-group-btn" type="button" aria-expanded="true" aria-controls="dep-body-status" onclick="toggleDepGroup('status')">
+        <span class="dep-label">状态</span>
+        <span class="dep-caret" aria-hidden="true">⌄</span>
+      </button>
+      <div class="dep-group-body" id="dep-body-status">
+        <div class="dep-grid">
+          <div class="dep-row"><span>口令</span><b id="dep-pin">未知</b></div>
+          <div class="dep-row"><span>有效期</span><b id="dep-exp">未知</b></div>
+          <div class="dep-row" id="dep-stopped-row" hidden><span>停止时间</span><b id="dep-stopped-at">未知</b></div>
+          <div class="dep-row"><span>发布时间</span><b id="dep-pub">未知</b></div>
+          <div class="dep-row"><span>访问 PV</span><b id="viz-pv">未知</b></div>
+          <div class="dep-row"><span>访客 UV</span><b id="viz-uv">未知</b></div>
+          <div class="dep-row"><span>最近访问</span><b id="viz-last">未知</b></div>
+          <div class="dep-row"><span>最近重建</span><b id="dep-last-rebuild">未知</b></div>
+          <div class="dep-row"><span>重建次数</span><b id="viz-rebuilds">未知</b></div>
         </div>
-        <div class="viz-link" id="viz-link-proxy"><span></span></div>
-        <div class="viz-node" id="viz-node-tunnel" data-node="tunnel">
-          <span class="viz-dot"></span>
-          <div><b>cloudflared 隧道</b><span class="viz-detail">未知</span></div>
-        </div>
-        <div class="viz-link" id="viz-link-source"><span></span></div>
-        <div class="viz-node" id="viz-node-source" data-node="source">
-          <span class="viz-dot"></span>
-          <div><b>源应用</b><span class="viz-detail">未知</span></div>
+        <div class="dep-group dep-sub" id="dep-group-visitors">
+          <button class="dep-group-btn" type="button" aria-expanded="false" aria-controls="dep-body-visitors" onclick="toggleDepGroup('visitors')">
+            <span class="dep-label">最近访客 <span class="dep-note" id="dep-visitors-note">近 24 小时</span></span>
+            <span class="dep-caret" aria-hidden="true">⌄</span>
+          </button>
+          <div class="dep-group-body" id="dep-body-visitors" hidden>
+            <div class="viz-visitors" id="viz-visitors"><div class="rail-empty">展开后读取最近访客。</div></div>
+          </div>
         </div>
       </div>
     </section>
 
-    <section class="dep-sec dep-actions">
+    <section class="dep-sec dep-group" id="dep-group-history">
+      <button class="dep-group-btn" type="button" aria-expanded="false" aria-controls="dep-body-history" onclick="toggleDepGroup('history')">
+        <span class="dep-label">历史链接 <span class="dep-note">重建后旧网址</span></span>
+        <span class="dep-caret" aria-hidden="true">⌄</span>
+      </button>
+      <div class="dep-group-body" id="dep-body-history" hidden>
+        <div class="dep-links" id="dep-links"><div class="rail-empty">读取中…</div></div>
+      </div>
+    </section>
+
+    <section class="dep-sec dep-group" id="dep-group-process">
+      <button class="dep-group-btn" type="button" aria-expanded="false" aria-controls="dep-body-process" onclick="toggleDepGroup('process')">
+        <span class="dep-label">进程 <span class="dep-note">实时</span></span>
+        <span class="dep-caret" aria-hidden="true">⌄</span>
+      </button>
+      <div class="dep-group-body" id="dep-body-process" hidden>
+        <div class="viz-graph" id="viz-graph">
+          <div class="viz-node" id="viz-node-proxy" data-node="proxy">
+            <span class="viz-dot"></span>
+            <div><b>内置代理</b><span class="viz-detail">未知</span></div>
+          </div>
+          <div class="viz-link" id="viz-link-proxy"><span></span></div>
+          <div class="viz-node" id="viz-node-tunnel" data-node="tunnel">
+            <span class="viz-dot"></span>
+            <div><b>cloudflared 隧道</b><span class="viz-detail">未知</span></div>
+          </div>
+          <div class="viz-link" id="viz-link-source"><span></span></div>
+          <div class="viz-node" id="viz-node-source" data-node="source">
+            <span class="viz-dot"></span>
+            <div><b>源应用</b><span class="viz-detail">未知</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="dep-sec dep-actions" id="dep-actions">
       <div class="dep-label">操作</div>
       <div class="dep-act-row">
-        <button class="btn btn-sm btn-danger" onclick="vizStop()">停止</button>
-        <button class="btn btn-sm" onclick="vizRetry()" title="检查并重建失联通道">重试通道</button>
-        <button class="btn btn-sm" onclick="vizCheck()">重新自检</button>
+        <button class="btn btn-sm btn-primary" id="dep-republish-btn" onclick="vizRepublish()" hidden>用同样配置重新发布</button>
+        <button class="btn btn-sm btn-danger" id="dep-stop-btn" onclick="vizStop()">停止</button>
+        <button class="btn btn-sm" id="dep-retry-btn" onclick="vizRetry()" title="检查并重建失联通道">重试通道</button>
+        <button class="btn btn-sm" id="dep-check-btn" onclick="vizCheck()">重新自检</button>
       </div>
       <div class="dep-pin-row">
         <input type="text" id="viz-pin-input" maxlength="32" placeholder="新口令；留空提交=移除" autocomplete="off" aria-label="新访问口令">
-        <button class="btn btn-sm" onclick="vizSetPin()">改口令</button>
+        <button class="btn btn-sm" id="dep-pin-btn" onclick="vizSetPin()">改口令</button>
       </div>
-      <div class="dep-hint">口令只作为一次请求参数；详情仅显示「需要 / 无」，不会回显明文。</div>
+      <div class="dep-hint" id="dep-act-hint">口令只作为一次请求参数；详情仅显示「需要 / 无」，不会回显明文。</div>
     </section>
   </div>
 </aside>
 
 <div class="drawer-backdrop" id="rail-backdrop" onclick="closeDrawers()"></div>
 <div class="drawer-backdrop" id="viz-backdrop" onclick="closeDrawers()"></div>
+<div class="sr-only" id="sr-live" aria-live="polite" aria-atomic="true"></div>
 
 <!--__PANWEB_OVERLAYS__-->
 

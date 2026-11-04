@@ -1,8 +1,8 @@
 // ---------- 右栏：部署详情（只消费 /api/state 与 /api/history） ----------
-const VIZ_EMPTY_DEFAULT = "<b>等待选择资产</b><p>从左侧选择一个应用或网页，这里会显示链接、二维码、历史网址、状态与操作。</p>";
 const NODE_DEFAULT = {state: "unknown", detail: "暂无数据"};
 const DETAIL_CACHE = {};
 let VIZ_QR_URL = "";
+let VIZ_VISITS_ID = "";
 
 function fmtRemain(expiresAt) {
   if (!expiresAt) return "永久";
@@ -16,68 +16,105 @@ function fmtRemain(expiresAt) {
   return "剩余 " + Math.max(1, minutes) + " 分钟";
 }
 
-function renderDeployment(a) {
-  const detail = DETAIL_CACHE[a.id];
-  const url = a.url || (detail && detail.url) || "";
-  const share = a.share_url || (detail && detail.share_url) || "";
+function vizSubject() {
+  const snap = typeof currentSnapshot === "function" ? currentSnapshot() : null;
+  if (snap) return {snap: snap, detail: DETAIL_CACHE[snap.id]};
+  const a = currentAsset();
+  return a ? {a: a, detail: DETAIL_CACHE[a.id]} : null;
+}
+
+function subjectUrl(subject) {
+  const {a, snap, detail} = subject;
+  return (snap && snap.url) || (a && a.url) || (detail && detail.url) || "";
+}
+function subjectShare(subject) {
+  const {a, snap, detail} = subject;
+  return (snap && snap.share_url) || (a && a.share_url) ||
+    (detail && detail.share_url) || "";
+}
+
+function renderBase(subject, badgeText, badgeClass, subText) {
+  document.getElementById("viz-name").textContent =
+    (subject.snap && subject.snap.title) || (subject.a && (subject.a.title || subject.a.name)) || "—";
+  document.getElementById("viz-url").textContent =
+    subjectUrl(subject) || "尚未生成公网网址";
+  document.getElementById("viz-sub").textContent = subText || "—";
+  document.getElementById("viz-status").textContent = badgeText;
+  document.getElementById("viz-status").className = "viz-badge " + (badgeClass || "");
+}
+
+function renderLinks(subject) {
+  const url = subjectUrl(subject);
+  const share = subjectShare(subject);
   document.getElementById("dep-url").textContent = url || "尚未生成";
   const shareRow = document.getElementById("dep-share-row");
   document.getElementById("dep-share-url").textContent = share || "未生成分享页";
   shareRow.classList.toggle("is-empty", !share);
   shareRow.querySelectorAll("button").forEach(b => { b.disabled = !share; });
+  drawVizQr(subject);
+}
 
-  document.getElementById("dep-pin").textContent = a.pinned ? "需要口令" : "无口令";
-  document.getElementById("dep-exp").textContent = fmtRemain(a.expires_at);
-  document.getElementById("dep-pub").textContent =
-    a.started || (detail && detail.published_at) || "未知";
-  const pv = a.proxy_port ? a.pv : null;
-  document.getElementById("viz-pv").textContent = pv ? String(pv.total) : "未知";
-  document.getElementById("viz-uv").textContent = pv ? String(pv.uv) : "未知";
-  document.getElementById("viz-last").textContent = pv ? fmtVisitTime(pv.last) : "未知";
-  const count = detail ? detail.rebuild_count : rebuildCount(a.id);
-  document.getElementById("viz-rebuilds").textContent =
-    count === null || count === undefined ? "未知" : String(count);
-  document.getElementById("dep-last-rebuild").textContent = detail
-    ? (detail.last_rebuild_at ? fmtVisitTime(detail.last_rebuild_at) : "暂无")
-    : "未知";
-
+function renderHistoryLinks(detail) {
   const links = document.getElementById("dep-links");
   if (detail === undefined) {
     links.innerHTML = '<div class="rail-empty">读取中…</div>';
-  } else if (!detail || !detail.links || !detail.links.length) {
-    links.innerHTML = '<div class="rail-empty">还没有历史链接，重建后旧网址会记录在这里。</div>';
-  } else {
-    links.innerHTML = detail.links.map(l => {
-      const current = l.status === "current";
-      const tag = current ? "当前" : "已失效";
-      const when = current ? "" : fmtVisitTime(l.ts);
-      return '<div class="dep-link-item ' + (current ? "current" : "") + '">' +
-        '<div class="dep-link-tag"><span class="tag-' + (current ? "current" : "expired") +
-        '">' + tag + "</span>" + (when ? "<span>" + esc(when) + "</span>" : "") +
-        '<button class="dep-cp" onclick="copyText(' + jsq(l.url) + ')">复制</button></div>' +
-        '<div class="u">' + esc(l.url) + "</div></div>";
-    }).join("");
+    return;
   }
-  drawVizQr(a, detail);
+  if (!detail || !detail.links || !detail.links.length) {
+    links.innerHTML = '<div class="rail-empty">还没有历史链接，重建后旧网址会记录在这里。</div>';
+    return;
+  }
+  links.innerHTML = detail.links.map(l => {
+    const current = l.status === "current";
+    const tag = current ? "当前" : "已失效";
+    const when = current ? "" : fmtVisitTime(l.ts);
+    return '<div class="dep-link-item ' + (current ? "current" : "") + '">' +
+      '<div class="dep-link-tag"><span class="tag-' + (current ? "current" : "expired") +
+      '">' + tag + "</span>" + (when ? "<span>" + esc(when) + "</span>" : "") +
+      '<button class="dep-cp" onclick="copyText(' + jsq(l.url) + ')">复制</button></div>' +
+      '<div class="u">' + esc(l.url) + "</div></div>";
+  }).join("");
 }
 
-function qrTarget(a, detail) {
-  return (detail && detail.share_url) || a.share_url ||
-    (detail && detail.url) || a.url || "";
+function renderStatusFields(f) {
+  document.getElementById("dep-pin").textContent = f.pinned ? "需要口令" : "无口令";
+  document.getElementById("dep-exp").textContent = f.exp || "未知";
+  document.getElementById("dep-pub").textContent = f.pub || "未知";
+  document.getElementById("viz-pv").textContent = f.pv ? String(f.pv.total) : "未知";
+  document.getElementById("viz-uv").textContent = f.pv ? String(f.pv.uv) : "未知";
+  document.getElementById("viz-last").textContent = f.pv ? fmtVisitTime(f.pv.last) : "未知";
+  document.getElementById("viz-rebuilds").textContent =
+    f.count === null || f.count === undefined ? "未知" : String(f.count);
+  document.getElementById("dep-last-rebuild").textContent = f.lastRebuild || "未知";
+  const stoppedRow = document.getElementById("dep-stopped-row");
+  stoppedRow.hidden = !f.stoppedAt;
+  document.getElementById("dep-stopped-at").textContent = f.stoppedAt || "未知";
 }
 
-function qrSvg(url, cell, margin) {
-  const q = qrcode(0, "M");
-  q.addData(url);
-  q.make();
-  return q.createSvgTag({cellSize: cell, margin: margin, scalable: true});
+function renderDeployment(a) {
+  const detail = DETAIL_CACHE[a.id];
+  renderLinks({a: a, detail: detail});
+  renderStatusFields({
+    pinned: !!a.pinned,
+    exp: fmtRemain(a.expires_at),
+    pub: a.started || (detail && detail.published_at) || "未知",
+    pv: a.proxy_port ? a.pv : null,
+    count: detail ? detail.rebuild_count : rebuildCount(a.id),
+    lastRebuild: detail
+      ? (detail.last_rebuild_at ? fmtVisitTime(detail.last_rebuild_at) : "暂无")
+      : "未知",
+    stoppedAt: "",
+  });
+  renderHistoryLinks(detail);
+  loadVizVisits(a.id);
 }
 
-function drawVizQr(a, detail) {
+function drawVizQr(subject) {
   const holder = document.getElementById("viz-qr");
-  const target = qrTarget(a, detail);
+  const share = subjectShare(subject);
+  const target = share || subjectUrl(subject);
   document.getElementById("dep-qr-target").textContent =
-    target ? (a.share_url || (detail && detail.share_url) ? "扫码打开分享页" : "扫码打开应用") : "未生成网址";
+    target ? (share ? "扫码打开分享页" : "扫码打开应用") : "未生成网址";
   if (!target || !window.qrcode) {
     holder.innerHTML = '<div class="rail-empty">—</div>';
     return;
@@ -86,6 +123,13 @@ function drawVizQr(a, detail) {
   VIZ_QR_URL = target;
   holder.innerHTML = qrSvg(target, 3, 2);
   holder.title = target;
+}
+
+function qrSvg(url, cell, margin) {
+  const q = qrcode(0, "M");
+  q.addData(url);
+  q.make();
+  return q.createSvgTag({cellSize: cell, margin: margin, scalable: true});
 }
 
 function setVizNode(key, node) {
@@ -111,12 +155,14 @@ function rebuildCount(id) {
 
 function clearDeployment() {
   ["dep-url", "dep-share-url", "dep-pin", "dep-exp", "dep-pub", "viz-pv",
-   "viz-uv", "viz-last", "viz-rebuilds", "dep-last-rebuild", "viz-name", "viz-url"]
-    .forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.textContent = "—";
-    });
+   "viz-uv", "viz-last", "viz-rebuilds", "dep-last-rebuild", "viz-name",
+   "viz-url", "viz-sub"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = "—";
+  });
   document.getElementById("dep-share-row").classList.add("is-empty");
+  document.getElementById("dep-stopped-row").hidden = true;
+  document.getElementById("dep-stopped-note").hidden = true;
   document.getElementById("dep-links").innerHTML =
     '<div class="rail-empty">还没有历史链接。</div>';
   const qr = document.getElementById("viz-qr");
@@ -124,48 +170,71 @@ function clearDeployment() {
   qr.title = "";
   document.getElementById("dep-qr-target").textContent = "—";
   VIZ_QR_URL = "";
+  document.getElementById("viz-visitors").innerHTML =
+    '<div class="rail-empty">展开后读取最近访客。</div>';
+  document.getElementById("dep-visitors-note").textContent = "近 24 小时";
+  VIZ_VISITS_ID = "";
   document.getElementById("viz-status").textContent = "未知";
   document.getElementById("viz-status").className = "viz-badge";
 }
 
-function renderViz() {
+function resetActions() {
+  const rep = document.getElementById("dep-republish-btn");
+  rep.hidden = true;
+  ["dep-stop-btn", "dep-retry-btn", "dep-check-btn", "dep-pin-btn"].forEach(id => {
+    const el = document.getElementById(id);
+    el.disabled = false;
+    el.removeAttribute("title");
+  });
+  document.getElementById("dep-check-btn").textContent = "重新自检";
+  document.getElementById("dep-pin-btn").textContent = "改口令";
+  document.getElementById("viz-pin-input").placeholder = "新口令；留空提交=移除";
+  document.getElementById("dep-act-hint").textContent =
+    "口令只作为一次请求参数；详情仅显示「需要 / 无」，不会回显明文。";
+}
+
+function setActionsDisabled(reason) {
+  ["dep-stop-btn", "dep-retry-btn", "dep-check-btn"].forEach(id => {
+    const el = document.getElementById(id);
+    el.disabled = true;
+    el.title = reason;
+  });
+}
+
+function renderVizEmpty(html) {
   const empty = document.getElementById("viz-empty");
-  const panel = document.getElementById("viz-panel");
+  empty.hidden = false;
+  empty.innerHTML = html;
+  document.getElementById("viz-panel").hidden = true;
+  clearDeployment();
+}
+
+function renderViz() {
+  resetActions();
   const found = findAsset(selectedAssetId);
   if (!found) {
-    empty.hidden = false;
-    empty.innerHTML = VIZ_EMPTY_DEFAULT;
-    clearDeployment();
-    panel.hidden = true;
+    renderVizEmpty("<b>等待选择资产</b><p>从左侧选择一个应用或网页，这里会显示链接、二维码、历史网址、状态与操作。</p>" +
+      '<button class="btn btn-sm" type="button" onclick="scanPorts(\'viz\')">扫描本机端口</button>');
     return;
   }
   if (found.hosted) {
-    empty.hidden = false;
-    empty.innerHTML = "<b>云端托管</b><p>这个资产不在这台电脑上运行，没有本机代理 / 隧道 / 源应用节点。</p>";
-    clearDeployment();
-    panel.hidden = true;
+    renderVizEmpty("<b>云端托管</b><p>这个资产不在这台电脑上运行，没有本机代理 / 隧道 / 源应用节点。</p>");
     return;
   }
-  empty.hidden = true;
-  panel.hidden = false;
-
-  const a = found.a;
-  document.getElementById("viz-name").textContent = a.title || a.name || "—";
-  document.getElementById("viz-url").textContent = a.url || "尚未生成公网网址";
-  renderDeployment(a);
-
-  const expired = a.expires_at && a.expires_at < Date.now() / 1000;
-  const badge = document.getElementById("viz-status");
-  if (expired) {
-    badge.textContent = "已到期";
-    badge.className = "viz-badge expired";
-  } else if (a.alive) {
-    badge.textContent = "在线";
-    badge.className = "viz-badge online";
-  } else {
-    badge.textContent = "已停止";
-    badge.className = "viz-badge offline";
+  if (found.snapshot) {
+    renderStopped(found.a);
+    return;
   }
+  const a = found.a;
+  document.getElementById("viz-empty").hidden = true;
+  document.getElementById("viz-panel").hidden = false;
+  const expired = a.expires_at && a.expires_at < Date.now() / 1000;
+  renderBase({a: a, detail: DETAIL_CACHE[a.id]},
+    expired ? "已到期" : (a.alive ? "在线" : "已停止"),
+    expired ? "expired" : (a.alive ? "online" : "offline"),
+    (a.alive ? "当前发布 · 运行中" : "当前发布 · 进程失联，可重试通道") +
+      " · " + (a.kind === "pages" ? "文件夹" : "端口"));
+  renderDeployment(a);
 
   const nodes = a.nodes || {};
   setVizNode("proxy", nodes.proxy);
@@ -175,11 +244,12 @@ function renderViz() {
     nodes.tunnel && nodes.tunnel.state === "online"));
   setVizLink("viz-link-source", !!(nodes.tunnel && nodes.tunnel.state === "online" &&
     nodes.source && nodes.source.state === "online"));
+  if (VISITS_LOADED.has(a.id)) renderVizVisitors(a.id);
 }
 
 function currentAsset() {
   const found = findAsset(selectedAssetId);
-  return found && !found.hosted ? found.a : null;
+  return found && !found.hosted && !found.snapshot ? found.a : null;
 }
 
 function vizStop() {
@@ -189,6 +259,8 @@ function vizStop() {
 }
 
 function vizCheck() {
+  const snap = typeof currentSnapshot === "function" ? currentSnapshot() : null;
+  if (snap) return vizCheckSource(snap);
   const a = currentAsset();
   if (!a) return;
   doCheck({id: a.id});
@@ -233,6 +305,8 @@ async function vizRetry() {
 }
 
 async function vizSetPin() {
+  const snap = typeof currentSnapshot === "function" ? currentSnapshot() : null;
+  if (snap) return vizRepublish();
   const a = currentAsset();
   if (!a) return;
   const input = document.getElementById("viz-pin-input");
@@ -264,9 +338,9 @@ async function vizSetPin() {
 }
 
 function openQrZoom() {
-  const a = currentAsset();
-  if (!a) return;
-  const target = qrTarget(a, DETAIL_CACHE[a.id]);
+  const subject = vizSubject();
+  if (!subject) return;
+  const target = subjectShare(subject) || subjectUrl(subject);
   if (!target || !window.qrcode) return;
   const holder = document.getElementById("qr-zoom");
   holder.innerHTML = qrSvg(target, 8, 4);
@@ -279,9 +353,9 @@ function closeQrZoom() {
 }
 
 function downloadVizQr() {
-  const a = currentAsset();
-  if (!a) return;
-  const target = qrTarget(a, DETAIL_CACHE[a.id]);
+  const subject = vizSubject();
+  if (!subject) return;
+  const target = subjectShare(subject) || subjectUrl(subject);
   if (!target || !window.qrcode) return toast("还没有可下载的二维码", false);
   const q = qrcode(0, "M");
   q.addData(target);
@@ -303,7 +377,8 @@ function downloadVizQr() {
   canvas.toBlob(blob => {
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = "panweb-qr-" + (a.id || "app") + ".png";
+    const id = (subject.a && subject.a.id) || (subject.snap && subject.snap.id) || "app";
+    link.download = "panweb-qr-" + id + ".png";
     link.click();
     setTimeout(() => URL.revokeObjectURL(link.href), 1500);
   }, "image/png");

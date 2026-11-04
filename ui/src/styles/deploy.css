@@ -1,7 +1,37 @@
 /* ---------- 右栏：部署详情 ---------- */
-.viz-panel { gap: 7px; padding-top: 8px; }
+.viz-panel { gap: 7px; padding-top: 8px; flex: 1; }
+.viz-sub { font-family: var(--mono); font-size: 9px; color: var(--faint); margin-top: 3px; }
 .viz-url { display: none; }
 .dep-sec { border-top: 1px solid var(--border); padding-top: 8px; }
+.dep-group { padding-top: 7px; }
+.dep-group-btn {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+  width: 100%; padding: 0; margin: 0 0 5px; border: 0; background: none;
+  text-align: left; cursor: pointer; color: inherit; font: inherit;
+}
+.dep-group-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+.dep-group-btn:hover .dep-label { color: var(--ink); }
+.dep-group.is-collapsed .dep-group-btn { margin-bottom: 0; }
+.dep-group-body { min-width: 0; }
+.dep-caret {
+  font-family: var(--mono); font-size: 11px; color: var(--faint); flex: none;
+  transition: transform .2s ease; display: inline-block; line-height: 1;
+}
+.dep-group-btn[aria-expanded="false"] .dep-caret,
+.rail-collapse[aria-expanded="false"] .dep-caret { transform: rotate(-90deg); }
+.dep-sub { border-top: 1px dashed var(--border); margin-top: 7px; padding-top: 6px; }
+.dep-sub .dep-group-btn { margin-bottom: 4px; }
+.dep-sub .dep-label { font-size: 9.5px; }
+.dep-stopped-note {
+  border: 1px solid var(--expired-ring); border-radius: 9px; padding: 7px 9px;
+  background: var(--node-bg); font-size: 10px; color: var(--muted); line-height: 1.6;
+}
+.dep-stopped-note b { color: var(--expired); font-size: 10.5px; }
+.dep-actions {
+  position: sticky; bottom: -1px; z-index: 6; margin-top: auto;
+  padding: 9px 0 2px; background: var(--viz-bg); backdrop-filter: blur(10px);
+  border-top: 1px solid var(--accent);
+}
 .dep-label {
   display: flex; align-items: baseline; gap: 7px; margin-bottom: 6px;
   font-size: 10px; letter-spacing: .14em; color: var(--faint); text-transform: uppercase;

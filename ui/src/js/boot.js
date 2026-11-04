@@ -1,6 +1,7 @@
 // ---------- 启动 ----------
 const PAGES = ["apps", "feed", "agents", "term", "system"];
 initTheme();
+if (typeof initDepGroups === "function") initDepGroups();
 switchPage(PAGES.includes(currentPage) ? currentPage : "apps");
 initChat();
 refresh();
