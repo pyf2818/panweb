@@ -86,9 +86,9 @@ function loadDetail() {
         : '<button class="btn btn-sm" onclick="bindDomain(' + jsq(currentDrawerId) + ')">设为固定域名应用</button>')
     : "";
   document.getElementById("dw-name").textContent = a.title || a.name;
-  document.getElementById("dw-kind").textContent = a.kind === "pages" ? "只读网页" : "端口 " + a.target;
+  document.getElementById("dw-kind").textContent = a.kind === "pages" ? "只读网页" : "端口 " + a.port;
   document.getElementById("dw-url").textContent = a.url;
-  const src = a.kind === "pages" ? a.target : "127.0.0.1:" + a.target;
+  const src = a.kind === "pages" ? a.folder : "127.0.0.1:" + a.port;
   const pinTxt = a.pinned ? " · 🔐 已设口令" : "";
   document.getElementById("dw-meta").textContent =
     "来源 " + src + " · 发布于 " + a.started + pinTxt + (a.launched ? " · 由 panweb 启动" : "");

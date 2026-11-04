@@ -130,7 +130,7 @@ async function redeployHost(name) {
   await refresh();
 }
 function appCard(a) {
-  const src = a.kind === "pages" ? esc(a.target) : "127.0.0.1:" + a.target;
+  const src = a.kind === "pages" ? esc(a.folder) : "127.0.0.1:" + a.port;
   const launched = a.launched ? '<span class="launched-tag">· 由 panweb 启动</span>' : "";
   const pv = a.pv || {total: 0, uv: 0};
   const shareUrl = a.share_url || "";
@@ -144,7 +144,7 @@ function appCard(a) {
         ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>'
         : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a13.5 13.5 0 010 18M12 3a13.5 13.5 0 000 18"/></svg>') + '</div>' +
       '<div class="app-name">' + esc(a.title || a.name) + '</div>' +
-      '<span class="kind-badge">' + (a.kind === "pages" ? "只读网页" : "端口 " + a.target) + '</span>' +
+      '<span class="kind-badge">' + (a.kind === "pages" ? "只读网页" : "端口 " + a.port) + '</span>' +
       checkBadge(a) +
     '</div>' +
     (a.risky ? '<div class="risky-badge">⚠ ' + esc(a.risky) + '</div>' : '') +

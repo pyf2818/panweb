@@ -23,7 +23,7 @@ function findAsset(id) {
   return null;
 }
 function findAssetByPort(port) {
-  return (STATE && STATE.apps || []).find(a => Number(a.target) === Number(port)) || null;
+  return (STATE && STATE.apps || []).find(a => a.kind === "port" && Number(a.port) === Number(port)) || null;
 }
 function assetStatus(a, hosted) {
   if (hosted) return "hosted";
@@ -35,8 +35,8 @@ function statusText(state) {
 }
 function lifecycleText(a, hosted) {
   if (hosted) return (a.files || 0) + " 文件 · " + (a.updated || "");
-  if (a.kind === "pages") return "文件夹 " + a.target;
-  return "端口 " + a.target;
+  if (a.kind === "pages") return "文件夹 " + a.folder;
+  return "端口 " + a.port;
 }
 
 function renderWorkbench(apps, hosted) {
@@ -57,7 +57,7 @@ function renderAssetList() {
   const shown = assets.filter(x => {
     if (!q) return true;
     const a = x.a;
-    return [a.name, a.title, a.target, a.url, a.share_url, x.id]
+    return [a.name, a.title, a.folder, a.port, a.url, a.share_url, x.id]
       .filter(Boolean).join(" ").toLowerCase().includes(q);
   });
   if (!assets.length) {
