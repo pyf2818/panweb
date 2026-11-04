@@ -6,42 +6,27 @@
 import json
 import sys
 
+from .cli_input import (compat_kind as _compat_kind,
+                        read_auth_stdin as _read_auth_stdin,
+                        resolve_pin as _resolve_cli_pin)
+from .cli_render import (entry_for_json as _entry_for_json,
+                         print_share_qr as _print_share_qr,
+                         render_check, report_check as _report_check,
+                         source_text as _source_text)
 from .console import daemon_pid
 from .diagnostics import core_report
 from .discovery import core_discover, core_doctor
 from .entries import core_compat, core_list, core_stop
 from .errors import PanwebError
-from .healthcheck import await_check, core_check
+from .healthcheck import core_check
 from .hosting import core_host
 from .licensing import (activate_license, deactivate_license,
                         license_status)
-from .models import entry_local_port
-from .pins import normalize_pin
 from .publish import (core_pages, core_publish, core_run,
                       load_publish_defaults)
 from .store import state_issue
 from .system import core_pack
 from .update import core_update_apply, core_update_status
-
-
-CHECK_ICONS = {"ok": "✅", "warn": "⚠️", "blocked": "❌"}
-
-
-def _source_text(entry):
-    """target 是端口或文件夹的联合类型，渲染前必须按 kind 分支。"""
-    if entry.get("kind") == "pages":
-        return entry.get("target") or ""
-    return "http://127.0.0.1:%s" % entry_local_port(entry)
-
-
-def _resolve_cli_pin(args):
-    pin = getattr(args, "pin", None)
-    if getattr(args, "pin_stdin", False):
-        if pin:
-            raise PanwebError(2, "invalid_argument",
-                              "--pin 与 --pin-stdin 只能二选一")
-        pin = sys.stdin.readline().strip()
-    return normalize_pin(pin)
 
 
 def _progress(args):
@@ -70,34 +55,6 @@ def _effective_share(args, defaults):
     return bool(wanted)
 
 
-def render_check(check, indent="   "):
-    """先给一句结论，再列能照着做的信号。"""
-    print("%s自检：%s %s" % (indent, CHECK_ICONS.get(check.get("verdict"), "·"),
-                            check.get("summary") or "-"))
-    for fix in check.get("fixes") or []:
-        print("%s🔧 %s" % (indent, fix))
-    for sig in check.get("signals") or []:
-        if sig.get("severity") == "info":
-            continue
-        print("%s   · %s" % (indent, sig.get("label") or sig.get("code")))
-        if sig.get("advice"):
-            print("%s     → %s" % (indent, sig["advice"]))
-
-
-def _entry_for_json(entry):
-    if entry.get("checking"):
-        entry["check"] = await_check(entry["id"])
-    entry.pop("checking", None)
-    return entry
-
-
-def _report_check(entry):
-    if not entry.get("checking"):
-        return
-    print("   正在按访客视角自检（首页、页面引用的资源、WebSocket）…")
-    render_check(await_check(entry["id"]))
-
-
 def cmd_discover(args):
     if not args.json:
         print("正在扫描本机监听端口…")
@@ -116,20 +73,6 @@ def cmd_discover(args):
         print("  端口 %-6s %-14s %s %s%s" % (r["port"], r["process"] or "-",
                                              r["title"], mark, risk))
     print("\n发布：panweb publish <端口>")
-
-
-def _print_share_qr(args, entry):
-    """只在人读模式下打印终端二维码；JSON 模式保持干净。"""
-    if not getattr(args, "qr", False):
-        return
-    target = entry.get("share_url") or entry.get("url")
-    if not target:
-        return
-    from .qr import encode, render_terminal
-    try:
-        print(render_terminal(encode(target)))
-    except ValueError:
-        print("   （链接过长，未生成二维码；请直接使用上面的链接）")
 
 
 def cmd_publish(args):
@@ -226,42 +169,6 @@ def cmd_run(args):
     print("   ⚠️  公开访问：任何拿到网址的人都能打开。")
     print("   停止（同时结束项目进程）：panweb stop %s" % entry["id"])
     _report_check(entry)
-
-
-def _compat_kind(args):
-    if getattr(args, "bearer", None):
-        return "bearer"
-    if getattr(args, "user", None) or getattr(args, "password", None):
-        return "basic"
-    if getattr(args, "header", None):
-        return "header"
-    return None
-
-
-AUTH_STDIN_FIELDS = {"bearer": ("token",), "basic": ("user", "password"),
-                     "header": ("header_name", "header_value")}
-
-
-def _read_auth_stdin():
-    """从标准输入读上游凭据：第一行是种类，其后每行一个字段。
-
-    命令行参数会出现在进程列表和 shell 历史里，令牌一旦进过 ``ps`` 就不算秘密了。
-    """
-    lines = [line.rstrip("\r\n") for line in sys.stdin if line.strip()]
-    if not lines:
-        raise PanwebError(2, "invalid_argument", "--auth-stdin 没有读到内容",
-                          "第一行写 bearer / basic / header，其后每行填一个字段")
-    kind = lines[0].strip().lower()
-    fields = AUTH_STDIN_FIELDS.get(kind)
-    if not fields:
-        raise PanwebError(2, "invalid_argument",
-                          "上游凭据种类应是 bearer / basic / header，读到「%s」" % lines[0])
-    values = lines[1:1 + len(fields)]
-    if len(values) < len(fields):
-        raise PanwebError(2, "invalid_argument",
-                          "%s 需要 %d 行凭据，只读到 %d 行" % (kind, len(fields), len(values)),
-                          "bearer：令牌；basic：用户名、密码；header：头名称、值")
-    return kind, dict(zip(fields, values))
 
 
 def cmd_check(args):
