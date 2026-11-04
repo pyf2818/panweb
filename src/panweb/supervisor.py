@@ -152,12 +152,39 @@ def recover_all():
         log_activity("ui", "控制台重启，已恢复 %d 个发布的通道" % recovered)
 
 
+def _source_ready(entry):
+    """代理条目的源端是否还可用。
+
+    代理端口活着只说明 panweb 自己的进程没死：应用崩了、静态目录被删时，
+    公网仍可能拿到 200（口令页/分享页），巡检就会把空壳一直当健康。
+    """
+    if entry.get("kind") == "pages":
+        target = entry.get("target") or ""
+        return bool(target) and os.path.isdir(
+            os.path.abspath(os.path.expanduser(str(target))))
+    try:
+        port = int(entry.get("target"))
+    except (TypeError, ValueError):
+        return False
+    return 1 <= port <= 65535 and port_listening(port)
+
+
 def _health_step(entry):
     """单条巡检：抖动先重启代理，只有隧道进程确实死了才换网址。"""
     entry_id = entry.get("id")
     proxy_restarted = False
     if entry.get("proxy_port") and not pid_alive(entry.get("server_pid")):
         proxy_restarted = restart_entry_proxy(entry)
+    if entry.get("proxy_port") and not _source_ready(entry):
+        # 源端不可用时重启代理/隧道都没用，只记失败并在阈值处说清原因；
+        # 绝不能把“应用挂了”当成“隧道挂了”去换公网网址。
+        fails = HEALTH_FAILS.get(entry_id, 0) + 1
+        HEALTH_FAILS[entry_id] = fails
+        if fails >= HEALTH_FAILS_LIMIT:
+            HEALTH_FAILS.pop(entry_id, None)
+            log_activity("ui", "「%s」源应用/静态目录不可用，隧道与代理保留"
+                         % entry.get("name"))
+        return
     local_port = entry_local_port(entry)
     if not port_listening(local_port):
         HEALTH_FAILS.pop(entry_id, None)

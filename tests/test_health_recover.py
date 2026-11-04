@@ -65,6 +65,51 @@ class HealthThresholdTests(unittest.TestCase):
         tun.assert_not_called()
 
 
+class ProxySourceHealthTests(unittest.TestCase):
+    """代理活着不等于应用活着；源端坏掉要计数，但不能被当成隧道坏了。"""
+
+    def setUp(self):
+        supervisor.HEALTH_FAILS.clear()
+        self.entry = entry()
+
+    def tearDown(self):
+        supervisor.HEALTH_FAILS.clear()
+
+    def step(self):
+        with mock.patch.object(supervisor, "port_listening",
+                               side_effect=lambda port: port == 9001), \
+                mock.patch.object(supervisor, "pid_alive", return_value=True), \
+                mock.patch.object(supervisor, "public_status",
+                                  return_value=200), \
+                mock.patch.object(supervisor, "restart_entry_proxy") as proxy, \
+                mock.patch.object(supervisor, "restart_entry_tunnel") as tun, \
+                mock.patch.object(supervisor, "log_activity") as log:
+            supervisor._health_step(self.entry)
+        return proxy, tun, log
+
+    def test_dead_app_counts_but_never_restarts_tunnel(self):
+        for _ in range(2):
+            proxy, tun, log = self.step()
+            proxy.assert_not_called()
+            tun.assert_not_called()
+            log.assert_not_called()
+        self.assertEqual(supervisor.HEALTH_FAILS.get("e1"), 2)
+        proxy, tun, log = self.step()
+        proxy.assert_not_called()
+        tun.assert_not_called()
+        log.assert_called_once()
+        self.assertIn("源应用", log.call_args[0][1])
+        self.assertIsNone(supervisor.HEALTH_FAILS.get("e1"))
+
+    def test_missing_static_folder_counts_too(self):
+        self.entry = dict(entry(), kind="pages", target="/definitely/missing")
+        for _ in range(3):
+            proxy, tun, log = self.step()
+            proxy.assert_not_called()
+            tun.assert_not_called()
+        self.assertIsNone(supervisor.HEALTH_FAILS.get("e1"))
+
+
 class RecoverFailingTests(unittest.TestCase):
     def test_only_dead_or_public_failed_entries_are_restarted(self):
         healthy = entry("ok")
