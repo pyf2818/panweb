@@ -85,7 +85,8 @@ def core_doctor(force=False):
                 "message": ("检测到 %d 条旧版 target 字段；读取时会自动迁移为 "
                             "port/folder" % len(legacy)) if legacy else
                            "无遗留 target 字段",
-                "hint": "无需手工处理；下次写入后 state.json 即为 schema_version 2",
+                "hint": ("无需手工处理；下次写入后 state.json 即为 "
+                         "schema_version 2") if legacy else "",
             }}
     _DOCTOR_CACHE["data"] = data
     _DOCTOR_CACHE["ts"] = now

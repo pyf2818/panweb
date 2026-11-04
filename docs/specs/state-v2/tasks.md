@@ -43,6 +43,6 @@
 - [x] `env -u PYTHONHOME python3 -m unittest discover -s tests` 全绿（382）。
 - [x] `uvx ruff check --select E9,F63,F7,F82 src tools tests`。
 - [x] 检查行数：所有 Python < 500，`publish.py` 389 < 400。
-- [ ] 分主题提交（只 add 具体文件，不 push/tag）。
-- [ ] 汇报：字段结构、幂等证据、访问器清单、删除分支、doctor 输出、
+- [x] 分主题提交（只 add 具体文件，不 push/tag）。
+- [x] 汇报：字段结构、幂等证据、访问器清单、删除分支、doctor 输出、
   测试数量、提交列表、风险（旧版读 v2、备份、前端遗漏）。
