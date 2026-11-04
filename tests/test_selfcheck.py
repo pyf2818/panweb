@@ -26,7 +26,7 @@ class CoreCheckTests(unittest.TestCase):
         self.addCleanup(stop_server, srv)
         proxy_port = free_port()
         entry = {"id": entry_id, "name": "自检", "kind": "port",
-                 "target": backend_port, "proxy_port": proxy_port,
+                 "port": backend_port, "proxy_port": proxy_port,
                  "url": "http://127.0.0.1:%d/" % proxy_port,
                  "host_mode": "loopback"}
         store.save_state([entry])

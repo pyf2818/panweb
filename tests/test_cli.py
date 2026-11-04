@@ -127,7 +127,7 @@ class CompatCliTests(unittest.TestCase):
         self.state_dir = os.path.join(self.home, ".panweb")
         os.makedirs(os.path.join(self.state_dir, "secrets"), exist_ok=True)
         self.seed({"id": "cli1", "name": "命令行测试", "kind": "port",
-                   "target": 9, "proxy_port": 17788,
+                   "port": 9, "proxy_port": 17788,
                    "url": "http://127.0.0.1:9"})
         self.env = os.environ.copy()
         self.env["HOME"] = self.home
@@ -145,7 +145,8 @@ class CompatCliTests(unittest.TestCase):
     def read_state(self):
         with open(os.path.join(self.state_dir, "state.json"),
                   encoding="utf-8") as f:
-            return json.load(f)[0]
+            data = json.load(f)
+        return (data["entries"] if isinstance(data, dict) else data)[0]
 
     def run_cli(self, *args, **kw):
         text = kw.pop("text_input", None)
@@ -211,7 +212,7 @@ class CompatCliTests(unittest.TestCase):
 
     def test_direct_publish_refuses_settings_it_cannot_apply(self):
         self.seed({"id": "cli2", "name": "直连", "kind": "port",
-                   "target": 9, "url": "http://127.0.0.1:9"})
+                   "port": 9, "url": "http://127.0.0.1:9"})
         read = self.run_cli("compat", "cli2", "--json")
         self.assertEqual(read.returncode, 0, read.stderr)
         self.assertFalse(json.loads(read.stdout)["data"]["proxied"])

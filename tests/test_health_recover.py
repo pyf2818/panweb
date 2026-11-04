@@ -8,7 +8,7 @@ from panweb.store import load_state, save_state
 
 
 def entry(eid="e1", url="https://e1.trycloudflare.com"):
-    return {"id": eid, "name": eid, "kind": "port", "target": 3000,
+    return {"id": eid, "name": eid, "kind": "port", "port": 3000,
             "proxy_port": 9001, "server_pid": 501, "pid": 601, "url": url}
 
 

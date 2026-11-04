@@ -9,9 +9,9 @@ import helpers  # noqa: F401  导入它顺带把 src/ 放进 sys.path
 from panweb import cli_commands
 
 PAGES = {"id": "p1", "name": "静态站", "kind": "pages",
-         "target": "/tmp/panweb-site", "url": "https://p1.trycloudflare.com",
+         "folder": "/tmp/panweb-site", "url": "https://p1.trycloudflare.com",
          "reachable": True, "dns_slow": False, "started": "2026-11-04"}
-PORT = {"id": "a1", "name": "应用", "kind": "port", "target": 3000,
+PORT = {"id": "a1", "name": "应用", "kind": "port", "port": 3000,
         "url": "https://a1.trycloudflare.com", "reachable": True,
         "dns_slow": False, "started": "2026-11-04"}
 

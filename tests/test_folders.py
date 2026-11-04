@@ -43,7 +43,7 @@ class FolderListTests(unittest.TestCase):
 
     def test_recently_published_folders_are_quick_picks(self):
         store.save_state([{"id": "a", "name": "周报", "kind": "pages",
-                           "target": self.tree, "url": "https://x.test"}])
+                           "folder": self.tree, "url": "https://x.test"}])
         labels = {q["label"]: q["path"] for q in folders.quick_picks()}
         self.assertEqual(labels.get("周报"), self.tree)
 

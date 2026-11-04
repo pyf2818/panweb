@@ -19,12 +19,12 @@ class FakeHandler:
 
 
 OLD = {
-    "id": "old", "name": "直连应用", "kind": "port", "target": 3000,
+    "id": "old", "name": "直连应用", "kind": "port", "port": 3000,
     "url": "https://old.trycloudflare.com", "pid": 111,
     "app_pid": 555, "started": "2026-11-04 10:00:00",
 }
 NEW = {
-    "id": "new", "name": "直连应用", "kind": "port", "target": 3000,
+    "id": "new", "name": "直连应用", "kind": "port", "port": 3000,
     "url": "https://new.trycloudflare.com", "pid": 222, "server_pid": 333,
     "app_pid": 555, "pinned": True, "started": "2026-11-04 10:01:00",
 }

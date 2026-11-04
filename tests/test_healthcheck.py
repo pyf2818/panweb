@@ -208,7 +208,7 @@ class HostEvidenceTests(unittest.TestCase):
     def test_evidence_needs_local_rejected_and_public_allowed(self):
         srv, port = serve(HostGate)
         try:
-            got = healthcheck.host_evidence({"kind": "port", "target": port},
+            got = healthcheck.host_evidence({"kind": "port", "port": port},
                                             self.url)
             self.assertEqual(got, {"local": 403, "public": 200})
         finally:
@@ -218,13 +218,13 @@ class HostEvidenceTests(unittest.TestCase):
         srv, port = serve(AlwaysForbidden)
         try:
             self.assertIsNone(healthcheck.host_evidence(
-                {"kind": "port", "target": port}, self.url))
+                {"kind": "port", "port": port}, self.url))
         finally:
             stop_server(srv)
 
     def test_no_evidence_for_pages_or_missing_port(self):
         self.assertIsNone(healthcheck.host_evidence(
-            {"kind": "pages", "target": 3000}, self.url))
+            {"kind": "pages", "folder": 3000}, self.url))
         self.assertIsNone(healthcheck.host_evidence({"kind": "port"}, self.url))
 
 

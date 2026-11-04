@@ -142,16 +142,16 @@ class EntryNodesTests(unittest.TestCase):
     def test_source_port_and_pages(self):
         with mock.patch.object(entries, "port_listening", return_value=False):
             self.assertEqual(entries.entry_nodes(
-                {"kind": "port", "target": 9})["source"]["state"], "offline")
+                {"kind": "port", "port": 9})["source"]["state"], "offline")
         with mock.patch.object(entries, "port_listening", return_value=True):
             self.assertEqual(entries.entry_nodes(
-                {"kind": "port", "target": 3000})["source"]["state"], "online")
+                {"kind": "port", "port": 3000})["source"]["state"], "online")
         with tempfile.TemporaryDirectory() as folder:
             self.assertEqual(entries.entry_nodes(
-                {"kind": "pages", "target": folder})["source"]["state"],
+                {"kind": "pages", "folder": folder})["source"]["state"],
                 "online")
             self.assertEqual(entries.entry_nodes(
-                {"kind": "pages", "target": folder + "/missing"})["source"]["state"],
+                {"kind": "pages", "folder": folder + "/missing"})["source"]["state"],
                 "offline")
         self.assertEqual(entries.entry_nodes(
             {"kind": "port"})["source"]["state"], "unknown")
@@ -159,7 +159,7 @@ class EntryNodesTests(unittest.TestCase):
     def test_core_list_attaches_nodes(self):
         with temp_home("panweb-nodes-"):
             entries.register_entry({"id": "x", "name": "x", "kind": "pages",
-                                    "target": "/tmp"})
+                                    "folder": "/tmp"})
             item = entries.core_list()[0]
             self.assertIn("nodes", item)
             self.assertEqual(set(item["nodes"]), {"tunnel", "proxy", "source"})
