@@ -43,16 +43,7 @@
       radial-gradient(700px 420px at -10% 100%, rgba(201,168,106,.05), transparent 60%),
       var(--bg);
   }
-  html[data-theme="dark"] .sidebar { background: rgba(28,36,34,.6); }
-  html[data-theme="dark"] .tabs { background: #232c29; }
-  html[data-theme="dark"] .field input,
-  html[data-theme="dark"] .url-row,
-  html[data-theme="dark"] .qr-panel,
-  html[data-theme="dark"] .cand,
-  html[data-theme="dark"] .public-note,
-  html[data-theme="dark"] .kind-badge { background: #232c29; }
-  html[data-theme="dark"] .brand-mark { box-shadow: 0 6px 14px -6px rgba(0,0,0,.6); }
-  html[data-theme="dark"] .qr-panel .q svg { background: #fff; border-radius: 6px; padding: 4px; }
+
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html { scroll-behavior: smooth; }

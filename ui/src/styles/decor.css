@@ -125,10 +125,10 @@ body[data-page="term"]::after { opacity: .16; }
 
 /* ---------- 焦点：键盘可见时给一圈青色 ---------- */
 :focus-visible {
-  outline: 2px solid rgba(51,121,107,.5);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
-html[data-theme="dark"] :focus-visible { outline-color: rgba(108,184,167,.6); }
+
 
 /* ---------- 尊重系统的"少动效" ---------- */
 @media (prefers-reduced-motion: reduce) {

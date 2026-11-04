@@ -4,12 +4,13 @@
     "styles/layout.css",
     "styles/components.css",
     "styles/console.css",
-    "styles/scifi.css",
     "styles/terminal.css",
     "styles/overlays.css",
-    "styles/decor.css"
+    "styles/decor.css",
+    "styles/scifi.css"
   ],
   "scripts": [
+    "js/theme.js",
     "js/core.js",
     "js/workbench.js",
     "js/viz.js",

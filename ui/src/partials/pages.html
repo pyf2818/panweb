@@ -18,6 +18,10 @@
       <div class="topbar-actions">
         <button class="btn drawer-btn" id="assets-toggle" onclick="openRail()" aria-label="打开资产栏">资产</button>
         <button class="btn drawer-btn" id="viz-toggle" onclick="openViz()" aria-label="打开进程栏">进程</button>
+        <button class="btn theme-btn" id="theme-btn" onclick="cycleTheme()" aria-label="主题：跟随系统" title="主题：跟随系统（点击切换）">
+          <span id="theme-icon" aria-hidden="true"></span>
+          <span class="theme-label" id="theme-label">跟随系统</span>
+        </button>
         <span class="pill" id="env-pill"><b>检查中…</b></span>
         <button class="btn" id="bell-btn" onclick="toggleBell(event)" title="通知">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>
@@ -201,7 +205,7 @@
 
     <div class="card section-card">
       <div class="sc-title">外观与动效</div>
-      <div class="sc-sub" style="margin-bottom:0">本次控制台固定深空主题（深色），不提供亮色切换；节点呼吸与连线流动会在系统「减少动效」或低性能设备上自动关闭，页面退到后台时暂停轮询与动画。</div>
+      <div class="sc-sub" style="margin-bottom:0">顶栏「主题」按钮三态切换：跟随系统（默认，系统深浅色变化时自动跟随）/ 浅色「日光科幻」/ 深色「深空」。选择只写入浏览器本地（<code>panweb-theme</code>），不涉及任何口令或业务数据；节点呼吸与连线流动会在系统「减少动效」或低性能设备上自动关闭，页面退到后台时暂停轮询与动画。</div>
     </div>
 
     <div class="card section-card">

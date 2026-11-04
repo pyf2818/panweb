@@ -1,15 +1,14 @@
   /* ---------- 时效 / 通知 / 命令面板 / 分享卡 / 域名向导 ---------- */
   .field select {
     width: 100%; padding: 10px 13px; font-size: 14px; font-family: var(--sans);
-    border: 1px solid var(--border); border-radius: 10px; outline: none; background: #fcfbf9; color: var(--ink);
+    border: 1px solid var(--border); border-radius: 10px; outline: none; background: var(--field-bg); color: var(--ink);
   }
-  html[data-theme="dark"] .field select { background: #232c29; }
   .badge-exp { color: var(--gold); }
   .badge-exp.soon { color: var(--danger); }
   #bell-btn { position: relative; }
   #bell-badge {
     position: absolute; top: -5px; right: -5px; min-width: 16px; height: 16px;
-    background: var(--danger); color: #fff; border-radius: 8px; font-size: 10px;
+    background: var(--danger); color: var(--on-danger); border-radius: 8px; font-size: 10px;
     display: none; place-items: center; padding: 0 4px; font-weight: 600;
   }
   .bell-panel {
@@ -31,8 +30,7 @@
   .dev-chip { font-size: 11px; color: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: 2px 9px; }
   .dm-step { display: flex; gap: 8px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
   .dm-input { flex: 1; min-width: 200px; padding: 9px 12px; font-size: 13px; border: 1px solid var(--border);
-              border-radius: 9px; background: #fcfbf9; color: var(--ink); outline: none; font-family: var(--mono); }
-  html[data-theme="dark"] .dm-input { background: #232c29; }
+              border-radius: 9px; background: var(--field-bg); color: var(--ink); outline: none; font-family: var(--mono); }
   .dm-input:focus { border-color: var(--accent); }
   #kz-overlay .modal { padding: 0; overflow: hidden; }
   #kz-input {
@@ -48,7 +46,7 @@
 
   /* ---------- 弹窗 ---------- */
   .overlay {
-    position: fixed; inset: 0; background: rgba(34,49,46,.32);
+    position: fixed; inset: 0; background: var(--scrim);
     backdrop-filter: blur(3px); display: none; place-items: center; z-index: 50;
   }
   .overlay.show { display: grid; }
@@ -60,21 +58,21 @@
   @keyframes rise { from { transform: translateY(14px) scale(.98); opacity: 0; } }
   .modal-title { font-family: var(--serif); font-size: 19px; font-weight: 600; margin-bottom: 4px; }
   .modal-sub { font-size: 12.5px; color: var(--muted); margin-bottom: 16px; }
-  .tabs { display: flex; gap: 5px; background: #f2f0ea; border-radius: 11px; padding: 4px; margin-bottom: 17px; }
+  .tabs { display: flex; gap: 5px; background: var(--surface-2); border-radius: 11px; padding: 4px; margin-bottom: 17px; }
   .tab {
     flex: 1; text-align: center; padding: 8px 4px; font-size: 12.5px; border-radius: 8px;
     cursor: pointer; color: var(--muted); transition: all .2s; border: none; background: none; font-family: var(--sans);
     white-space: nowrap;
   }
-  .tab.active { background: #fff; color: var(--ink); font-weight: 600; box-shadow: 0 1px 4px rgba(34,49,46,.1); }
+  .tab.active { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: var(--shadow); }
   .field { margin-bottom: 14px; }
   .field label { display: block; font-size: 12.5px; color: var(--muted); margin-bottom: 7px; }
   .field input {
     width: 100%; padding: 10px 13px; font-size: 14px; font-family: var(--sans);
     border: 1px solid var(--border); border-radius: 10px; outline: none; transition: all .2s;
-    background: #fcfbf9; color: var(--ink);
+    background: var(--field-bg); color: var(--ink);
   }
-  .field input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(51,121,107,.12); background: #fff; }
+  .field input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); background: var(--field-bg); }
   .field-inline { display: flex; gap: 8px; }
   .field-inline input { flex: 1; }
   .detect-line {
@@ -113,14 +111,14 @@
 
   /* ---------- 详情抽屉 ---------- */
   .drawer-mask {
-    position: fixed; inset: 0; background: rgba(20,26,24,.4);
+    position: fixed; inset: 0; background: var(--drawer-scrim);
     display: none; z-index: 60;
   }
   .drawer-mask.show { display: block; }
   .drawer {
     position: fixed; top: 0; right: -440px; width: 420px; max-width: 94vw; height: 100vh;
     background: var(--surface); border-left: 1px solid var(--border);
-    box-shadow: -18px 0 50px -20px rgba(0,0,0,.35);
+    box-shadow: var(--drawer-shadow-left);
     z-index: 61; transition: right .32s cubic-bezier(.25,.9,.3,1);
     display: flex; flex-direction: column;
   }
@@ -143,13 +141,12 @@
   .stat-box .n { font-family: var(--serif); font-size: 21px; font-weight: 600; color: var(--accent-deep); }
   .stat-box .l { font-size: 11px; color: var(--muted); margin-top: 2px; }
   .chart { display: flex; align-items: flex-end; gap: 3px; height: 64px;
-           background: #fbfaf7; border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px 6px; }
-  html[data-theme="dark"] .chart { background: #232c29; }
-  .chart .bar { flex: 1; background: linear-gradient(180deg, var(--accent), #58a191);
+           background: var(--soft-bg); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px 6px; }
+  .chart .bar { flex: 1; background: linear-gradient(180deg, var(--accent), var(--accent-deep));
                 border-radius: 3px 3px 0 0; min-height: 2px; opacity: .85; }
   .chart .bar.hot { opacity: 1; }
   .log-box {
-    background: #1b211f; color: #a9c3ba; font-family: var(--mono); font-size: 10.5px;
+    background: var(--log-bg); color: var(--log-ink); font-family: var(--mono); font-size: 10.5px;
     border-radius: 10px; padding: 12px 13px; height: 200px; overflow-y: auto;
     line-height: 1.65; white-space: pre-wrap; word-break: break-all;
   }
@@ -173,15 +170,13 @@
   .visit-feed-time { font-size: 10.5px; color: var(--faint); font-family: var(--mono); flex-shrink: 0; padding-top: 2px; }
   .d-field { display: flex; gap: 8px; }
   .d-field input { flex: 1; padding: 8px 12px; font-size: 13px; border: 1px solid var(--border);
-                   border-radius: 9px; background: #fcfbf9; color: var(--ink); outline: none; }
-  html[data-theme="dark"] .d-field input { background: #232c29; }
+                   border-radius: 9px; background: var(--field-bg); color: var(--ink); outline: none; }
   .d-field input:focus { border-color: var(--accent); }
   .d-hint { font-size: 11.5px; color: var(--faint); line-height: 1.7; margin-top: 7px; }
 
   /* ---------- 自检结论 / 上游兼容 ---------- */
   .d-field select { flex: 1; padding: 8px 12px; font-size: 13px; border: 1px solid var(--border);
-                    border-radius: 9px; background: #fcfbf9; color: var(--ink); outline: none; }
-  html[data-theme="dark"] .d-field select { background: #232c29; }
+                    border-radius: 9px; background: var(--field-bg); color: var(--ink); outline: none; }
   .check-box { display: flex; flex-direction: column; gap: 7px; }
   .check-verdict { display: flex; gap: 8px; align-items: baseline; font-size: 12.5px; line-height: 1.6;
                    border-radius: 10px; padding: 9px 11px; border: 1px solid var(--border); }
@@ -296,7 +291,7 @@
   margin: 6px -27px -25px; padding: 13px 27px 12px;
   background: var(--surface); border-top: 1px solid var(--border);
   border-radius: 0 0 20px 20px;
-  box-shadow: 0 -10px 18px -14px rgba(20, 26, 24, .35);
+  box-shadow: var(--shadow-lift);
 }
 
 @media (max-width: 640px) {

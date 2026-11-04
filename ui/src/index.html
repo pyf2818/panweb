@@ -1,10 +1,25 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="dark">
+<html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>panweb · 深空发布控制台</title>
+<meta name="color-scheme" content="light dark">
+<title>panweb · 发布控制台</title>
 <link rel="icon" type="image/png" href="/favicon.png">
+<script>
+/* 首屏主题：必须在样式和正文之前决定，避免闪白/闪黑。只存主题偏好，不碰业务数据。 */
+(function () {
+  var pref = "auto";
+  try { pref = localStorage.getItem("panweb-theme") || "auto"; } catch (e) {}
+  if (pref !== "light" && pref !== "dark") pref = "auto";
+  var dark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  var theme = pref === "auto" ? (dark ? "dark" : "light") : pref;
+  var root = document.documentElement;
+  root.setAttribute("data-theme", theme);
+  root.setAttribute("data-theme-pref", pref);
+  root.style.colorScheme = theme;
+})();
+</script>
 <script>
 /*__QR_LIBRARY__*/
 </script>
@@ -31,7 +46,7 @@
       </div>
       <div>
         <div class="brand-name">panweb</div>
-        <div class="brand-sub">深空 · 发布控制台</div>
+        <div class="brand-sub">本地 · 发布控制台</div>
       </div>
     </div>
     <button class="drawer-x" id="rail-close" onclick="closeDrawers()" aria-label="关闭资产栏">×</button>

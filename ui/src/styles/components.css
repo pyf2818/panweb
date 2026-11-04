@@ -9,12 +9,12 @@
   .btn svg { width: 15px; height: 15px; }
   .btn:hover { border-color: var(--faint); box-shadow: var(--shadow); transform: translateY(-1px); }
   .btn-primary {
-    background: linear-gradient(135deg, var(--accent), #3f8a7b);
-    color: #fff; border: none;
-    box-shadow: 0 8px 18px -8px rgba(51,121,107,.6);
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: var(--on-accent); border: none;
+    box-shadow: 0 8px 18px -8px var(--accent-glow);
   }
   .btn-primary:hover { filter: brightness(1.05); }
-  .btn-danger { color: var(--danger); border-color: #ecd5d2; }
+  .btn-danger { color: var(--danger); border-color: var(--danger-line); }
   .btn-danger:hover { background: var(--danger-soft); border-color: var(--danger); }
   .btn-sm { padding: 6px 11px; font-size: 12.5px; border-radius: 8px; }
   .btn-lg { padding: 12px 26px; font-size: 14.5px; border-radius: 12px; }
@@ -48,8 +48,8 @@
   .agent-top { display: flex; align-items: center; gap: 12px; width: 100%; }
   .agent-ic {
     width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0;
-    display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 17px;
-    box-shadow: 0 4px 10px -4px rgba(0,0,0,.25);
+    display: grid; place-items: center; color: var(--on-accent); font-weight: 700; font-size: 17px;
+    box-shadow: 0 4px 10px -4px var(--accent-glow);
   }
   .agent-name { font-size: 14.5px; font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .agent-card .ag-state { font-size: 11px; }
@@ -83,17 +83,16 @@
     border: none; cursor: pointer; border-radius: 8px; padding: 5px 11px;
     font-size: 11.5px; font-family: var(--sans); flex-shrink: 0; transition: all .2s;
   }
-  .ag-btn.go { background: var(--accent); color: #fff; }
+  .ag-btn.go { background: var(--accent); color: var(--on-accent); }
   .ag-btn.go:hover { background: var(--accent-deep); }
   .ag-btn.rm { background: none; border: 1px solid var(--border); color: var(--muted); }
   .ag-btn.rm:hover { color: var(--danger); border-color: var(--danger); }
   .ag-btn:disabled { opacity: .45; cursor: not-allowed; }
   .say {
-    font-size: 12px; color: #5c6b65; background: #fbfaf7; border: 1px dashed var(--border);
+    font-size: 12px; color: var(--muted); background: var(--soft-bg); border: 1px dashed var(--border);
     border-radius: 9px; padding: 8px 11px; margin-top: 7px; cursor: pointer; transition: all .2s;
     line-height: 1.6;
   }
-  html[data-theme="dark"] .say { background: #232c29; }
   .say:hover { border-color: var(--accent); color: var(--accent-deep); }
 
   .apps-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(272px, 1fr)); gap: 14px; }
@@ -119,7 +118,7 @@
   .app-name { font-weight: 600; font-size: 14px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .kind-badge {
     font-size: 10.5px; color: var(--muted); border: 1px solid var(--border);
-    padding: 2px 8px; border-radius: 999px; flex-shrink: 0; background: #fcfbf9;
+    padding: 2px 8px; border-radius: 999px; flex-shrink: 0; background: var(--surface-2);
   }
   .risky-badge {
     font-size: 11px; color: var(--danger); background: var(--danger-soft);
@@ -127,7 +126,7 @@
   }
   .check-badge {
     font-size: 10.5px; padding: 2px 8px; border-radius: 999px; flex-shrink: 0;
-    border: 1px solid var(--border); background: #fcfbf9; color: var(--muted);
+    border: 1px solid var(--border); background: var(--surface-2); color: var(--muted);
   }
   .check-badge.ok { color: var(--accent-deep); background: var(--accent-soft); border-color: var(--accent); }
   .check-badge.warn { color: var(--gold); background: var(--gold-soft); border-color: var(--gold); }
@@ -135,7 +134,7 @@
   .url-row {
     display: flex; align-items: center; gap: 7px;
     font-family: var(--mono); font-size: 11px; color: var(--accent-deep);
-    background: #fbfaf7; border: 1px solid var(--border); border-radius: 9px;
+    background: var(--soft-bg); border: 1px solid var(--border); border-radius: 9px;
     padding: 7px 10px;
   }
   .url-row .u { flex: 1; word-break: break-all; cursor: pointer; line-height: 1.5; }
@@ -150,12 +149,12 @@
   .app-meta .launched-tag { color: var(--gold); }
   .qr-panel {
     display: none; flex-direction: column; align-items: center; gap: 8px;
-    background: #fbfaf7; border: 1px dashed var(--border); border-radius: 12px;
+    background: var(--soft-bg); border: 1px dashed var(--border); border-radius: 12px;
     padding: 14px 12px 11px;
   }
   .qr-panel.open { display: flex; }
   .qr-panel .q { width: 118px; height: 118px; }
-  .qr-panel .q svg { display: block; }
+  .qr-panel .q svg { display: block; background: #fff; border-radius: 6px; padding: 4px; }
   .qr-panel .t { font-size: 11px; color: var(--muted); }
   .app-actions { display: flex; gap: 6px; border-top: 1px dashed var(--border); padding-top: 10px; }
 
@@ -181,7 +180,7 @@
   }
   .hero-glyph {
     width: 74px; height: 74px; border-radius: 24px;
-    background: linear-gradient(135deg, var(--accent-soft), #f4f1ea);
+    background: linear-gradient(135deg, var(--accent-soft), var(--surface-2));
     color: var(--accent); display: grid; place-items: center;
     box-shadow: var(--shadow); margin-bottom: 6px;
   }
@@ -192,9 +191,9 @@
   .hero-chips { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; justify-content: center; }
   .chip {
     display: inline-flex; align-items: center; gap: 7px;
-    font-size: 12.5px; color: #5c6b65;
+    font-size: 12.5px; color: var(--muted);
     border: 1px solid var(--border); border-radius: 999px;
-    padding: 8px 16px; cursor: pointer; background: rgba(255,255,255,.7);
+    padding: 8px 16px; cursor: pointer; background: var(--chip-bg);
     transition: all .2s; font-family: var(--sans);
   }
   .chip svg { width: 13px; height: 13px; color: var(--accent); }
@@ -212,11 +211,11 @@
     cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .env-license:hover { border-color: var(--accent); color: var(--accent-deep); }
-  .env-license.warn { color: var(--danger); border-color: #ecd5d2; background: var(--danger-soft); }
+  .env-license.warn { color: var(--danger); border-color: var(--danger-line); background: var(--danger-soft); }
   .license-banner {
     display: flex; align-items: center; justify-content: space-between; gap: 14px;
     margin: -6px 0 18px; padding: 11px 14px;
-    border: 1px solid #efd6d2; border-radius: 12px;
+    border: 1px solid var(--danger-line); border-radius: 12px;
     background: var(--danger-soft); color: var(--danger);
     font-size: 12.5px; line-height: 1.5;
   }
