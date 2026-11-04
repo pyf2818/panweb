@@ -30,7 +30,7 @@ from .share import new_share_token
 from .store import (json_lock, load_activity, load_domain, load_meta,
                     load_state, log_activity, save_meta, save_state,
                     state_lock)
-from .supervisor import restart_entry_tunnel
+from .supervisor import recover_failing
 from .system import core_pack, core_system
 from .term import (core_terminal_close, core_terminal_input,
                    core_terminal_open, core_terminal_resize,
@@ -375,15 +375,7 @@ def _open_dir(handler, body):
 
 
 def _recover(handler):
-    done = []
-    for entry in load_state():
-        try:
-            url = restart_entry_tunnel(entry)
-            done.append({"id": entry["id"], "name": entry["name"],
-                         "url": url})
-        except Exception as e:  # noqa: BLE001
-            log_activity("ui", "「%s」手动恢复失败：%s"
-                         % (entry.get("name"), e))
-    log_activity("ui", "手动重启了全部通道（%d 个）" % len(done))
-    handler.send_json({"ok": True, "data": {"recovered": done}})
+    """恢复可能耗时数分钟，放后台 job，避免阻塞控制台请求线程。"""
+    job = jobs.start("recover", recover_failing)
+    handler.send_json({"ok": True, "data": {"job": job, "kind": "recover"}})
     return True

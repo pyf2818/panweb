@@ -39,7 +39,7 @@ def remove_entry_files(entry_id):
             pass
 
 
-def stop_entry(entry, keep_app=False):
+def stop_entry(entry, keep_app=False, clear_secrets=True):
     fw = forwarder.FORWARDERS.pop(entry.get("id"), None)
     if fw:
         fw.stop()
@@ -48,8 +48,9 @@ def stop_entry(entry, keep_app=False):
     if not keep_app:
         kill_process(entry.get("app_pid"),
                      ("npm", "node", "pnpm", "yarn", "bun"))
-    write_pin(entry.get("id"), None)
-    remove_entry_files(entry.get("id"))
+    if clear_secrets:
+        write_pin(entry.get("id"), None)
+        remove_entry_files(entry.get("id"))
 
 
 def entry_alive(entry):

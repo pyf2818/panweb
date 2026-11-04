@@ -111,7 +111,20 @@ async function toggleVisitNotify() {
 async function recoverAll() {
   const d = await api("/api/recover", {});
   if (!d.ok) return toast(d.error ? d.error.message : "恢复失败", false);
-  toast("已重启全部通道（" + (d.data.recovered || []).length + " 个），网址可能已更新");
+  if (!d.data.job) return toast("恢复任务未能启动", false);
+  toast("正在检查失联通道…");
+  for (;;) {
+    await new Promise((r) => setTimeout(r, 700));
+    const j = await api("/api/job?id=" + encodeURIComponent(d.data.job));
+    if (!j.ok) return toast(j.error ? j.error.message : "恢复失败", false);
+    if (!j.data.done) continue;
+    if (!j.data.ok) {
+      return toast(j.data.error ? j.data.error.message : "恢复失败", false);
+    }
+    const n = ((j.data.result || {}).recovered || []).length;
+    toast(n ? "已恢复 " + n + " 个失联通道，网址可能已更新" : "没有需要恢复的通道");
+    break;
+  }
   await refresh();
   if (currentPage === "system") loadSystem();
 }

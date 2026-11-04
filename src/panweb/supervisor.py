@@ -4,7 +4,7 @@ import threading
 import time
 
 from . import domain, forwarder, runtime
-from .entries import write_menubar_state
+from .entries import entry_alive, write_menubar_state
 from .errors import PanwebError, TunnelError
 from .lifecycle import prune_dead_entries, sweep_expired
 from .models import entry_local_port
@@ -20,6 +20,7 @@ from .tunnel import pinned_status, public_status, start_tunnel
 RESTART_LOCK = threading.Lock()
 HEALTH_FAILS = {}
 RETRY_WAIT = 2.0
+HEALTH_FAILS_LIMIT = 3
 
 
 def _tunnel_serving(url, tries=3):
@@ -140,6 +141,74 @@ def recover_all():
         log_activity("ui", "控制台重启，已恢复 %d 个发布的通道" % recovered)
 
 
+def _health_step(entry):
+    """单条巡检：抖动先重启代理，只有隧道进程确实死了才换网址。"""
+    entry_id = entry.get("id")
+    proxy_restarted = False
+    if entry.get("proxy_port") and not pid_alive(entry.get("server_pid")):
+        proxy_restarted = restart_entry_proxy(entry)
+    local_port = entry_local_port(entry)
+    if not port_listening(local_port):
+        HEALTH_FAILS.pop(entry_id, None)
+        return  # 应用未运行，等它起来
+    url = entry.get("url")
+    if not url:
+        return
+    status = public_status(url)
+    if pid_alive(entry.get("pid")) and status not in (0, 502, 530):
+        HEALTH_FAILS.pop(entry_id, None)
+        return
+    fails = HEALTH_FAILS.get(entry_id, 0) + 1
+    HEALTH_FAILS[entry_id] = fails
+    if fails < HEALTH_FAILS_LIMIT:
+        return
+    HEALTH_FAILS.pop(entry_id, None)
+    if not pid_alive(entry.get("pid")):
+        new_url = restart_entry_tunnel(entry)
+        log_activity("ui", "「%s」隧道进程已死，已重建通道"
+                     % entry.get("name"), new_url)
+        return
+    if entry.get("proxy_port"):
+        if not proxy_restarted:
+            restart_entry_proxy(entry)
+        log_activity("ui", "「%s」应用连续无响应，已重启代理（网址保留）"
+                     % entry.get("name"))
+    else:
+        log_activity("ui", "「%s」应用连续无响应，隧道保留，等待应用恢复"
+                     % entry.get("name"))
+
+
+def recover_failing(progress=None):
+    """手动恢复只处理失联或公网探测失败的条目；健康条目不动。"""
+    entries = load_state()
+    checked = 0
+    recovered = []
+    for entry in entries:
+        try:
+            if not _needs_recovery(entry):
+                continue
+            checked += 1
+            if progress:
+                progress("恢复「%s」…" % entry.get("name"))
+            url = restart_entry_tunnel(entry)
+            recovered.append({"id": entry.get("id"), "url": url})
+        except Exception as e:  # noqa: BLE001
+            log_activity("ui", "「%s」手动恢复失败：%s"
+                         % (entry.get("name"), e))
+    if checked:
+        log_activity("ui", "手动恢复完成：检查 %d 个异常条目，成功 %d 个"
+                     % (checked, len(recovered)))
+    return {"checked": checked, "recovered": recovered}
+
+
+def _needs_recovery(entry):
+    if not entry_alive(entry):
+        return True
+    url = entry.get("url") or ""
+    return (".trycloudflare.com" in url
+            and pinned_status(url, 6) in (0, 502, 530))
+
+
 def health_loop():
     """控制台内每 60 秒巡检：代理/隧道失联则自动恢复。"""
     while True:
@@ -155,30 +224,7 @@ def health_loop():
             log_activity("ui", "固定域名巡检失败：%s" % e)
         for entry in load_state():
             try:
-                entry_id = entry.get("id")
-                if entry.get("proxy_port") \
-                        and not pid_alive(entry.get("server_pid")):
-                    restart_entry_proxy(entry)
-                local_port = entry_local_port(entry)
-                if not port_listening(local_port):
-                    HEALTH_FAILS.pop(entry_id, None)
-                    continue  # 应用未运行，等它起来
-                url = entry.get("url")
-                if not url:
-                    continue
-                status = public_status(url)
-                if pid_alive(entry.get("pid")) and status not in (0, 502, 530):
-                    HEALTH_FAILS.pop(entry_id, None)
-                    continue
-                if status == 0:
-                    fails = HEALTH_FAILS.get(entry_id, 0) + 1
-                    HEALTH_FAILS[entry_id] = fails
-                    if fails < 3:
-                        continue
-                HEALTH_FAILS.pop(entry_id, None)
-                new_url = restart_entry_tunnel(entry)
-                log_activity("ui", "「%s」通道失联，已自动恢复"
-                             % entry.get("name"), new_url)
+                _health_step(entry)
             except Exception as e:  # noqa: BLE001
                 log_activity("ui", "「%s」自愈失败：%s"
                              % (entry.get("name"), e))

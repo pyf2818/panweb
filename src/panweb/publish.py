@@ -119,7 +119,8 @@ def _spawn_proxy(listen_port, entry_id, target_port=None, serve_dir=None,
 
 def _publish_port(port, name, extra=None, pin=None, serve_dir=None,
                   expires_at=None, share=False, auto_check=True,
-                  register=True, progress=None):
+                  register=True, progress=None, entry_id=None,
+                  keep_secrets=False):
     """发布端口的共用实现（CLI / API / run 共用）。"""
     _emit(progress, "检查发布许可与隧道引擎…")
     require_publish_license()
@@ -130,7 +131,7 @@ def _publish_port(port, name, extra=None, pin=None, serve_dir=None,
     if not serve_dir and port:
         _ensure_publishable_port(port)
     os.makedirs(runtime.LOG_DIR, exist_ok=True)
-    entry_id = uuid.uuid4().hex[:6]
+    entry_id = entry_id or uuid.uuid4().hex[:6]
     entry_extra = {"pinned": bool(pin)}
 
     proxy_proc = None
@@ -197,7 +198,8 @@ def _publish_port(port, name, extra=None, pin=None, serve_dir=None,
         # 发布没登记成功时，代理/隧道/PIN 都是半成品，必须当场回收，
         # 否则下一次控制台启动前它们会一直占着端口和子进程。
         stop_entry({"id": entry_id, "pid": tunnel_pid,
-                    "server_pid": proxy_proc.pid if proxy_proc else None})
+                    "server_pid": proxy_proc.pid if proxy_proc else None},
+                   clear_secrets=not keep_secrets)
         raise
     if not register:
         # 供改 PIN 等“先建新、再换旧”的调用方使用；此时还没写进 state，
@@ -272,17 +274,25 @@ def core_set_pin(entry_id, pin, actor="ui"):
         extra = {k: entry[k] for k in
                  ("app_pid", "app_log", "launched", "risky", "host_mode",
                   "desc") if k in entry}
-        new_entry = _publish_port(entry.get("target"), entry.get("name"),
-                                  pin=pin, extra=extra,
-                                  expires_at=entry.get("expires_at"),
-                                  register=False, auto_check=False)
+        try:
+            new_entry = _publish_port(entry.get("target"), entry.get("name"),
+                                      pin=pin, extra=extra,
+                                      expires_at=entry.get("expires_at"),
+                                      register=False, auto_check=False,
+                                      entry_id=entry_id, keep_secrets=True)
+        except BaseException:
+            # 旧条目本来没有代理（也就没有口令）；把半路写入的 PIN 回滚掉。
+            write_pin(entry_id, None)
+            raise
+        new_entry = dict(new_entry)
+        new_entry["id"] = entry_id
         try:
             replace_entry(entry_id, new_entry)
         except BaseException:
-            stop_entry(new_entry, keep_app=True)
+            stop_entry(new_entry, keep_app=True, clear_secrets=False)
             raise
         try:
-            stop_entry(entry, keep_app=True)
+            stop_entry(entry, keep_app=True, clear_secrets=False)
         except Exception as e:
             log_activity(actor, "旧发布清理失败：%s" % e)
         log_activity(actor, "为「%s」设置了访问口令（网址已更新）"

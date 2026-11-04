@@ -9,7 +9,8 @@ import time
 
 from . import runtime
 from .errors import PanwebError
-from .store import ensure_private_dir, load_state, save_json
+from .store import (ensure_private_dir, load_state, save_json, save_state,
+                    state_lock)
 
 
 def normalize_pin(pin):
@@ -53,13 +54,29 @@ def write_pin(entry_id, pin):
         try:
             os.remove(pin_file_path(entry_id))
         except OSError:
-            pass
+            if os.path.exists(pin_file_path(entry_id)):
+                return
+        _sync_pinned(entry_id, False)
         return
     salt = secrets.token_hex(16)
     digest = hashlib.sha256((salt + pin).encode("utf-8")).hexdigest()
     session = secrets.token_hex(24)
     save_json(pin_file_path(entry_id),
               {"salt": salt, "hash": digest, "session": session})
+    _sync_pinned(entry_id, True)
+
+
+def _sync_pinned(entry_id, pinned):
+    """口令文件和状态里的 pinned 徽标必须同时改，否则卡片会长期说谎。"""
+    with state_lock():
+        entries = load_state()
+        changed = False
+        for entry in entries:
+            if entry.get("id") == entry_id and bool(entry.get("pinned")) != pinned:
+                entry["pinned"] = pinned
+                changed = True
+        if changed:
+            save_state(entries)
 
 
 def legacy_pin_token(entry_id, pin):
