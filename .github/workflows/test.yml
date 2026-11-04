@@ -42,6 +42,17 @@ jobs:
           python-version: "3.12"
       - name: Install cloudflared
         run: brew install cloudflared
+      - name: Diagnose loopback startup
+        # 代理子进程 20 秒仍未监听，先量一下 HTTPServer 启动时的反解与防火墙状态
+        run: |
+          python3 - <<'PY'
+          import socket, time
+          for host in ("127.0.0.1", "localhost"):
+              start = time.time()
+              name = socket.getfqdn(host)
+              print(host, repr(name), round(time.time() - start, 3))
+          PY
+          sudo /usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate || true
       - name: Unit & CLI tests
         run: python3 -m unittest discover -s tests -v
       - name: UI build consistency
