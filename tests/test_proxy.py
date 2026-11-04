@@ -124,6 +124,12 @@ class ProxyShareTests(unittest.TestCase):
                          "带 CR/LF 的 next 不能写进 Location")
         self.assertIsNone(headers.get("X-Evil"), "响应头不能被 next 注入")
 
+    def test_options_on_read_only_pages_is_explicit(self):
+        status, headers, _ = self.request("OPTIONS", "/")
+        self.assertEqual(status, 204)
+        self.assertIn("GET", headers.get("Allow", ""))
+        self.assertIn("OPTIONS", headers.get("Allow", ""))
+
     def test_expired_share_and_root(self):
         entry = dict(self.entry, expires_at=time.time() - 10)
         store.save_json(runtime.STATE_FILE, [entry])

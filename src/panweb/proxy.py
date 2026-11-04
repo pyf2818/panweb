@@ -2,9 +2,7 @@
 import hmac
 import http.client
 import http.cookies
-import mimetypes
 import os
-import re
 import socket
 import time
 import urllib.parse
@@ -15,8 +13,9 @@ from .forwarder import duplex
 from .pins import (pin_clear_fail, pin_record_fail, pin_retry_after,
                    pin_session, read_pin_record, verify_pin)
 from .processes import port_listening
+from .proxy_body import BodyError, read_request_body
+from .proxy_static import serve_static
 from .share import LOGIN_PAGE, build_share_page
-from .static import resolve_static_file
 from .store import ensure_private_dirs, load_state
 from .visits import log_visit
 
@@ -44,8 +43,17 @@ class ProxyHandler(BaseHTTPRequestHandler):
 
     server_version = "panweb-proxy/1.0"
 
+    _response_started = False
+
     def log_message(self, fmt, *args):
         pass
+
+    def end_headers(self):
+        self._response_started = True
+        super().end_headers()
+
+    def _client_ip(self):
+        return upstream.client_ip(self.headers, self.client_address[0])
 
     def _text_error(self, status, text):
         """ASCII reason + UTF-8 body，避免 Python 3.9 latin-1 状态行崩溃。"""
@@ -89,6 +97,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 "country": self.headers.get("CF-IPCountry") or ""}
 
     def _handle(self):
+        self._response_started = False
         entry_id = self.server.entry_id
         path = urllib.parse.urlsplit(self.path).path
         entry = self._entry_snapshot()
@@ -107,19 +116,34 @@ class ProxyHandler(BaseHTTPRequestHandler):
         if read_pin_record(entry_id) and not self._authed(entry_id):
             return self._gate(entry_id)
         if self._is_document_request():
-            log_visit(entry_id, self.path, self.client_address[0],
+            log_visit(entry_id, self.path, self._client_ip(),
                       self.headers.get("User-Agent"), kind="app",
                       **self._visit_context())
         if self.server.serve_dir:
             if self.command not in ("GET", "HEAD"):
                 return self._text_error(403, "只读发布，不接受写入")
-            return self._serve_static(self.server.serve_dir)
+            return serve_static(self, self.server.serve_dir)
         if self.headers.get("Upgrade", "").lower() == "websocket":
             return self._forward_websocket(self.server.target_host,
                                            self.server.target_port)
         return self._forward(self.server.target_host, self.server.target_port)
 
     do_GET = do_POST = do_HEAD = do_PUT = do_DELETE = do_PATCH = _handle
+
+    def do_OPTIONS(self):
+        """只读静态页明确回答 204；端口发布交给上游自己的 CORS 中间件。"""
+        self._response_started = False
+        if not self.server.serve_dir:
+            return self._handle()
+        self.send_response(204)
+        self.send_header("Allow", "GET, HEAD, OPTIONS")
+        self.send_header("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS")
+        self.send_header("Access-Control-Max-Age", "600")
+        requested = (self.headers.get("Access-Control-Request-Headers") or "")[:1024]
+        if requested:
+            self.send_header("Access-Control-Allow-Headers", requested)
+        self.send_header("Content-Length", "0")
+        self.end_headers()
 
     # ---- 分享页 ----
     def _app_online(self, entry):
@@ -178,7 +202,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
         body = build_share_page(entry, share_url, token=token, expired=expired,
                                 offline=offline, pin=pin, err=err)
         if record and not expired and self.command == "GET":
-            log_visit(entry.get("id"), share_path, self.client_address[0],
+            log_visit(entry.get("id"), share_path, self._client_ip(),
                       self.headers.get("User-Agent"), kind="share",
                       **self._visit_context())
         self._send_html(body, status=status)
@@ -292,19 +316,13 @@ class ProxyHandler(BaseHTTPRequestHandler):
 
     def _forward(self, host, port):
         try:
-            length = int(self.headers.get("Content-Length") or 0)
-        except ValueError:
-            length = 0
-        if length < 0:
-            length = 0
-        if length > runtime.MAX_PROXY_BODY:
-            return self._text_error(
-                413, "请求体超过 %d MB 上限"
-                % (runtime.MAX_PROXY_BODY // (1024 * 1024)))
-        body = self.rfile.read(length) if length else None
+            body = read_request_body(self.headers, self.rfile,
+                                     runtime.MAX_PROXY_BODY)
+        except BodyError as e:
+            return self._text_error(e.status, e.message)
         host_value, auth = self._upstream_plan(host, port)
         headers = dict(upstream.forward_headers(
-            self.headers.items(), self.client_address[0],
+            self.headers.items(), self._client_ip(),
             host_value=host_value, auth=auth))
         conn = http.client.HTTPConnection(host, port, timeout=120)
         try:
@@ -325,10 +343,14 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 self.wfile.write(chunk)
                 self.wfile.flush()  # SSE / 流式响应不缓冲
         except (OSError, http.client.HTTPException) as e:
-            try:
-                self._text_error(502, "应用暂时无响应（%s）" % e)
-            except OSError:
-                pass
+            if self._response_started:
+                # 状态行/头已经发出去了，再写一份 502 只会拼出两个响应。
+                self.close_connection = True
+            else:
+                try:
+                    self._text_error(502, "应用暂时无响应（%s）" % e)
+                except OSError:
+                    pass
         finally:
             conn.close()
 
@@ -342,7 +364,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
             host_value, auth = self._upstream_plan(host, port)
             lines = ["%s %s HTTP/1.1" % (self.command, self.path)]
             for k, v in upstream.forward_headers(
-                    self.headers.items(), self.client_address[0],
+                    self.headers.items(), self._client_ip(),
                     host_value=host_value, auth=auth, websocket=True):
                 lines.append("%s: %s" % (k, v))
             up.sendall(("\r\n".join(lines) + "\r\n\r\n").encode("latin-1",
@@ -364,71 +386,6 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 up.close()
             except OSError:
                 pass
-
-    # ---- 只读静态服务 ----
-    def _serve_static(self, root):
-        fp, status = resolve_static_file(root, self.path)
-        if status == 404 and self.command in ("GET", "HEAD"):
-            clean_path = urllib.parse.urlparse(self.path).path
-            last = os.path.basename(clean_path.rstrip("/"))
-            if last and not last.startswith(".") \
-                    and not os.path.splitext(last)[1]:
-                fp, status = resolve_static_file(root, "/index.html")
-        if not fp:
-            msg = "文件不存在" if status == 404 else "禁止访问"
-            return self._text_error(status, msg)
-        try:
-            size = os.path.getsize(fp)
-        except OSError:
-            return self._text_error(404, "文件不存在")
-        start, end, status_code = 0, max(0, size - 1), 200
-        range_header = (self.headers.get("Range") or "").strip()
-        if range_header.startswith("bytes="):
-            m = re.match(r"bytes=(\d*)-(\d*)$", range_header.split(",")[0].strip())
-            if m:
-                first, last = m.group(1), m.group(2)
-                if first:
-                    start = int(first)
-                    end = int(last) if last else size - 1
-                elif last:
-                    start = max(0, size - int(last))
-                    end = size - 1
-                if start > end or start >= size or end < 0 or size == 0:
-                    self.send_response(416)
-                    self.send_header("Content-Range", "bytes */%d" % size)
-                    self.send_header("Content-Length", "0")
-                    self.end_headers()
-                    return
-                status_code = 206
-        length = max(0, end - start + 1)
-        mime = mimetypes.guess_type(fp)[0] or "application/octet-stream"
-        if mime.startswith("text/") or mime in ("application/javascript",
-                                                "application/json"):
-            mime += "; charset=utf-8"
-        self.send_response(status_code)
-        self.send_header("Content-Type", mime)
-        self.send_header("Content-Length", str(length))
-        self.send_header("Accept-Ranges", "bytes")
-        self.send_header("Cache-Control", "no-cache")
-        self.send_header("X-Content-Type-Options", "nosniff")
-        if status_code == 206:
-            self.send_header("Content-Range",
-                             "bytes %d-%d/%d" % (start, end, size))
-        self.end_headers()
-        if self.command == "HEAD" or length == 0:
-            return
-        try:
-            with open(fp, "rb") as f:
-                f.seek(start)
-                remaining = length
-                while remaining > 0:
-                    chunk = f.read(min(65536, remaining))
-                    if not chunk:
-                        break
-                    self.wfile.write(chunk)
-                    remaining -= len(chunk)
-        except OSError:
-            pass
 
 
 def run_internal_proxy(listen_port, target_port, serve_dir, entry_id):

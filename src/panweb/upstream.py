@@ -5,6 +5,7 @@ panweb 的口令只守着公网入口；被发布的应用如果自己还要登�
 状态会被控制台、CLI 和菜单栏原样带出，密钥一旦进去就藏不住。
 """
 import base64
+import ipaddress
 import json
 import os
 import re
@@ -27,6 +28,11 @@ AUTH_LABELS = {"bearer": "Bearer 令牌", "basic": "Basic 用户名/密码",
 DROP_HEADERS = frozenset(("host", "connection", "keep-alive", "proxy-connection",
                           "transfer-encoding", "upgrade"))
 WS_KEEP = frozenset(("connection", "upgrade"))
+# 访客可以随手伪造这些头；代理必须丢掉入站值再写自己的，否则日志里的 IP
+# 和上游看到的来源都不可信，还会出现一个头里两份值的歧义。
+CLIENT_HEADERS = frozenset(("x-forwarded-for", "x-forwarded-proto",
+                            "x-forwarded-host", "x-real-ip", "forwarded",
+                            "cf-connecting-ip", "true-client-ip"))
 # 注入的鉴权头也不能碰这些：Content-Length 由代理按实际请求体生成，
 # 被固定值覆盖会让请求帧错开，后面的头就会被当成 body。
 AUTH_FORBIDDEN_HEADERS = DROP_HEADERS | frozenset(("content-length",))
@@ -196,7 +202,11 @@ def forward_headers(items, client_ip, host_value=None, public_host=None,
     ``websocket=True`` 时留下 Upgrade/Connection：握手头说的就是"这一跳要升级"，
     滤掉它上游永远不会回 101。
     """
-    drop = DROP_HEADERS - WS_KEEP if websocket else DROP_HEADERS
+    drop = set(DROP_HEADERS - WS_KEEP if websocket else DROP_HEADERS)
+    drop |= CLIENT_HEADERS
+    if auth:
+        # 配了上游凭据时必须由 panweb 说了算，访客带来的同名头不能留下。
+        drop.add(auth[0].lower())
     pairs = [(k, v) for k, v in items if k.lower() not in drop]
     origin = public_host or _first_value(items, "host")
     if origin:
@@ -209,6 +219,34 @@ def forward_headers(items, client_ip, host_value=None, public_host=None,
     if auth:
         pairs.append(auth)
     return pairs
+
+
+def _valid_ip(raw):
+    text = (raw or "").strip().strip('"')
+    if not text or len(text) > 64:
+        return ""
+    try:
+        ipaddress.ip_address(text)
+    except ValueError:
+        return ""
+    return text
+
+
+def client_ip(headers, peer=""):
+    """从一串可能被伪造的头里取真实访客 IP，失败就退回对端地址。
+
+    优先 Cloudflare 注入的 CF-Connecting-IP（公网流量一定有），但不只认它：
+    其它入口/代理给出的头也接受；所有候选都要通过 IP 语法校验才算数。
+    """
+    for name in ("CF-Connecting-IP", "True-Client-IP", "X-Real-IP"):
+        value = _valid_ip(headers.get(name) or "")
+        if value:
+            return value
+    for candidate in (headers.get("X-Forwarded-For") or "").split(","):
+        value = _valid_ip(candidate)
+        if value:
+            return value
+    return _valid_ip(peer) or peer or ""
 
 
 def _first_value(items, name):
