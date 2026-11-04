@@ -128,6 +128,90 @@ def _load_json(path, default):
 
 
 _STATE_ISSUE = None
+STATE_SCHEMA_VERSION = 2
+_STATE_TOP_KEYS = ("schema_version", "entries")
+
+
+def _entries_from_raw(data):
+    """兼容 v1（顶层数组）与 v2（{"schema_version", "entries"}）。"""
+    if isinstance(data, list):
+        return data
+    if isinstance(data, dict) and isinstance(data.get("entries"), list):
+        return data["entries"]
+    return None
+
+
+def _top_extras(data):
+    """未知顶层字段原样保留，不顺手清理用户数据。"""
+    if not isinstance(data, dict):
+        return {}
+    return {k: v for k, v in data.items() if k not in _STATE_TOP_KEYS}
+
+
+def _as_source_port(value):
+    if isinstance(value, bool):
+        return None
+    try:
+        port = int(value)
+    except (TypeError, ValueError):
+        return None
+    return port if 1 <= port <= 65535 else None
+
+
+def _migrate_entry(entry):
+    if not isinstance(entry, dict) or "target" not in entry:
+        return entry
+    out = {k: v for k, v in entry.items() if k != "target"}
+    target = entry["target"]
+    if out.get("kind") == "pages":
+        if "folder" not in out and isinstance(target, str) and target:
+            out["folder"] = target
+        return out
+    port = _as_source_port(target)
+    if port is not None:
+        out.setdefault("port", port)
+    elif isinstance(target, str) and target:
+        # 历史 run 条目可能把目录放在 target 里；其余脏数据直接丢弃。
+        out.setdefault("folder", target)
+    return out
+
+
+def migrate_entries(entries):
+    """v1 的 target 转成 v2 的 port/folder；纯函数，反复执行无副作用。"""
+    if not isinstance(entries, list):
+        return []
+    return [_migrate_entry(e) for e in entries if isinstance(e, dict)]
+
+
+def _backup_legacy_state(data):
+    """旧格式首次被覆盖前留一份；已存在则不覆盖，失败不阻断读取。"""
+    backup = runtime.STATE_FILE + ".v1-backup"
+    if os.path.exists(backup):
+        return backup
+    entries = _entries_from_raw(data) or []
+    legacy = isinstance(data, list) or (
+        isinstance(data, dict)
+        and data.get("schema_version") != STATE_SCHEMA_VERSION)
+    if not legacy and not any(isinstance(e, dict) and "target" in e
+                              for e in entries):
+        return ""
+    try:
+        save_json(backup, data)
+    except OSError:
+        return ""
+    return backup
+
+
+def scan_legacy_target():
+    """检查磁盘上的原始 state 是否还有遗留 target 字段（doctor 用）。"""
+    try:
+        with open(runtime.STATE_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        return []
+    return [e.get("id") or e.get("name") or "?"
+            for e in (_entries_from_raw(data) or [])
+            if isinstance(e, dict) and "target" in e]
 
 
 def state_issue():
@@ -150,7 +234,11 @@ def load_state():
         _STATE_ISSUE = {"home": runtime.HOME_DIR, "path": runtime.STATE_FILE,
                         "message": "状态文件无法读取：%s" % e}
         return []
-    return data if isinstance(data, list) else []
+    entries = _entries_from_raw(data)
+    if entries is None:
+        return []
+    _backup_legacy_state(data)
+    return migrate_entries(entries)
 
 
 def _quarantine_state(error):
@@ -175,7 +263,19 @@ def _quarantine_state(error):
 
 
 def save_state(entries):
-    save_json(runtime.STATE_FILE, entries)
+    extras = {}
+    try:
+        with open(runtime.STATE_FILE, "r", encoding="utf-8") as f:
+            existing = json.load(f)
+    except (OSError, ValueError):
+        existing = None
+    if existing is not None:
+        extras = _top_extras(existing)
+        _backup_legacy_state(existing)
+    payload = dict(extras)
+    payload["schema_version"] = STATE_SCHEMA_VERSION
+    payload["entries"] = list(entries)
+    save_json(runtime.STATE_FILE, payload)
 
 
 def load_activity():
