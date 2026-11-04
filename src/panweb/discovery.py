@@ -9,6 +9,7 @@ from . import runtime
 from .entries import core_list
 from .processes import (find_cloudflared, internal_ports, listening_ports,
                         probe_http)
+from .project_config import inspect_project_config
 from .store import ensure_private_dirs
 
 
@@ -73,7 +74,8 @@ def core_doctor(force=False):
             "python": {"path": sys.executable,
                        "version": "%d.%d.%d" % sys.version_info[:3],
                        "ok": py_ok},
-            "tools": tools}
+            "tools": tools,
+            "project_config": inspect_project_config(os.getcwd())}
     _DOCTOR_CACHE["data"] = data
     _DOCTOR_CACHE["ts"] = now
     return dict(data)

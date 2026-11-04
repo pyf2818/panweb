@@ -4,6 +4,7 @@
 参数解析与调度在 ``panweb.cli``。
 """
 import json
+import os
 import sys
 
 from .cli_input import (compat_kind as _compat_kind,
@@ -40,19 +41,11 @@ def _progress(args):
     return show
 
 
-def _effective_expires(args, defaults):
+def _expires_arg(args):
+    """只区分“显式指定”；未指定交给 core 按 配置 > 记忆 > 默认 解析。"""
     if getattr(args, "permanent", False):
         return ""
-    if getattr(args, "expires", None) is not None:
-        return args.expires
-    return defaults.get("expires") or ""
-
-
-def _effective_share(args, defaults):
-    wanted = getattr(args, "share", None)
-    if wanted is None:
-        return bool(defaults.get("share", True))
-    return bool(wanted)
+    return getattr(args, "expires", None)
 
 
 def cmd_discover(args):
@@ -76,14 +69,14 @@ def cmd_discover(args):
 
 
 def cmd_publish(args):
-    defaults = load_publish_defaults()
     entry = core_publish(args.port, args.name, pin=_resolve_cli_pin(args),
-                         expires=_effective_expires(args, defaults),
-                         share=_effective_share(args, defaults),
+                         expires=_expires_arg(args),
+                         share=getattr(args, "share", None),
                          auto_check=not args.no_check,
                          progress=_progress(args),
                          title=getattr(args, "title", None),
-                         desc=getattr(args, "desc", None))
+                         desc=getattr(args, "desc", None),
+                         folder=os.getcwd())
     if args.json:
         print(json.dumps({"ok": True, "data": _entry_for_json(entry)},
                          ensure_ascii=False))
@@ -110,9 +103,8 @@ def cmd_publish(args):
 
 
 def cmd_pages(args):
-    defaults = load_publish_defaults()
     entry = core_pages(args.folder, args.name, pin=_resolve_cli_pin(args),
-                       expires=_effective_expires(args, defaults),
+                       expires=_expires_arg(args),
                        auto_check=not args.no_check,
                        progress=_progress(args),
                        title=getattr(args, "title", None),
@@ -140,12 +132,11 @@ def cmd_pages(args):
 
 
 def cmd_run(args):
-    defaults = load_publish_defaults()
     entry = core_run(args.folder, args.name,
-                     share=_effective_share(args, defaults),
+                     share=getattr(args, "share", None),
                      auto_check=not args.no_check,
                      pin=_resolve_cli_pin(args),
-                     expires=_effective_expires(args, defaults),
+                     expires=_expires_arg(args),
                      progress=_progress(args),
                      title=getattr(args, "title", None),
                      desc=getattr(args, "desc", None))
@@ -296,6 +287,16 @@ def cmd_doctor(args):
         state = "✅" if tools.get(name) else "— 未安装（可选）"
         print("  %-11s %s" % (name + "：", state))
     print("  状态目录：%s ✅" % data["state_dir"])
+    cfg = data.get("project_config") or {}
+    if cfg.get("error"):
+        print("  .panweb.json：❌ %s" % cfg["error"]["message"])
+        if cfg["error"].get("hint"):
+            print("     → %s" % cfg["error"]["hint"])
+    else:
+        for warning in cfg.get("warnings") or []:
+            print("  .panweb.json：⚠️ %s" % warning["message"])
+        if cfg.get("exists") and not cfg.get("warnings"):
+            print("  .panweb.json：✅ 已读取")
     print("  总体：%s" % ("可以发布 🎉" if data["ready"] else "还差一步"))
 
 

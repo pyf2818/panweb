@@ -22,6 +22,7 @@ from .processes import (find_cloudflared, free_port, listening_ports,
                         port_listening, stop_process)
 from .project import core_detect
 from .publish_defaults import load_publish_defaults, remember_publish
+from .publish_options import notify_config_warnings, resolve_options
 from .publish_support import NODE_DEV_PORTS, emit as _emit, \
     ensure_publishable_port as _ensure_publishable_port, \
     is_risky_port, pick_port as _pick_port, sniff_port as _sniff_port
@@ -170,8 +171,15 @@ def _publish_port(port, name, extra=None, pin=None, serve_dir=None,
     return result
 
 
-def core_publish(port=None, name=None, pin=None, expires=None, share=False,
-                 auto_check=True, progress=None, title=None, desc=None):
+def core_publish(port=None, name=None, pin=None, expires=None, share=None,
+                 auto_check=True, progress=None, title=None, desc=None,
+                 folder=None):
+    opts = resolve_options(folder, port=port, name=name, expires=expires,
+                           share=share, title=title, desc=desc, pin=pin)
+    notify_config_warnings(opts, lambda m: _emit(progress, m))
+    port, name = opts["port"], opts["name"]
+    expires, share = opts["expires"], opts["share"]
+    title, desc, pin = opts["title"], opts["desc"], opts["pin"]
     if port is None:
         port = _pick_port(progress)
     else:
@@ -252,8 +260,8 @@ def core_set_pin(entry_id, pin, actor="ui"):
     return {"updated": True, "entry": entry}
 
 
-def core_run(folder=None, name=None, share=False, auto_check=True, pin=None,
-             expires=None, progress=None, title=None, desc=None):
+def core_run(folder=None, name=None, share=None, auto_check=True, pin=None,
+             expires=None, progress=None, title=None, desc=None, script=None):
     """识别项目类型 → 自动启动 → 等端口就绪 → 发布。"""
     folder = folder or "."
     _emit(progress, "识别项目类型…")
@@ -267,10 +275,28 @@ def core_run(folder=None, name=None, share=False, auto_check=True, pin=None,
                      % entry["name"], entry["url"])
         remember_publish(last_project=folder)
         return entry
-    if info["type"] != "node" or not info.get("script"):
+    if info["type"] != "node":
         raise PanwebError(2, "unsupported", info["detail"],
                           "可手动启动应用后用「发布端口」发布，"
                           "或先运行 panweb discover 确认端口")
+
+    opts = resolve_options(folder, script=script, name=name, expires=expires,
+                           share=share, title=title, desc=desc, pin=pin)
+    notify_config_warnings(opts, lambda m: _emit(progress, m))
+    script = opts["script"] or info.get("script")
+    scripts = info.get("scripts") or []
+    if not script:
+        raise PanwebError(2, "unsupported", info["detail"],
+                          "可手动启动应用后用「发布端口」发布，"
+                          "或在 .panweb.json 里指定 script")
+    if scripts and script not in scripts:
+        raise PanwebError(2, "invalid_argument",
+                          "package.json 没有脚本「%s」" % script,
+                          "可用脚本：%s" % "、".join(scripts))
+    name, expires, share = opts["name"], opts["expires"], opts["share"]
+    title, desc = opts["title"], opts["desc"]
+    pin = normalize_pin(opts["pin"])
+
     npm = shutil.which("npm")
     if not npm:
         raise PanwebError(3, "dependency_missing", "未找到 npm",
@@ -281,10 +307,10 @@ def core_run(folder=None, name=None, share=False, auto_check=True, pin=None,
                            "run-%s.log" % uuid.uuid4().hex[:6])
     baseline_ports = ({p for p, _ in listening_ports()}
                       if shutil.which("lsof") else set())
-    _emit(progress, "启动项目（npm run %s）…" % info["script"])
+    _emit(progress, "启动项目（npm run %s）…" % script)
     logf = open(app_log, "ab", buffering=0)
     try:
-        proc = subprocess.Popen([npm, "run", info["script"]], cwd=folder,
+        proc = subprocess.Popen([npm, "run", script], cwd=folder,
                                 stdout=logf, stderr=subprocess.STDOUT,
                                 stdin=subprocess.DEVNULL, start_new_session=True)
     except OSError as e:
@@ -320,7 +346,7 @@ def core_run(folder=None, name=None, share=False, auto_check=True, pin=None,
         entry = _publish_port(
             port, name or os.path.basename(folder),
             extra={"app_pid": proc.pid, "app_log": app_log, "launched": True},
-            pin=normalize_pin(pin), expires_at=parse_expires(expires),
+            pin=pin, expires_at=parse_expires(expires),
             share=share, auto_check=auto_check, progress=progress,
             title=title, desc=desc)
     except BaseException:
@@ -331,7 +357,7 @@ def core_run(folder=None, name=None, share=False, auto_check=True, pin=None,
     remember_publish(last_project=folder, last_port=port,
                      expires=expires or "", share=bool(share))
     log_activity("publish", "启动并发布了「%s」（npm run %s，端口 %d）"
-                 % (entry["name"], info["script"], port), entry["url"])
+                 % (entry["name"], script, port), entry["url"])
     return entry
 
 
@@ -339,7 +365,13 @@ def core_pages(folder=None, name=None, pin=None, expires=None, auto_check=True,
                progress=None, title=None, desc=None):
     folder = os.path.abspath(os.path.expanduser(folder or "."))
     if not os.path.isdir(folder):
-        raise PanwebError(2, "invalid_argument", "文件夹不存在：%s" % folder)
+        raise PanwebError(2, "invalid_argument", "文件夹不存在：%s" % folder,
+                          "确认路径存在；相对路径基于当前工作目录")
+    opts = resolve_options(folder, name=name, expires=expires, pin=pin,
+                           title=title, desc=desc, share=False)
+    notify_config_warnings(opts, lambda m: _emit(progress, m))
+    name, expires = opts["name"], opts["expires"]
+    title, desc, pin = opts["title"], opts["desc"], opts["pin"]
     _emit(progress, "检查网页文件夹…")
     check_pages_folder(folder)
     pin = normalize_pin(pin)
