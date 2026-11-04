@@ -70,7 +70,16 @@ class CliTests(unittest.TestCase):
                     "license", "check", "compat", "report", "update"):
             self.assertIn(cmd, out.stdout)
 
-    def test_license_status_development(self):
+    def test_license_status_without_key_is_closed(self):
+        out = self.run_cli("license", "status", "--json")
+        self.assertEqual(out.returncode, 0, out.stderr)
+        payload = json.loads(out.stdout)
+        self.assertTrue(payload["ok"])
+        self.assertEqual(payload["data"]["mode"], "misconfigured")
+        self.assertFalse(payload["data"]["can_publish"])
+
+    def test_license_status_explicit_dev_mode(self):
+        self.env["PANWEB_LICENSE_OFF"] = "1"
         out = self.run_cli("license", "status", "--json")
         self.assertEqual(out.returncode, 0, out.stderr)
         payload = json.loads(out.stdout)

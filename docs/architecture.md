@@ -323,7 +323,7 @@ ui/src/manifest.json       # 组装顺序
 | `PANWEB_CLOUDFLARED` | 指定 cloudflared 二进制 |
 | `PANWEB_TUNNEL_PROTOCOL` | 强制隧道传输：`auto` / `quic` / `http2`；不设则探测 UDP 443 |
 | `PANWEB_LICENSE_PUBKEY` | 覆盖内置验签公钥路径 |
-| `PANWEB_LICENSE_OFF` | 关闭许可门禁（开源/自托管构建线） |
+| `PANWEB_LICENSE_OFF` | 显式关闭许可门禁（源码开发/内部测试）；未设置且无公钥时默认拒绝发布 |
 | `PANWEB_TRIAL_DAYS` | 试用天数（默认 14） |
 | `PANWEB_MACHINE_ID` | 覆盖机器指纹（仅测试） |
 | `PANWEB_SIGN_IDENTITY` | Developer ID 签名身份；不设则 ad-hoc，签名失败也不阻断构建 |

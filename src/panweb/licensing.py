@@ -2,7 +2,8 @@
 
 许可密钥格式：PWV1.<base64url(payload)>.<base64url(signature)>
 签名算法：RSA PKCS#1 v1.5 + SHA-256（公钥内置，无联网校验）。
-未配置公钥的构建为开发模式，不限制功能；发行版由构建者注入公钥。
+缺省 fail-closed：没有可用公钥时拒绝发布；只有显式 PANWEB_LICENSE_OFF=1
+才进入开发模式。发行版由构建者注入公钥。
 """
 import base64
 import hashlib
@@ -25,7 +26,6 @@ PRODUCT = "panweb"
 KEY_PREFIX = "PWV1"
 TRIAL_DAYS = max(1, int(os.environ.get("PANWEB_TRIAL_DAYS", "14") or 14))
 SHA256_DIGEST_INFO = bytes.fromhex("3031300d060960864801650304020105000420")
-LICENSE_OFF = os.environ.get("PANWEB_LICENSE_OFF") == "1"
 LICENSE_PUBKEY_PATH = "assets/license_public_key.pem"
 
 _PUBKEY_CACHE = {}
@@ -222,6 +222,23 @@ def _fmt_date(ts):
         return ""
 
 
+def _dev_mode():
+    """只有显式开关才跳过许可；配置缺失不能等于自动授权。"""
+    return os.environ.get("PANWEB_LICENSE_OFF") == "1"
+
+
+def _misconfigured_status():
+    return {"mode": "misconfigured", "configured": False, "can_publish": False,
+            "activation_required": False, "edition": None, "license_id": None,
+            "machine": machine_id(), "devices": None,
+            "updates_until": None, "updates_until_text": "",
+            "updates_active": False, "trial_ends": None,
+            "trial_ends_text": "", "trial_days_left": None,
+            "message": "许可校验未配置：本构建没有可用公钥，已拒绝发布",
+            "hint": "发行版请注入 PANWEB_LICENSE_PUBKEY 或内置公钥；"
+                    "源码开发需显式设置 PANWEB_LICENSE_OFF=1"}
+
+
 def _dev_status():
     return {"mode": "development", "configured": False, "can_publish": True,
             "activation_required": False, "edition": None, "license_id": None,
@@ -235,8 +252,10 @@ def _dev_status():
 
 def license_status(start_trial=True):
     """返回许可状态。配置公钥后首次调用即开始试用。"""
-    if LICENSE_OFF or not public_key_pem():
+    if _dev_mode():
         return _dev_status()
+    if not public_key_pem():
+        return _misconfigured_status()
     data = _load_file()
     rec = data.get("license")
     base = {"configured": True, "machine": machine_id(),
@@ -304,8 +323,9 @@ def activate_license(key):
     pem = public_key_pem()
     if not pem:
         raise PanwebError(3, "license_not_configured",
-                          "此构建未启用许可校验",
-                          "开发版无需激活；发行版需内置许可公钥")
+                          "许可公钥缺失，无法激活",
+                          "发行版需注入/内置公钥；源码开发需显式设置 "
+                          "PANWEB_LICENSE_OFF=1")
     try:
         payload = verify_license_key(key)
     except LicenseError as e:

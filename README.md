@@ -35,7 +35,7 @@ panweb publish 3000 --share
 
 | | UUMit | panweb |
 | --- | --- | --- |
-| 费用 | 免费档 + 实名认证 | 商业发行版一次买断（14 天试用）；源码开发模式不限制 |
+| 费用 | 免费档 + 实名认证 | 商业发行版一次买断（14 天试用）；源码开发需显式 `PANWEB_LICENSE_OFF=1` 才不限制 |
 | 需要服务器 | 否（平台方承担） | **否**（Cloudflare 边缘承担） |
 | 隧道内核 | frp（自建服务端） | cloudflared 快速隧道 |
 | 网址 | 固定设备子域名 | 每次发布随机（重启即变） |
@@ -318,7 +318,7 @@ panweb license deactivate             # 换机前解除本机绑定
 - 首次运行开始 **14 天试用**；到期后仍可查看/停止已有发布，但不能新建发布或云端托管。
 - **1 年更新**落在 `panweb update`：窗口内可取回新 dmg，窗口过期后命令直接拒绝（`license_expired`），已装版本继续可用不受影响——买断的"永久使用"与"限时更新"是两件事。
 - 许可是 RSA PKCS#1 v1.5 + SHA-256 离线签名，与本机指纹绑定；不建账号、不上传设备信息。
-- **源码开发模式**：仓库默认不含公钥，`mode=development`，不限制功能；发行构建由所有者生成密钥并把公钥放到 `assets/license_public_key.pem` 后启用校验。
+- **许可默认 fail-closed**：仓库默认不含公钥，此时 `mode=misconfigured` 并**拒绝发布**；源码开发需显式设置 `PANWEB_LICENSE_OFF=1` 才进入 `development`。发行构建由所有者生成密钥并把公钥放到 `assets/license_public_key.pem` 后启用试用/激活校验。
 - 卖家侧签发与构建流程：见 [docs/licensing.md](docs/licensing.md) 与 `tools/license_tool.py`。
 - 本仓库自身尚未声明 LICENSE；公开分发前请由所有者补充 EULA/版权声明。
 
@@ -337,7 +337,7 @@ make dmg                           # macOS 安装包 → dist/panweb-<版本>-<�
 按这份清单校验 SHA-256；清单缺失或摘要对不上时直接拒绝取回，不会下载、更不会打开升级包。
 
 - `tests/` 按主题平铺（不是按包分层）：路径/状态/访问/许可/管道单元测试、CLI 合约、代理分享页/PIN/过期、WebSocket 透传、上游兼容（转发头构造、凭据归一化与注入拒绝）、访客自检（结论判定/资源抽样/裸 TLS WebSocket/Host 取证修正）、隧道传输（QUIC 探测与 http2 回退）、真终端（假 Agent 跑在 PTY 里，验证 argv 白名单、尺寸传递、退出码、缓冲上限与 SSE 游标补发）、自愈与孤儿隧道回收（死隧道不进取用池、恢复未验证通过就不写状态）、诊断包（脱敏字段与"混进密钥就拒绝出包"的自审）、签名与公证（没配身份退回 ad-hoc、配了就先里后外）、更新（版本比较、按架构挑包、许可窗口拒绝、缺 SHA256SUMS 即拒绝、下载大小核对与摘要校验）、控制台安全、前端构建与模块体积约束、子进程代理集成（真实拉起 `_spawn_proxy` 后转发/分享页/口令/代填凭据）。
-- **发行构建的可控项**（都靠环境变量，缺省即安全退回）：`PANWEB_SIGN_IDENTITY`（Developer ID 身份，空则 ad-hoc）、`PANWEB_NOTARY_PROFILE` 或 `PANWEB_APPLE_KEY_ID`/`PANWEB_APPLE_ISSUER_ID`/`PANWEB_APPLE_P8`（公证凭据，缺则跳过公证）、`PANWEB_RELEASE_REPO`（更新来源仓库，默认 `pyf2818/panweb`）、`PANWEB_LICENSE_PUBKEY`（发行时注入公钥后许可校验才生效）。
+- **发行构建的可控项**（都靠环境变量，缺省即安全退回）：`PANWEB_SIGN_IDENTITY`（Developer ID 身份，空则 ad-hoc）、`PANWEB_NOTARY_PROFILE` 或 `PANWEB_APPLE_KEY_ID`/`PANWEB_APPLE_ISSUER_ID`/`PANWEB_APPLE_P8`（公证凭据，缺则跳过公证）、`PANWEB_RELEASE_REPO`（更新来源仓库，默认 `pyf2818/panweb`）、`PANWEB_LICENSE_PUBKEY`（发行时注入公钥后许可校验才生效；未注入时默认拒绝发布，源码开发需显式 `PANWEB_LICENSE_OFF=1`）。
 - 状态目录可用 `PANWEB_HOME` 隔离（测试与便携模式）；panweb 拉起的代理/控制台子进程会继承它。
 - CI：`.github/workflows/test.yml` 在 Python 3.9/3.11/3.12 上跑语法编译、223 项测试、前端产物一致性检查与 zipapp 构建；另设 macOS job 验证 App/dmg 打包与内置许可文件，ruff 只拦语法/未定义名这类真错误，覆盖率下限 50%（子进程测试不计入，当前实测约 55%）。
 - 第三方组件与许可证：见 `THIRD_PARTY_NOTICES.md`（cloudflared Apache-2.0、QR 库 MIT）。

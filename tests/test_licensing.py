@@ -57,10 +57,26 @@ class LicensingTests(unittest.TestCase):
                 os.environ[key] = value
         shutil.rmtree(cls.keys, ignore_errors=True)
 
-    def test_dev_mode_without_public_key(self):
+    def test_missing_public_key_is_fail_closed(self):
+        with temp_home("panweb-lic-nokey-default-"):
+            with mock.patch.object(licensing, "public_key_pem",
+                                   return_value=None), \
+                    mock.patch.dict(os.environ,
+                                    {"PANWEB_LICENSE_OFF": "0"}):
+                status = licensing.license_status()
+                self.assertEqual(status["mode"], "misconfigured")
+                self.assertFalse(status["can_publish"])
+                with self.assertRaises(PanwebError) as ctx:
+                    licensing.require_publish_license()
+            self.assertEqual(ctx.exception.exit_code, 10)
+            self.assertIn("公钥", ctx.exception.message)
+
+    def test_explicit_dev_mode_reopens_publish(self):
         with temp_home("panweb-lic-dev-"):
             with mock.patch.object(licensing, "public_key_pem",
-                                   return_value=None):
+                                   return_value=None), \
+                    mock.patch.dict(os.environ,
+                                    {"PANWEB_LICENSE_OFF": "1"}):
                 status = licensing.license_status()
             self.assertEqual(status["mode"], "development")
             self.assertTrue(status["can_publish"])

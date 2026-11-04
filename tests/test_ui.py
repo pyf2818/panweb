@@ -22,6 +22,8 @@ class UiSecurityTests(unittest.TestCase):
         cls.home = cls.ctx.__enter__()
         cls.saved_env = (os.environ.pop("PANWEB_LICENSE_PUBKEY", None),
                          os.environ.pop("PANWEB_LICENSE_OFF", None))
+        # 控制台安全测试不关心许可，显式开发模式避免被 fail-closed 门禁拦截。
+        os.environ["PANWEB_LICENSE_OFF"] = "1"
         store.ensure_private_dirs()
         cls.server = ThreadingHTTPServer(("127.0.0.1", 0), UiHandler)
         cls.server.daemon_threads = True

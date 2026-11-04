@@ -86,7 +86,8 @@ panweb license deactivate
 
 | 变体 | 公钥 | 行为 |
 | --- | --- | --- |
-| 源码/开发 | 无 `assets/license_public_key.pem` | `development`，不限制功能 |
+| 配置缺失 | 无公钥且未显式开关 | `misconfigured`，**拒绝发布**（fail-closed） |
+| 源码/开发 | 无公钥 + `PANWEB_LICENSE_OFF=1` | `development`，不限制功能 |
 | 试用发行 | 有公钥，无许可 | 首次运行开始 14 天试用 |
 | 买断发行 | 有公钥 | 用户激活后长期可用 |
 | 内部测试 | `PANWEB_LICENSE_OFF=1` | 强制开发模式（不要用于发行） |
@@ -94,7 +95,7 @@ panweb license deactivate
 相关环境变量（仅调试/测试）：
 
 - `PANWEB_LICENSE_PUBKEY`：公钥 PEM 或路径，覆盖内置公钥。
-- `PANWEB_LICENSE_OFF=1`：关闭校验。
+- `PANWEB_LICENSE_OFF=1`：显式关闭校验；未设置且无公钥时按配置错误拒绝发布。
 - `PANWEB_TRIAL_DAYS=N`：试用天数。
 - `PANWEB_MACHINE_ID=...`：覆盖机器指纹（测试用）。
 
