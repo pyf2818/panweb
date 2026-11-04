@@ -53,6 +53,10 @@ def build_parser():
     p.add_argument("port", type=int, nargs="?",
                    help="应用端口；省略时自动选上次用的或唯一候选")
     p.add_argument("--name", help="应用名称（默认 port-<端口>）")
+    p.add_argument("--title", help="分享页标题（≤80 字符，默认用应用名称）")
+    p.add_argument("--desc", help="分享页说明（≤300 字符）")
+    p.add_argument("--qr", action="store_true",
+                   help="发布后在终端打印分享页二维码")
     p.add_argument("--pin", help="设置访问口令（打开网址需先输入口令）")
     p.add_argument("--pin-stdin", action="store_true",
                    help="从 stdin 读取口令，避免出现在进程列表中")
@@ -72,6 +76,10 @@ def build_parser():
     p.add_argument("folder", nargs="?", default=".",
                    help="网页文件夹（默认当前目录）")
     p.add_argument("--name", help="页面名称（默认文件夹名）")
+    p.add_argument("--title", help="分享页标题（≤80 字符，默认用页面名称）")
+    p.add_argument("--desc", help="分享页说明（≤300 字符）")
+    p.add_argument("--qr", action="store_true",
+                   help="发布后在终端打印分享页二维码")
     p.add_argument("--pin", help="设置访问口令（打开网址需先输入口令）")
     p.add_argument("--pin-stdin", action="store_true",
                    help="从 stdin 读取口令，避免出现在进程列表中")
@@ -87,6 +95,10 @@ def build_parser():
     p.add_argument("folder", nargs="?", default=".",
                    help="项目文件夹（默认当前目录）")
     p.add_argument("--name", help="应用名称（默认文件夹名）")
+    p.add_argument("--title", help="分享页标题（≤80 字符，默认用应用名称）")
+    p.add_argument("--desc", help="分享页说明（≤300 字符）")
+    p.add_argument("--qr", action="store_true",
+                   help="发布后在终端打印分享页二维码")
     p.add_argument("--pin", help="设置访问口令（打开网址需先输入口令）")
     p.add_argument("--pin-stdin", action="store_true",
                    help="从 stdin 读取口令，避免出现在进程列表中")

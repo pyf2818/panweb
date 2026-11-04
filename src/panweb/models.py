@@ -20,3 +20,10 @@ def entry_share_url(entry, domain=None):
     if not base or not token or not entry.get("proxy_port"):
         return None
     return base + "/__panweb/share/" + token
+
+
+def entry_title(entry):
+    """分享页与卡片展示的标题：自定义 title 优先，退回应用名。"""
+    return ((entry.get("title") or "").strip()
+            or (entry.get("name") or "").strip()
+            or "panweb")

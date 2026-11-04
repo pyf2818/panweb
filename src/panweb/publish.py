@@ -27,11 +27,36 @@ NODE_DEV_PORTS = [3000, 3001, 5173, 5174, 4321, 1420, 8000, 8080, 8888]
 PORT_HINT_RE = re.compile(
     r"(?:localhost|127\.0\.0\.1|0\.0\.0\.0|::1?|\[[^\]]+\]):(\d{2,5})", re.I)
 DEFAULTS_KEY = "publish_defaults"
+TITLE_MAX = 80
+DESC_MAX = 300
 
 
 def _emit(progress, message):
     if progress:
         progress(message)
+
+
+def _normalize_text(value, limit, label):
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    if any(ord(ch) < 0x20 or ord(ch) == 0x7f for ch in text):
+        raise PanwebError(2, "invalid_argument",
+                          "%s不能包含换行或控制字符" % label)
+    if len(text) > limit:
+        raise PanwebError(2, "invalid_argument",
+                          "%s过长（最多 %d 个字符）" % (label, limit))
+    return text
+
+
+def normalize_title(value):
+    return _normalize_text(value, TITLE_MAX, "标题")
+
+
+def normalize_desc(value):
+    return _normalize_text(value, DESC_MAX, "说明")
 
 
 def load_publish_defaults():
@@ -120,8 +145,10 @@ def _spawn_proxy(listen_port, entry_id, target_port=None, serve_dir=None,
 def _publish_port(port, name, extra=None, pin=None, serve_dir=None,
                   expires_at=None, share=False, auto_check=True,
                   register=True, progress=None, entry_id=None,
-                  keep_secrets=False):
+                  keep_secrets=False, title=None, desc=None):
     """发布端口的共用实现（CLI / API / run 共用）。"""
+    title = normalize_title(title)
+    desc = normalize_desc(desc)
     _emit(progress, "检查发布许可与隧道引擎…")
     require_publish_license()
     cf = find_cloudflared()
@@ -187,6 +214,10 @@ def _publish_port(port, name, extra=None, pin=None, serve_dir=None,
             "risky": is_risky_port(port),
             "started": time.strftime("%Y-%m-%d %H:%M:%S"),
         }
+        if title:
+            entry["title"] = title
+        if desc:
+            entry["desc"] = desc
         if expires_at:
             entry_extra["expires_at"] = expires_at
         if extra:
@@ -235,7 +266,7 @@ def _ensure_publishable_port(port):
 
 
 def core_publish(port=None, name=None, pin=None, expires=None, share=False,
-                 auto_check=True, progress=None):
+                 auto_check=True, progress=None, title=None, desc=None):
     if port is None:
         port = _pick_port(progress)
     else:
@@ -254,7 +285,7 @@ def core_publish(port=None, name=None, pin=None, expires=None, share=False,
             "或到「启动项目」让 panweb 替你启动")
     entry = _publish_port(port, name, pin=pin, expires_at=parse_expires(expires),
                           share=share, auto_check=auto_check,
-                          progress=progress)
+                          progress=progress, title=title, desc=desc)
     remember_publish(last_port=port, expires=expires or "",
                      share=bool(share))
     log_activity("publish", "发布了应用「%s」%s%s" % (
@@ -278,7 +309,7 @@ def core_set_pin(entry_id, pin, actor="ui"):
         require_publish_license()
         extra = {k: entry[k] for k in
                  ("app_pid", "app_log", "launched", "risky", "host_mode",
-                  "desc") if k in entry}
+                  "desc", "title") if k in entry}
         try:
             new_entry = _publish_port(entry.get("target"), entry.get("name"),
                                       pin=pin, extra=extra,
@@ -366,7 +397,7 @@ def _sniff_port(log_path):
 
 
 def core_run(folder=None, name=None, share=False, auto_check=True, pin=None,
-             expires=None, progress=None):
+             expires=None, progress=None, title=None, desc=None):
     """识别项目类型 → 自动启动 → 等端口就绪 → 发布。"""
     folder = folder or "."
     _emit(progress, "识别项目类型…")
@@ -375,7 +406,7 @@ def core_run(folder=None, name=None, share=False, auto_check=True, pin=None,
     if info["type"] == "static":
         _emit(progress, "静态网页，直接发布…")
         entry = core_pages(folder, name, pin=pin, expires=expires,
-                           progress=progress)
+                           progress=progress, title=title, desc=desc)
         log_activity("publish", "识别为静态网页，直接发布了「%s」"
                      % entry["name"], entry["url"])
         remember_publish(last_project=folder)
@@ -434,7 +465,8 @@ def core_run(folder=None, name=None, share=False, auto_check=True, pin=None,
             port, name or os.path.basename(folder),
             extra={"app_pid": proc.pid, "app_log": app_log, "launched": True},
             pin=normalize_pin(pin), expires_at=parse_expires(expires),
-            share=share, auto_check=auto_check, progress=progress)
+            share=share, auto_check=auto_check, progress=progress,
+            title=title, desc=desc)
     except BaseException:
         # 发布失败就回收刚拉起的项目进程；否则用户只能看到一个不知从哪来的
         # npm/node 进程继续占着端口，重试还会撞端口。
@@ -448,7 +480,7 @@ def core_run(folder=None, name=None, share=False, auto_check=True, pin=None,
 
 
 def core_pages(folder=None, name=None, pin=None, expires=None, auto_check=True,
-               progress=None):
+               progress=None, title=None, desc=None):
     folder = os.path.abspath(os.path.expanduser(folder or "."))
     if not os.path.isdir(folder):
         raise PanwebError(2, "invalid_argument", "文件夹不存在：%s" % folder)
@@ -459,7 +491,8 @@ def core_pages(folder=None, name=None, pin=None, expires=None, auto_check=True,
                           extra={"kind": "pages", "target": folder},
                           pin=pin, serve_dir=folder,
                           expires_at=parse_expires(expires),
-                          auto_check=auto_check, progress=progress)
+                          auto_check=auto_check, progress=progress,
+                          title=title, desc=desc)
     remember_publish(last_folder=folder, expires=expires or "")
     log_activity("publish", "发布了网页「%s」%s" % (
         entry["name"], "（已设置访问口令）" if pin else ""), entry["url"])

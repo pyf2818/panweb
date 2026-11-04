@@ -118,13 +118,29 @@ def cmd_discover(args):
     print("\n发布：panweb publish <端口>")
 
 
+def _print_share_qr(args, entry):
+    """只在人读模式下打印终端二维码；JSON 模式保持干净。"""
+    if not getattr(args, "qr", False):
+        return
+    target = entry.get("share_url") or entry.get("url")
+    if not target:
+        return
+    from .qr import encode, render_terminal
+    try:
+        print(render_terminal(encode(target)))
+    except ValueError:
+        print("   （链接过长，未生成二维码；请直接使用上面的链接）")
+
+
 def cmd_publish(args):
     defaults = load_publish_defaults()
     entry = core_publish(args.port, args.name, pin=_resolve_cli_pin(args),
                          expires=_effective_expires(args, defaults),
                          share=_effective_share(args, defaults),
                          auto_check=not args.no_check,
-                         progress=_progress(args))
+                         progress=_progress(args),
+                         title=getattr(args, "title", None),
+                         desc=getattr(args, "desc", None))
     if args.json:
         print(json.dumps({"ok": True, "data": _entry_for_json(entry)},
                          ensure_ascii=False))
@@ -133,6 +149,7 @@ def cmd_publish(args):
     print("   公网网址：%s" % entry["url"])
     if entry.get("share_url"):
         print("   分享页：%s" % entry["share_url"])
+    _print_share_qr(args, entry)
     print("   本地来源：%s" % _source_text(entry))
     if entry["reachable"] and entry["dns_slow"]:
         print("   提示：本地 DNS 对新网址传播较慢，打不开时稍等几分钟再试"
@@ -154,7 +171,9 @@ def cmd_pages(args):
     entry = core_pages(args.folder, args.name, pin=_resolve_cli_pin(args),
                        expires=_effective_expires(args, defaults),
                        auto_check=not args.no_check,
-                       progress=_progress(args))
+                       progress=_progress(args),
+                       title=getattr(args, "title", None),
+                       desc=getattr(args, "desc", None))
     if args.json:
         print(json.dumps({"ok": True, "data": _entry_for_json(entry)},
                          ensure_ascii=False))
@@ -163,6 +182,7 @@ def cmd_pages(args):
     print("   公网网址：%s" % entry["url"])
     if entry.get("share_url"):
         print("   分享页：%s" % entry["share_url"])
+    _print_share_qr(args, entry)
     print("   文件夹：%s（只读，原始文件不会被修改）" % _source_text(entry))
     if entry["reachable"] and entry["dns_slow"]:
         print("   提示：本地 DNS 对新网址传播较慢，打不开时稍等几分钟再试"
@@ -183,7 +203,9 @@ def cmd_run(args):
                      auto_check=not args.no_check,
                      pin=_resolve_cli_pin(args),
                      expires=_effective_expires(args, defaults),
-                     progress=_progress(args))
+                     progress=_progress(args),
+                     title=getattr(args, "title", None),
+                     desc=getattr(args, "desc", None))
     if args.json:
         print(json.dumps({"ok": True, "data": _entry_for_json(entry)},
                          ensure_ascii=False))
@@ -192,6 +214,7 @@ def cmd_run(args):
     print("   公网网址：%s" % entry["url"])
     if entry.get("share_url"):
         print("   分享页：%s" % entry["share_url"])
+    _print_share_qr(args, entry)
     print("   本地来源：%s（由 panweb 启动）" % _source_text(entry))
     if entry["reachable"] and entry["dns_slow"]:
         print("   提示：本地 DNS 对新网址传播较慢，打不开时稍等几分钟再试"

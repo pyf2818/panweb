@@ -1,6 +1,5 @@
 """控制台 API 路由：GET 查询与 POST 动作。"""
 import os
-import re
 import signal
 import threading
 import time
@@ -25,7 +24,7 @@ from .licensing import (activate_license, deactivate_license,
 from .menubar import core_install_menubar
 from .models import entry_share_url
 from .publish import (core_detect, core_pages, core_publish, core_run,
-                      core_set_pin, load_publish_defaults)
+                      core_set_pin, load_publish_defaults, normalize_desc)
 from .share import new_share_token
 from .store import (json_lock, load_activity, load_domain, load_meta,
                     load_state, log_activity, save_meta, save_state,
@@ -176,16 +175,19 @@ def handle_post(handler, path, body):
         return _run_or_job(handler, body, "publish", lambda progress: core_publish(
             body.get("port"), body.get("name"), pin=body.get("pin"),
             expires=body.get("expires"), share=bool(body.get("share")),
-            progress=progress)) or True
+            progress=progress, title=body.get("title"),
+            desc=body.get("desc"))) or True
     if path == "/api/pages":
         return _run_or_job(handler, body, "pages", lambda progress: core_pages(
             body.get("folder"), body.get("name"), pin=body.get("pin"),
-            expires=body.get("expires"), progress=progress)) or True
+            expires=body.get("expires"), progress=progress,
+            title=body.get("title"), desc=body.get("desc"))) or True
     if path == "/api/run":
         return _run_or_job(handler, body, "run", lambda progress: core_run(
             body.get("folder"), body.get("name"),
             share=bool(body.get("share")), pin=body.get("pin"),
-            expires=body.get("expires"), progress=progress)) or True
+            expires=body.get("expires"), progress=progress,
+            title=body.get("title"), desc=body.get("desc"))) or True
     if path == "/api/stop":
         stopped = core_stop(body.get("target") or "all")
         return handler.send_json({"ok": True, "data": {
@@ -340,8 +342,7 @@ def _set_pin(handler, body):
 
 def _share(handler, body):
     entry_id = body.get("id")
-    desc = (body.get("desc") or "").strip()
-    desc = re.sub(r"[\x00-\x1f\x7f]+", " ", desc)[:120]
+    desc = normalize_desc(body.get("desc")) or ""
     with state_lock():
         entries = load_state()
         for e in entries:
