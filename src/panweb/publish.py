@@ -16,7 +16,7 @@ from .entries import replace_entry, register_entry, stop_entry, \
 from .errors import PanwebError
 from .licensing import require_publish_license
 from .lifecycle import parse_expires
-from .models import entry_share_url
+from .models import entry_port, entry_share_url
 from .pins import normalize_pin, write_pin
 from .processes import (find_cloudflared, free_port, listening_ports,
                         port_listening, stop_process)
@@ -124,13 +124,16 @@ def _publish_port(port, name, extra=None, pin=None, serve_dir=None,
         entry = {
             "id": entry_id,
             "name": name or ("port-%d" % port),
-            "kind": "port",
-            "target": port,
+            "kind": "pages" if serve_dir else "port",
             "url": url,
             "pid": tunnel_pid,
             "risky": is_risky_port(port),
             "started": time.strftime("%Y-%m-%d %H:%M:%S"),
         }
+        if serve_dir:
+            entry["folder"] = serve_dir
+        else:
+            entry["port"] = port
         if title:
             entry["title"] = title
         if desc:
@@ -224,7 +227,7 @@ def core_set_pin(entry_id, pin, actor="ui"):
                  ("app_pid", "app_log", "launched", "risky", "host_mode",
                   "desc", "title") if k in entry}
         try:
-            new_entry = _publish_port(entry.get("target"), entry.get("name"),
+            new_entry = _publish_port(entry_port(entry), entry.get("name"),
                                       pin=pin, extra=extra,
                                       expires_at=entry.get("expires_at"),
                                       register=False, auto_check=False,
@@ -376,7 +379,6 @@ def core_pages(folder=None, name=None, pin=None, expires=None, auto_check=True,
     check_pages_folder(folder)
     pin = normalize_pin(pin)
     entry = _publish_port(0, name or os.path.basename(folder),
-                          extra={"kind": "pages", "target": folder},
                           pin=pin, serve_dir=folder,
                           expires_at=parse_expires(expires),
                           auto_check=auto_check, progress=progress,

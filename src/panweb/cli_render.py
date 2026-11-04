@@ -3,16 +3,16 @@
 只做“取数据 + 打印”，业务逻辑仍在 core 模块。
 """
 from .healthcheck import await_check
-from .models import entry_local_port
+from .models import entry_folder, entry_port
 
 CHECK_ICONS = {"ok": "✅", "warn": "⚠️", "blocked": "❌"}
 
 
 def source_text(entry):
-    """target 是端口或文件夹的联合类型，渲染前必须按 kind 分支。"""
+    """按 kind 分发：pages 显示文件夹，端口条目显示本机源地址。"""
     if entry.get("kind") == "pages":
-        return entry.get("target") or ""
-    return "http://127.0.0.1:%s" % entry_local_port(entry)
+        return entry_folder(entry) or ""
+    return "http://127.0.0.1:%s" % entry_port(entry)
 
 
 def render_check(check, indent="   "):

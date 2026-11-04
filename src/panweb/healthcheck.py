@@ -18,7 +18,7 @@ import urllib.request
 from . import runtime, upstream
 from .entries import find_entry
 from .errors import PanwebError
-from .models import entry_public_url
+from .models import entry_port, entry_public_url
 from .store import load_domain, load_state, log_activity, save_state, state_lock
 from .tunnel import pinned_status
 
@@ -292,10 +292,7 @@ def host_evidence(entry, url, visitor_host=None, timeout=4.0):
     """
     if entry.get("kind") == "pages":
         return None
-    try:
-        port = int(entry.get("target") or 0)
-    except (TypeError, ValueError):
-        return None
+    port = entry_port(entry) or 0
     public_host = visitor_host or urllib.parse.urlsplit(url).netloc
     if not port or not public_host:
         return None

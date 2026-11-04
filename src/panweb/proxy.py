@@ -10,6 +10,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from . import runtime, upstream
 from .forwarder import duplex
+from .models import entry_folder, entry_port
 from .pins import (pin_clear_fail, pin_record_fail, pin_retry_after,
                    pin_session, read_pin_record, verify_pin)
 from .processes import port_listening
@@ -150,12 +151,10 @@ class ProxyHandler(BaseHTTPRequestHandler):
         if not entry:
             return False
         if entry.get("kind") == "pages":
-            target = entry.get("target") or self.server.serve_dir or ""
-            return bool(target and os.path.isdir(target))
-        try:
-            return port_listening(int(entry.get("target")))
-        except (TypeError, ValueError):
-            return False
+            folder = entry_folder(entry) or self.server.serve_dir or ""
+            return bool(folder and os.path.isdir(folder))
+        port = entry_port(entry)
+        return port is not None and port_listening(port)
 
     def _send_html(self, body, status=200):
         data = body.encode("utf-8")

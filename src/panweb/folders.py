@@ -9,6 +9,7 @@ import os
 
 from . import safety
 from .errors import PanwebError
+from .models import entry_folder
 from .store import load_state
 
 MAX_ENTRIES = 400
@@ -33,9 +34,9 @@ def quick_picks():
            for rel, label in QUICK_LABELS]
     out = [p for p in out if os.path.isdir(p["path"])]
     for entry in load_state():
-        target = str(entry.get("target") or "")
-        if entry.get("kind") in ("pages", "run") and os.path.isdir(target):
-            out.append({"label": entry.get("name") or "上次发布", "path": target})
+        folder = entry_folder(entry) or ""
+        if folder and os.path.isdir(folder):
+            out.append({"label": entry.get("name") or "上次发布", "path": folder})
     return _dedupe(out)
 
 

@@ -287,6 +287,12 @@ def cmd_doctor(args):
         state = "✅" if tools.get(name) else "— 未安装（可选）"
         print("  %-11s %s" % (name + "：", state))
     print("  状态目录：%s ✅" % data["state_dir"])
+    legacy = data.get("legacy_target") or {}
+    if legacy.get("count"):
+        print("  状态字段：⚠️ %s" % legacy.get("message"))
+        print("     → %s" % legacy.get("hint"))
+    else:
+        print("  状态字段：✅ state v2（无遗留 target 字段）")
     cfg = data.get("project_config") or {}
     if cfg.get("error"):
         print("  .panweb.json：❌ %s" % cfg["error"]["message"])

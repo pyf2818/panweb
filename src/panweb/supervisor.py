@@ -7,7 +7,7 @@ from . import domain, events, forwarder, runtime
 from .entries import entry_alive, write_menubar_state
 from .errors import PanwebError, TunnelError
 from .lifecycle import prune_dead_entries, sweep_expired
-from .models import entry_local_port
+from .models import entry_folder, entry_local_port, entry_port
 from .pins import migrate_legacy_pins
 from .processes import (cleanup_orphan_proxies, cleanup_orphan_tunnels,
                         find_cloudflared, kill_process, pid_alive,
@@ -103,9 +103,9 @@ def restart_entry_proxy(entry):
     proxy_port = entry.get("proxy_port")
     if not proxy_port:
         return False
-    serve_dir = entry.get("target") if entry.get("kind") == "pages" else None
+    serve_dir = entry_folder(entry)
     proc = _spawn_proxy(proxy_port, entry["id"],
-                        target_port=None if serve_dir else entry.get("target"),
+                        target_port=None if serve_dir else entry_port(entry),
                         serve_dir=serve_dir, set_pin=False)
     if not proc:
         return False
@@ -162,14 +162,11 @@ def _source_ready(entry):
     公网仍可能拿到 200（口令页/分享页），巡检就会把空壳一直当健康。
     """
     if entry.get("kind") == "pages":
-        target = entry.get("target") or ""
-        return bool(target) and os.path.isdir(
-            os.path.abspath(os.path.expanduser(str(target))))
-    try:
-        port = int(entry.get("target"))
-    except (TypeError, ValueError):
-        return False
-    return 1 <= port <= 65535 and port_listening(port)
+        folder = entry_folder(entry) or ""
+        return bool(folder) and os.path.isdir(
+            os.path.abspath(os.path.expanduser(folder)))
+    port = entry_port(entry)
+    return port is not None and port_listening(port)
 
 
 def _health_step(entry):

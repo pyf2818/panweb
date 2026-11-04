@@ -7,10 +7,11 @@ import time
 
 from . import runtime
 from .entries import core_list
+from .models import entry_port
 from .processes import (find_cloudflared, internal_ports, listening_ports,
                         probe_http)
 from .project_config import inspect_project_config
-from .store import ensure_private_dirs
+from .store import ensure_private_dirs, scan_legacy_target
 
 
 def core_discover():
@@ -18,7 +19,7 @@ def core_discover():
     published_ports = {}
     for e in core_list():
         if e.get("kind") == "port":
-            published_ports[e.get("target")] = e.get("id")
+            published_ports[entry_port(e)] = e.get("id")
         elif e.get("kind") == "pages":
             published_ports[e.get("proxy_port") or e.get("local_port")] = \
                 e.get("id")
@@ -69,13 +70,23 @@ def core_doctor(force=False):
     tools = {name: shutil.which(name) for name in
              ("curl", "lsof", "ps", "git", "npm", "gh", "swiftc")}
     py_ok = sys.version_info >= (3, 9)
+    legacy = scan_legacy_target()
     data = {"ready": bool(cf) and py_ok, "cloudflared": cf,
             "cloudflared_version": version, "state_dir": runtime.HOME_DIR,
             "python": {"path": sys.executable,
                        "version": "%d.%d.%d" % sys.version_info[:3],
                        "ok": py_ok},
             "tools": tools,
-            "project_config": inspect_project_config(os.getcwd())}
+            "project_config": inspect_project_config(os.getcwd()),
+            "legacy_target": {
+                "ok": not legacy,
+                "count": len(legacy),
+                "ids": legacy[:10],
+                "message": ("检测到 %d 条旧版 target 字段；读取时会自动迁移为 "
+                            "port/folder" % len(legacy)) if legacy else
+                           "无遗留 target 字段",
+                "hint": "无需手工处理；下次写入后 state.json 即为 schema_version 2",
+            }}
     _DOCTOR_CACHE["data"] = data
     _DOCTOR_CACHE["ts"] = now
     return dict(data)

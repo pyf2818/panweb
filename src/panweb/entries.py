@@ -4,7 +4,7 @@ import time
 
 from . import events, forwarder, runtime, upstream
 from .errors import PanwebError
-from .models import entry_share_url
+from .models import entry_folder, entry_port, entry_share_url
 from .pins import write_pin
 from .processes import kill_process, pid_alive, port_listening
 from .store import (bump_stopped, load_domain, load_meta, load_state,
@@ -66,11 +66,8 @@ def entry_alive(entry):
                     and port_listening(entry["proxy_port"]))
     if entry.get("proxy_port") and not port_listening(entry["proxy_port"]):
         return False
-    try:
-        target = int(entry.get("target"))
-    except (TypeError, ValueError):
-        return False
-    return 1 <= target <= 65535 and port_listening(target)
+    port = entry_port(entry)
+    return port is not None and port_listening(port)
 
 
 def _node(state, detail):
@@ -99,20 +96,17 @@ def entry_nodes(entry):
     else:
         proxy = _node("offline", "代理端口 %s 未监听" % proxy_port)
 
-    target = entry.get("target")
     if entry.get("kind") == "pages":
-        if not target:
+        folder = entry_folder(entry)
+        if not folder:
             source = _node("unknown", "静态目录记录缺失")
-        elif os.path.isdir(str(target)):
+        elif os.path.isdir(folder):
             source = _node("online", "静态目录存在")
         else:
             source = _node("offline", "静态目录不存在")
     elif entry.get("kind") == "port":
-        try:
-            port = int(target)
-        except (TypeError, ValueError):
-            port = 0
-        if not 1 <= port <= 65535:
+        port = entry_port(entry)
+        if port is None:
             source = _node("unknown", "源端口记录缺失")
         elif port_listening(port):
             source = _node("online", "应用监听 127.0.0.1:%d" % port)
