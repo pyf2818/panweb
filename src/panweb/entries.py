@@ -2,13 +2,14 @@
 import os
 import time
 
-from . import events, forwarder, runtime, upstream
+from . import events, forwarder, last_deploy, runtime, upstream
 from .errors import PanwebError
 from .models import entry_folder, entry_port, entry_share_url
 from .pins import write_pin
 from .processes import kill_process, pid_alive, port_listening
 from .store import (bump_stopped, load_domain, load_meta, load_state,
                     log_activity, save_json, save_state, state_lock)
+from .visits import aggregate_visits
 
 
 def register_entry(entry):
@@ -153,7 +154,13 @@ def core_stop(target, source="ui"):
             raise PanwebError(2, "not_found", "没有找到匹配「%s」的发布" % target,
                               "用 panweb list 查看已发布的应用")
         hit_ids = {e.get("id") for e in hits}
+        domain = load_domain() or {}
         for e in hits:
+            # 访问量文件会被 stop_entry 清掉，先留一份只读快照给右栏。
+            visits = (aggregate_visits(e.get("id")) if e.get("proxy_port")
+                      else None)
+            last_deploy.remember_last(e, reason="user", visits=visits,
+                                      domain=domain)
             stop_entry(e)
             stopped.append({"id": e.get("id"), "name": e.get("name"),
                             "url": e.get("url")})

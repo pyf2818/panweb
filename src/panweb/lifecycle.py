@@ -2,11 +2,12 @@
 import math
 import time
 
-from . import events
+from . import events, last_deploy
 from .entries import entry_alive, stop_entry, write_menubar_state
 from .errors import PanwebError
-from .store import (bump_stopped, load_state, log_activity, save_state,
-                    state_lock)
+from .store import (bump_stopped, load_domain, load_state, log_activity,
+                    save_state, state_lock)
+from .visits import aggregate_visits
 
 EXPIRES_PRESETS = {"1h": 3600, "1d": 86400, "7d": 604800}
 
@@ -30,6 +31,7 @@ def sweep_expired():
     swept = []
     with state_lock():
         entries = load_state()
+        domain = load_domain() or {}
         keep = []
         for entry in entries:
             exp = entry.get("expires_at")
@@ -46,9 +48,13 @@ def sweep_expired():
                     # 脏数据不能把整个巡检线程打死；按立即到期收回并留证。
                     ts, broken = now, True
             if ts is not None and ts <= now:
+                reason = "invalid_expires_at" if broken else "expired"
+                visits = (aggregate_visits(entry.get("id"))
+                          if entry.get("proxy_port") else None)
+                last_deploy.remember_last(entry, reason=reason,
+                                          visits=visits, domain=domain)
                 stop_entry(entry)
                 swept.append(entry.get("name"))
-                reason = "invalid_expires_at" if broken else "expired"
                 message = ("「%s」有效期字段损坏（%r），已按到期自动收回"
                            % (entry.get("name"), exp)) if broken else (
                     "「%s」已到期，自动收回" % entry.get("name"))
@@ -72,6 +78,7 @@ def prune_dead_entries(max_age_days=7):
     now = time.time()
     removed = []
     with state_lock():
+        domain = load_domain() or {}
         keep = []
         for entry in load_state():
             try:
@@ -81,6 +88,8 @@ def prune_dead_entries(max_age_days=7):
                 started = now
             if now - started > max_age_days * 86400 \
                     and not entry_alive(entry):
+                last_deploy.remember_last(entry, reason="cleanup",
+                                          domain=domain)
                 stop_entry(entry)
                 removed.append(entry.get("name"))
                 events.log_event(entry.get("id"), "stop",

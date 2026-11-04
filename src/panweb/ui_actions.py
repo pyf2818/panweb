@@ -5,7 +5,7 @@ import threading
 import time
 import urllib.parse
 
-from . import deployment, events, jobs, runtime, ui_context
+from . import deployment, events, jobs, last_deploy, runtime, ui_context
 from .agents import (AGENT_GUIDE, core_agent_connect, core_agent_disconnect,
                      core_agents, core_terminal_agents, skill_source_dir)
 from .browser import open_browser
@@ -55,6 +55,7 @@ def handle_get(handler, path):
         return handler.send_json({"ok": True, "data": {
             "doctor": core_doctor(),
             "apps": apps,
+            "last_deployments": last_deploy.load_snapshots(apps),
             "state_issue": state_issue(),
             "hosted": load_hosted(),
             "stats": core_stats(),
@@ -129,10 +130,21 @@ def handle_get(handler, path):
         if entry_id:
             entry = next((e for e in load_state()
                           if e.get("id") == entry_id), None)
+            snap = None if entry else last_deploy.find_snapshot(entry_id)
+            entry = entry or snap
             if entry:
-                data["detail"] = deployment.build_detail(
+                stats = (snap.get("pv") if snap
+                         else aggregate_visits(entry_id))
+                detail = deployment.build_detail(
                     entry, events.read_events(entry_id, events.MAX_LIMIT),
-                    load_domain(), aggregate_visits(entry_id))
+                    load_domain(), stats)
+                if snap and detail:
+                    detail["from_snapshot"] = True
+                    detail["stopped_at"] = snap.get("stopped_at")
+                    detail["stop_reason"] = snap.get("stop_reason")
+                    detail["expires_text"] = (snap.get("expires_text")
+                                              or detail.get("expires_text"))
+                data["detail"] = detail
         return handler.send_json({"ok": True, "data": data}) or True
     if path == "/api/agents":
         return handler.send_json({"ok": True, "data": {
