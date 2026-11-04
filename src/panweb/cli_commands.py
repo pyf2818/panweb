@@ -312,7 +312,7 @@ def cmd_list(args):
 
 
 def cmd_stop(args):
-    stopped = core_stop(args.target)
+    stopped = core_stop(args.target, source="cli")
     if args.json:
         print(json.dumps({"ok": True, "data": {"stopped": stopped}},
                          ensure_ascii=False))

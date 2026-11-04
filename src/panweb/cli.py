@@ -12,6 +12,7 @@ from .cli_commands import (cmd_check, cmd_compat, cmd_discover, cmd_doctor,
                            cmd_host, cmd_list, cmd_license, cmd_pages,
                            cmd_publish, cmd_report, cmd_run, cmd_status,
                            cmd_stop, cmd_pack, cmd_update)
+from .history_cli import cmd_history
 from .cliio import emit_fail
 from .console import cmd_console
 from .errors import PanwebError
@@ -104,6 +105,12 @@ def build_parser():
     p = sub.add_parser("list", help="查看已发布的应用")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_list)
+
+    p = sub.add_parser("history", help="查看发布变更时间线")
+    p.add_argument("id", nargs="?", default=None, help="只看某个发布的事件")
+    p.add_argument("--limit", type=int, default=30, help="最多返回多少条（1-200）")
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_history)
 
     p = sub.add_parser("check", help="按访客视角自检一个发布（能不能真打开）")
     p.add_argument("target", help="id / 名称 / 网址")
