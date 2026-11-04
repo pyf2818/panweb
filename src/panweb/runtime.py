@@ -28,6 +28,7 @@ HOSTED_FILE = os.path.join(HOME_DIR, "hosted.json")
 MENUBAR_STATE = os.path.join(HOME_DIR, "menubar-state.json")
 LICENSE_FILE = os.path.join(HOME_DIR, "license.json")
 FORWARDERS_DIR = os.path.join(HOME_DIR, "forwarders")
+EVENTS_DIR = os.path.join(HOME_DIR, "events")
 
 UI_DEFAULT_PORT = 7788
 MAX_UI_BODY = 64 * 1024 * 1024
@@ -108,7 +109,7 @@ def set_home(path):
     global HOME_DIR, STATE_FILE, STATE_LOCK_FILE, LOG_DIR, ACTIVITY_FILE
     global META_FILE, VISITS_DIR, SECRETS_DIR, DAEMON_PID, POOL_FILE
     global DOMAIN_FILE, HOSTING_DIR, HOSTED_FILE, MENUBAR_STATE, LICENSE_FILE
-    global FORWARDERS_DIR
+    global FORWARDERS_DIR, EVENTS_DIR
     HOME_DIR = os.path.abspath(os.path.expanduser(path))
     STATE_FILE = _path("state.json")
     STATE_LOCK_FILE = _path("state.lock")
@@ -125,6 +126,7 @@ def set_home(path):
     MENUBAR_STATE = _path("menubar-state.json")
     LICENSE_FILE = _path("license.json")
     FORWARDERS_DIR = _path("forwarders")
+    EVENTS_DIR = _path("events")
 
 
 _HOME_ENV = os.environ.get("PANWEB_HOME")
