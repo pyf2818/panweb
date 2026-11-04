@@ -8,7 +8,7 @@ from http.client import HTTPConnection
 from http.server import ThreadingHTTPServer
 
 from helpers import temp_home
-from panweb import pins, runtime, store
+from panweb import pins, runtime, store, visits
 from panweb.proxy import ProxyHandler
 
 
@@ -51,7 +51,7 @@ class ProxyShareTests(unittest.TestCase):
         pins.write_pin("abc123", None)
         store.save_json(runtime.STATE_FILE, [dict(self.entry)])
         self.server.entry_cache = None
-        visit_file = os.path.join(runtime.VISITS_DIR, "abc123.jsonl")
+        visit_file = visits._visits_path("abc123")
         if os.path.exists(visit_file):
             os.remove(visit_file)
 
@@ -81,12 +81,12 @@ class ProxyShareTests(unittest.TestCase):
         self.assertIn("打开应用", body)
         self.assertEqual(self.request("GET", "/__panweb/share/wrong")[0], 404)
         self.assertEqual(self.request("GET", "/__panweb/share")[0], 404)
-        visits = pathlib.Path(runtime.VISITS_DIR, "abc123.jsonl").read_text(
+        lines = pathlib.Path(visits._visits_path("abc123")).read_text(
             encoding="utf-8").strip().splitlines()
-        rec = json.loads(visits[-1])
+        rec = json.loads(lines[-1])
         self.assertEqual(rec["kind"], "share")
         self.assertEqual(rec["path"], "/__panweb/share")
-        self.assertNotIn("tok_123", visits[-1])
+        self.assertNotIn("tok_123", lines[-1])
 
     def test_pin_login_from_share_page(self):
         pins.write_pin("abc123", "secret99")

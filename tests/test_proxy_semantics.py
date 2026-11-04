@@ -8,7 +8,7 @@ from http.client import HTTPConnection
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from helpers import temp_home
-from panweb import runtime, store, upstream
+from panweb import runtime, store, upstream, visits
 from panweb.proxy import ProxyHandler
 from panweb.visits import _hash_ip
 
@@ -200,8 +200,8 @@ class ProxySemanticsTests(unittest.TestCase):
         self.assertEqual(seen["real_all"], ["203.0.113.9"])
         self.assertIsNone(seen["forwarded"])
         self.assertIsNone(seen["cf"])
-        visits = os.path.join(runtime.VISITS_DIR, "sem1.jsonl")
-        with open(visits, encoding="utf-8") as f:
+        visit_file = visits._visits_path("sem1")
+        with open(visit_file, encoding="utf-8") as f:
             recorded = json.loads(f.readlines()[-1])["ip"]
         self.assertEqual(recorded, _hash_ip("203.0.113.9"),
                          "UV 指纹应来自真实访客 IP，而不是恒定的 127.0.0.1")

@@ -26,7 +26,8 @@ class PublishFailureCleanupTests(unittest.TestCase):
                 pins.write_pin(entry_id, kw.get("pin"))
                 return FakeProc()
 
-            with mock.patch.object(publish, "find_cloudflared",
+            with mock.patch.object(publish, "require_publish_license"), \
+                    mock.patch.object(publish, "find_cloudflared",
                                    return_value="/bin/cloudflared"), \
                     mock.patch.object(publish, "free_port",
                                       return_value=4567), \
