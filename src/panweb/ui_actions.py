@@ -29,7 +29,7 @@ from .publish import (core_detect, core_pages, core_publish, core_run,
 from .share import new_share_token
 from .store import (json_lock, load_activity, load_domain, load_meta,
                     load_state, log_activity, save_meta, save_state,
-                    state_lock)
+                    state_issue, state_lock)
 from .supervisor import recover_failing
 from .system import core_pack, core_system
 from .term import (core_terminal_close, core_terminal_input,
@@ -55,6 +55,7 @@ def handle_get(handler, path):
         return handler.send_json({"ok": True, "data": {
             "doctor": core_doctor(),
             "apps": apps,
+            "state_issue": state_issue(),
             "hosted": load_hosted(),
             "stats": core_stats(),
             "activity": list(reversed(load_activity()))[:20],

@@ -47,6 +47,13 @@ def save_hosted(items):
     save_json(runtime.HOSTED_FILE, items)
 
 
+def _ensure_nojekyll(stage):
+    """GitHub Pages 默认跑 Jekyll，会丢掉 _next/_astro 等下划线目录。"""
+    os.makedirs(stage, exist_ok=True)
+    with open(os.path.join(stage, ".nojekyll"), "wb"):
+        pass
+
+
 def core_host(path=None, name=None, files=None):
     """部署静态站点到 GitHub Pages（关机可访问）。"""
     require_publish_license()
@@ -95,6 +102,7 @@ def core_host(path=None, name=None, files=None):
             file_count = build_site(src, stage, name)
 
     repo = ("panweb-" + slug)[:60]
+    _ensure_nojekyll(stage)
     subprocess.run(["git", "init", "-b", "main"], cwd=stage,
                    capture_output=True)
     subprocess.run(["git", "add", "."], cwd=stage, capture_output=True)

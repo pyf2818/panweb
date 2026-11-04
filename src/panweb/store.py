@@ -24,7 +24,7 @@ def ensure_private_dir(path):
 
 def ensure_private_dirs():
     for d in (runtime.HOME_DIR, runtime.LOG_DIR, runtime.VISITS_DIR,
-              runtime.SECRETS_DIR):
+              runtime.SECRETS_DIR, runtime.FORWARDERS_DIR):
         ensure_private_dir(d)
 
 
@@ -127,8 +127,51 @@ def _load_json(path, default):
         return default
 
 
+_STATE_ISSUE = None
+
+
+def state_issue():
+    """当前状态文件的损坏事件；换到别的 HOME 时自动失效。"""
+    if _STATE_ISSUE and _STATE_ISSUE.get("home") == runtime.HOME_DIR:
+        return {k: v for k, v in _STATE_ISSUE.items() if k != "home"}
+    return None
+
+
 def load_state():
-    return _load_json(runtime.STATE_FILE, [])
+    global _STATE_ISSUE
+    try:
+        with open(runtime.STATE_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        return []
+    except ValueError as e:
+        return _quarantine_state(e)
+    except OSError as e:
+        _STATE_ISSUE = {"home": runtime.HOME_DIR, "path": runtime.STATE_FILE,
+                        "message": "状态文件无法读取：%s" % e}
+        return []
+    return data if isinstance(data, list) else []
+
+
+def _quarantine_state(error):
+    global _STATE_ISSUE
+    stamp = time.strftime("%Y%m%d-%H%M%S")
+    backup = "%s.corrupt-%s" % (runtime.STATE_FILE, stamp)
+    try:
+        os.replace(runtime.STATE_FILE, backup)
+    except OSError:
+        backup = ""
+    message = "状态文件损坏（%s）" % error
+    if backup:
+        message += "，已备份到 %s" % backup
+    _STATE_ISSUE = {"home": runtime.HOME_DIR, "path": runtime.STATE_FILE,
+                    "message": message}
+    try:
+        log_activity("system", message +
+                     "；发布进程可能仍在运行，确认后可用 panweb stop all 清理")
+    except (OSError, ValueError):
+        pass
+    return []
 
 
 def save_state(entries):

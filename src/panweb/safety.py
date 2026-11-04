@@ -15,6 +15,17 @@ def check_pages_folder(folder):
     if real in denied:
         raise PanwebError(2, "unsafe_folder", "不允许直接发布该目录：%s" % real,
                           "请选择具体的项目或网页子文件夹")
+    for raw in runtime.UNSAFE_PAGE_PREFIXES:
+        prefix = os.path.realpath(os.path.expanduser(raw))
+        try:
+            inside = os.path.commonpath([real, prefix]) == prefix
+        except ValueError:
+            inside = False
+        if inside:
+            raise PanwebError(
+                2, "unsafe_folder",
+                "不允许发布敏感目录或其子目录：%s" % real,
+                "私钥、云凭据和钥匙串不能发到公网，请换一个项目文件夹")
 
 
 def safe_upload_rel_path(rel):

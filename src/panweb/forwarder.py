@@ -59,6 +59,8 @@ class Forwarder:
         self.dest_port = None
         self.server = None
         self.thread = None
+        self.control = None
+        self._control_path = None
 
     def start(self):
         parent = self
@@ -86,16 +88,134 @@ class Forwarder:
     def retarget(self, dest_port):
         self.dest_port = dest_port
 
+    def enable_control(self, entry_id):
+        """开一条 unix socket，让别的进程（CLI）也能关掉这个转发器。
+
+        常驻控制台里的 ``FORWARDERS`` 只对本进程可见；``panweb stop`` 是另一个
+        进程，没有这个入口就只能杀掉隧道却留着转发器占端口。
+        """
+        if not entry_id:
+            return False
+        os.makedirs(runtime.FORWARDERS_DIR, exist_ok=True)
+        path = os.path.join(runtime.FORWARDERS_DIR, "%s.sock" % entry_id)
+        _clear_stale_socket(path)
+        self._close_control()
+        parent = self
+
+        class ControlHandler(socketserver.BaseRequestHandler):
+            def handle(self):
+                try:
+                    cmd = self.request.recv(64).decode("utf-8", "replace").strip()
+                    if cmd != "stop":
+                        return
+                    self.request.sendall(b"ok\n")
+                except OSError:
+                    return
+                # stop() 会 shutdown 控制服务本身，不能在这个服务线程里直接跑。
+                threading.Thread(target=parent.stop, daemon=True).start()
+
+        class ControlServer(socketserver.ThreadingUnixStreamServer):
+            daemon_threads = True
+
+        try:
+            self.control = ControlServer(path, ControlHandler)
+        except OSError:
+            self.control = None
+            return False
+        self._control_path = path
+        try:
+            os.chmod(path, 0o600)  # 只有当前用户能发停止指令
+        except OSError:
+            pass
+        threading.Thread(target=self.control.serve_forever, daemon=True).start()
+        return True
+
+    def _close_control(self):
+        ctrl, self.control = self.control, None
+        path, self._control_path = self._control_path, None
+        if ctrl:
+            try:
+                ctrl.shutdown()
+                ctrl.server_close()
+            except (OSError, AttributeError):
+                pass
+        if path:
+            _unlink(path)
+
     def stop(self):
+        self._close_control()
         try:
             self.server.shutdown()
             self.server.server_close()
         except (OSError, AttributeError):
             pass
+        # 会话线程里 socket 可能已经关掉；base server 的关闭是幂等的。
+        self.server = None
 
 
 FORWARDERS = {}  # entry_id -> Forwarder（仅常驻进程内有意义）
 CURRENT_POOL = None  # 仅控制台常驻进程设置
+
+
+def _unlink(path):
+    try:
+        os.remove(path)
+    except OSError:
+        pass
+
+
+def _socket_path(entry_id):
+    return os.path.join(runtime.FORWARDERS_DIR, "%s.sock" % entry_id)
+
+
+def _clear_stale_socket(path):
+    """绑定前清掉崩溃遗留的 socket 文件；还活着的绝不碰。"""
+    if not os.path.exists(path):
+        return
+    probe = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    probe.settimeout(0.2)
+    try:
+        probe.connect(path)  # 能连上说明有进程在听，别动它
+        return
+    except OSError:
+        _unlink(path)
+    finally:
+        probe.close()
+
+
+def stop_remote(entry_id):
+    """请持有该转发器的进程自行关闭；本地没有实例时使用。"""
+    if not entry_id:
+        return False
+    path = _socket_path(entry_id)
+    if not os.path.exists(path):
+        return False
+    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    sock.settimeout(2)
+    try:
+        sock.connect(path)
+        sock.sendall(b"stop\n")
+        reply = sock.recv(16)
+    except OSError:
+        _unlink(path)  # 连不上就是陈旧 socket
+        return False
+    finally:
+        sock.close()
+    if reply.strip() != b"ok":
+        return False
+    _unlink(path)
+    return True
+
+
+def cleanup_forwarder_sockets():
+    """控制台重启后回收上一进程遗留的控制 socket。"""
+    try:
+        names = os.listdir(runtime.FORWARDERS_DIR)
+    except OSError:
+        return
+    for name in names:
+        if name.endswith(".sock"):
+            _clear_stale_socket(os.path.join(runtime.FORWARDERS_DIR, name))
 
 
 class TunnelPool:
@@ -195,6 +315,7 @@ def acquire_pooled_tunnel(port, entry_id=None):
         return None
     item["forwarder"].retarget(port)
     if entry_id:
+        item["forwarder"].enable_control(entry_id)
         FORWARDERS[entry_id] = item["forwarder"]
     CURRENT_POOL.prewarm()  # 立刻补充下一条
     return item

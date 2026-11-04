@@ -40,9 +40,13 @@ def remove_entry_files(entry_id):
 
 
 def stop_entry(entry, keep_app=False, clear_secrets=True):
-    fw = forwarder.FORWARDERS.pop(entry.get("id"), None)
+    entry_id = entry.get("id")
+    fw = forwarder.FORWARDERS.pop(entry_id, None)
     if fw:
         fw.stop()
+    else:
+        # CLI 是独立进程，本地没有实例时要通过控制 socket 让控制台放手。
+        forwarder.stop_remote(entry_id)
     kill_process(entry.get("pid"), ("cloudflared",))
     kill_process(entry.get("server_pid"), ("--internal-proxy",))
     if not keep_app:

@@ -234,6 +234,7 @@ def cleanup_runtime_files():
     """启动时清理遗留池隧道/孤儿代理/陈旧口令与访问记录/过期日志。"""
     ensure_private_dirs()
     forwarder.cleanup_pool_state()
+    forwarder.cleanup_forwarder_sockets()
     cleanup_orphan_proxies()
     stray = cleanup_orphan_tunnels()
     if stray:

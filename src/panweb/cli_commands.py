@@ -19,6 +19,7 @@ from .models import entry_local_port
 from .pins import normalize_pin
 from .publish import (core_pages, core_publish, core_run,
                       load_publish_defaults)
+from .store import state_issue
 from .system import core_pack
 from .update import core_update_apply, core_update_status
 
@@ -288,10 +289,15 @@ def cmd_compat(args):
 
 def cmd_list(args):
     entries = core_list()
+    issue = state_issue()
     if args.json:
-        print(json.dumps({"ok": True, "data": {"apps": entries}},
+        print(json.dumps({"ok": True,
+                          "data": {"apps": entries, "state_issue": issue}},
                          ensure_ascii=False))
         return
+    if issue:
+        print("⚠️ %s" % issue["message"])
+        print("   之前的发布可能仍在运行；确认后可用 panweb stop all 清理。")
     if not entries:
         print("当前没有已发布的应用。发布：panweb publish <端口> "
               "或 panweb pages <文件夹>")

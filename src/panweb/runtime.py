@@ -27,6 +27,7 @@ HOSTING_DIR = os.path.join(HOME_DIR, "hosting")
 HOSTED_FILE = os.path.join(HOME_DIR, "hosted.json")
 MENUBAR_STATE = os.path.join(HOME_DIR, "menubar-state.json")
 LICENSE_FILE = os.path.join(HOME_DIR, "license.json")
+FORWARDERS_DIR = os.path.join(HOME_DIR, "forwarders")
 
 UI_DEFAULT_PORT = 7788
 MAX_UI_BODY = 64 * 1024 * 1024
@@ -39,6 +40,10 @@ MAX_WS_HEAD = 64 * 1024
 UNSAFE_PAGE_ROOTS = ("/", "/etc", "/private", "/System", "/Library",
                      "/Applications", "/usr", "/bin", "/sbin", "/var",
                      "/opt", "/Volumes")
+# 这些目录本身及其任何子目录都不能发布：私钥、云凭据、钥匙串一旦上网就收不回。
+UNSAFE_PAGE_PREFIXES = ("~/.ssh", "~/.aws", "~/.gnupg", "~/.config",
+                        "~/.panweb", "~/.kube", "~/.docker",
+                        "~/Library/Keychains")
 
 CLOUDFLARED_CANDIDATES = [
     "cloudflared",
@@ -103,6 +108,7 @@ def set_home(path):
     global HOME_DIR, STATE_FILE, STATE_LOCK_FILE, LOG_DIR, ACTIVITY_FILE
     global META_FILE, VISITS_DIR, SECRETS_DIR, DAEMON_PID, POOL_FILE
     global DOMAIN_FILE, HOSTING_DIR, HOSTED_FILE, MENUBAR_STATE, LICENSE_FILE
+    global FORWARDERS_DIR
     HOME_DIR = os.path.abspath(os.path.expanduser(path))
     STATE_FILE = _path("state.json")
     STATE_LOCK_FILE = _path("state.lock")
@@ -118,6 +124,7 @@ def set_home(path):
     HOSTED_FILE = _path("hosted.json")
     MENUBAR_STATE = _path("menubar-state.json")
     LICENSE_FILE = _path("license.json")
+    FORWARDERS_DIR = _path("forwarders")
 
 
 _HOME_ENV = os.environ.get("PANWEB_HOME")
