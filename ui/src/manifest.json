@@ -3,12 +3,17 @@
     "styles/base.css",
     "styles/layout.css",
     "styles/components.css",
+    "styles/console.css",
+    "styles/scifi.css",
     "styles/terminal.css",
     "styles/overlays.css",
     "styles/decor.css"
   ],
   "scripts": [
     "js/core.js",
+    "js/workbench.js",
+    "js/viz.js",
+    "js/commands.js",
     "js/publish.js",
     "js/apps.js",
     "js/sharing.js",

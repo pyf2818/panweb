@@ -28,12 +28,13 @@ function initDrag(handleId, cssVar, dir, min, max, def) {
   const saved = localStorage.getItem("panweb-" + cssVar);
   if (saved) document.documentElement.style.setProperty(cssVar, saved);
 }
-initDrag("drag-side", "--side-w", 1, 176, 340, 212);
+initDrag("drag-rail", "--rail-w", 1, 240, 420, 300);
+initDrag("drag-viz", "--viz-w", -1, 280, 420, 324);
 
-// ---------- 页面切换（左栏选模块，主区整幅展示） ----------
+// ---------- 页面切换（三栏工作台 / 全幅功能页） ----------
 let currentPage = localStorage.getItem("panweb-page") || "apps";
 const PAGE_META = {
-  apps: ["我的发布台", null],
+  apps: ["发布控制台", null],
   feed: ["动态与提醒", "发布、停止与通道事件都会记录在这里"],
   agents: ["连接 Agent", "让 Agent 替你发布这台电脑上的应用 —— 装好技能，一句话就发布"],
   term: ["终端", "本机 Agent 的真终端（伪终端 PTY）搬进网页 —— 键盘直通，画面原样"],
@@ -65,9 +66,11 @@ function switchPage(page) {
   document.getElementById("page-title").textContent = PAGE_META[page][0];
   updateSub();
   document.getElementById("topbar-pub").style.display = page === "agents" ? "none" : "";
+  if (typeof closeDrawers === "function") closeDrawers();
   if (page === "agents") loadAgents();
   if (page === "term") tmEnterPage(); else tmLeavePage();
   if (page === "system") { loadSystem(); loadDomain(); }
+  if (page === "apps" && typeof renderViz === "function") renderViz();
 }
 
 // ---------- 系统与数据页 ----------
@@ -271,7 +274,6 @@ function paletteCommands() {
     {t: "连接 Agent", k: "页面", f: () => switchPage("agents")},
     {t: "终端 · 让 Agent 替你部署", k: "页面", f: () => switchPage("term")},
     {t: "系统与数据", k: "页面", f: () => switchPage("system")},
-    {t: "切换主题", k: "界面", f: cycleTheme},
     {t: "刷新", k: "界面", f: () => refresh(true)},
     {t: "停止全部发布", k: "停止", f: async () => { await api("/api/stop", {target: "all"}); toast("已全部停止"); await refresh(); }},
   ];

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>panweb · 发布台</title>
+<title>panweb · 深空发布控制台</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <script>
 /*__QR_LIBRARY__*/
@@ -20,41 +20,38 @@
 <!-- 氛围层：隧道流线粒子（纯装饰，不吃事件；终端页会自动停笔） -->
 <canvas id="fx" aria-hidden="true"></canvas>
 
-<!-- ======= 侧栏 ======= -->
-<aside class="sidebar">
-  <div class="brand">
-    <div class="brand-mark">
-      <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 2l8 4.5v9L12 20l-8-4.5v-9L12 2z"/><path d="M12 11v9"/><path d="M12 11l8-4.5M12 11L4 6.5"/>
-      </svg>
+<!-- ======= 左栏：历史与资产 ======= -->
+<aside class="rail" id="asset-rail" aria-label="历史与资产">
+  <div class="rail-top">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2l8 4.5v9L12 20l-8-4.5v-9L12 2z"/><path d="M12 11v9"/><path d="M12 11l8-4.5M12 11L4 6.5"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-name">panweb</div>
+        <div class="brand-sub">深空 · 发布控制台</div>
+      </div>
     </div>
-    <div>
-      <div class="brand-name">panweb</div>
-      <div class="brand-sub">盘 · WEB 发布台</div>
-    </div>
+    <button class="drawer-x" id="rail-close" onclick="closeDrawers()" aria-label="关闭资产栏">×</button>
   </div>
-  <nav class="nav">
-    <a class="active" data-page="apps">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5"/></svg>
-      我的应用
-    </a>
-    <a data-page="feed">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h4l2.5-7 3.5 14 2.5-7H20"/></svg>
-      动态与提醒
-    </a>
-    <a data-page="agents">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-5"/><path d="M9 8V2M15 8V2"/><path d="M6 8h12v5a6 6 0 01-12 0V8z"/></svg>
-      连接 Agent
-    </a>
-    <a data-page="term">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4" width="19" height="16" rx="2.5"/><path d="M6.5 9.5l3 2.5-3 2.5"/><path d="M12 15h5"/></svg>
-      终端
-    </a>
-    <a data-page="system">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06A1.65 1.65 0 0015 19.4a1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.14.35.4.64.73.83"/></svg>
-      系统与数据
-    </a>
-  </nav>
+
+  <div class="rail-search">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg>
+    <input id="asset-search" type="search" placeholder="搜索资产 / 端口 / 网址" autocomplete="off" aria-label="搜索资产">
+  </div>
+
+  <div class="rail-head"><span>资产档案</span><span class="rail-count" id="asset-count">0</span></div>
+  <div class="asset-list" id="asset-list">
+    <div class="rail-empty">正在读取资产…</div>
+  </div>
+
+  <div class="rail-head rail-head-timeline"><span>变更时间线</span><button class="rail-mini" onclick="reloadTimeline()" title="刷新时间线">↻</button></div>
+  <div class="asset-timeline" id="asset-timeline">
+    <div class="rail-empty">选择左侧资产后显示发布、改口令、重建、停止与到期记录。</div>
+  </div>
+
   <div class="sidebar-env">
     <div class="env-line"><span class="mini-dot" id="side-dot"></span><span id="side-state">检查中…</span></div>
     <div class="env-ver" id="side-ver"></div>
@@ -63,9 +60,72 @@
   </div>
 </aside>
 
-<div class="drag-h" id="drag-side" title="拖拽调宽 · 双击复位"></div>
+<div class="drag-h rail-drag" id="drag-rail" title="拖拽调宽 · 双击复位"></div>
 
 <!--__PANWEB_PAGES__-->
+
+<div class="drag-h viz-drag" id="drag-viz" title="拖拽调宽 · 双击复位"></div>
+
+<!-- ======= 右栏：进程可视化 ======= -->
+<aside class="viz" id="viz-rail" aria-label="进程可视化">
+  <div class="viz-head">
+    <span class="viz-kicker">PROCESS</span>
+    <b>进程可视化</b>
+    <span class="viz-live" id="viz-live">4s</span>
+    <button class="drawer-x" id="viz-close" onclick="closeDrawers()" aria-label="关闭进程栏">×</button>
+  </div>
+
+  <div class="viz-empty" id="viz-empty">
+    <div class="viz-radar" aria-hidden="true"><span></span></div>
+    <b>等待选择资产</b>
+    <p>从左侧选择一个应用，这里会显示内置代理、cloudflared 隧道与源应用的实时状态。</p>
+  </div>
+
+  <div class="viz-panel" id="viz-panel" hidden>
+    <div class="viz-title-row">
+      <div>
+        <div class="viz-name" id="viz-name">—</div>
+        <div class="viz-url" id="viz-url">—</div>
+      </div>
+      <span class="viz-badge" id="viz-status">未知</span>
+    </div>
+
+    <div class="viz-graph" id="viz-graph">
+      <div class="viz-node" id="viz-node-proxy" data-node="proxy">
+        <span class="viz-dot"></span>
+        <div><b>内置代理</b><span class="viz-detail">未知</span></div>
+      </div>
+      <div class="viz-link" id="viz-link-proxy"><span></span></div>
+      <div class="viz-node" id="viz-node-tunnel" data-node="tunnel">
+        <span class="viz-dot"></span>
+        <div><b>cloudflared 隧道</b><span class="viz-detail">未知</span></div>
+      </div>
+      <div class="viz-link" id="viz-link-source"><span></span></div>
+      <div class="viz-node" id="viz-node-source" data-node="source">
+        <span class="viz-dot"></span>
+        <div><b>源应用</b><span class="viz-detail">未知</span></div>
+      </div>
+    </div>
+
+    <div class="viz-metrics">
+      <div class="viz-metric"><span>访问量</span><b id="viz-pv">未知</b></div>
+      <div class="viz-metric"><span>访客</span><b id="viz-uv">未知</b></div>
+      <div class="viz-metric"><span>最近访问</span><b id="viz-last">未知</b></div>
+      <div class="viz-metric"><span>隧道重建</span><b id="viz-rebuilds">未知</b></div>
+    </div>
+
+    <div class="viz-section-title">最近访客</div>
+    <div class="viz-visitors" id="viz-visitors"><div class="rail-empty">暂无最近访客</div></div>
+
+    <div class="viz-foot">
+      <button class="btn btn-sm ghost" onclick="openDrawer(selectedAssetId)">打开详情抽屉</button>
+      <button class="btn btn-sm ghost" onclick="refresh(true)">刷新状态</button>
+    </div>
+  </div>
+</aside>
+
+<div class="drawer-backdrop" id="rail-backdrop" onclick="closeDrawers()"></div>
+<div class="drawer-backdrop" id="viz-backdrop" onclick="closeDrawers()"></div>
 
 <!--__PANWEB_OVERLAYS__-->
 

@@ -10,32 +10,6 @@ let lastNotifyTs = parseFloat(localStorage.getItem("panweb-notify-ts")) || 0;
 let readTs = parseFloat(localStorage.getItem("panweb-read-ts")) || 0;
 let lastPushTs = lastNotifyTs;
 
-// ---------- 主题（自动 → 亮 → 暗 循环） ----------
-const THEME_ICONS = {
-  auto: '<circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/>',
-  light: '<circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/>',
-  dark: '<path d="M20.5 14.5A8.5 8.5 0 019.5 3.5 8.5 8.5 0 1020.5 14.5z"/>'
-};
-function applyTheme(mode) {
-  const mq = window.matchMedia("(prefers-color-scheme: dark)");
-  const effective = mode === "auto" ? (mq.matches ? "dark" : "light") : mode;
-  document.documentElement.setAttribute("data-theme", effective);
-  document.getElementById("theme-icon").innerHTML = THEME_ICONS[mode];
-  document.getElementById("theme-btn").title =
-    "主题：" + (mode === "auto" ? "跟随系统（点击切换为亮色）" : mode === "light" ? "亮色（点击切换为暗色）" : "暗色（点击切回跟随系统）");
-}
-function cycleTheme() {
-  const order = ["auto", "light", "dark"];
-  const cur = localStorage.getItem("panweb-theme") || "auto";
-  const next = order[(order.indexOf(cur) + 1) % order.length];
-  localStorage.setItem("panweb-theme", next);
-  applyTheme(next);
-  toast("主题：" + (next === "auto" ? "跟随系统" : next === "light" ? "亮色" : "暗色"));
-}
-applyTheme(localStorage.getItem("panweb-theme") || "auto");
-window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change",
-  () => applyTheme(localStorage.getItem("panweb-theme") || "auto"));
-
 // ---------- 工具 ----------
 function esc(s) {
   return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -105,23 +79,11 @@ function render() {
   document.getElementById("side-ver").textContent = ver ? "cloudflared " + ver : "brew install cloudflared";
   document.getElementById("side-dir").textContent = doctor.state_dir;
   renderLicense();
-  const he = document.getElementById("hero-env");
-  he.className = "hero-env" + (ready ? "" : " bad");
-  if (ready) {
-    he.innerHTML = "发布通道已就绪 · cloudflared " + esc(ver || "") + " · 出站隧道，无需公网 IP 与路由器设置";
-  } else {
-    he.innerHTML = "缺少隧道引擎 cloudflared —— <button class='btn btn-sm' style='vertical-align:middle' onclick='installCF()'>⚡ 一键安装（约 1-2 分钟）</button> 或终端运行 brew install cloudflared";
-  }
 
-  // 应用页：空态 / 网格
+  // 工作台：左栏资产 + 中栏对话 + 右栏进程
   const hosted = STATE.hosted || [];
-  const hasAny = apps.length + hosted.length > 0;
-  document.getElementById("empty-hero").style.display = hasAny ? "none" : "flex";
-  document.getElementById("apps-wrap").style.display = hasAny ? "" : "none";
-  document.getElementById("apps-count").textContent =
-    hasAny ? "（隧道 " + apps.length + " · 云端 " + hosted.length + "）" : "";
-  document.getElementById("apps-grid").innerHTML =
-    apps.map(appCard).join("") + hosted.map(hostedCard).join("");
+  if (typeof renderWorkbench === "function") renderWorkbench(apps, hosted);
+  if (typeof renderViz === "function") renderViz();
 
   // 动态页：统计 + 时间线
   const cnt = k => activity.filter(f => f.kind === k).length;
