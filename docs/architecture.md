@@ -178,7 +178,7 @@ panweb (CLI / App)
 | `secrets/*.pin` | 加盐 SHA-256 口令与会话 | 600 |
 | `secrets/*.auth.json` | 上游凭据（bearer/basic/自定义头）；只在代理进程内读取 | 600 |
 | `secrets/visits.key` | 访客 IP 的 HMAC 密钥 | 600 |
-| `visits/*.jsonl` | 匿名访问记录（无原始 IP/UA） | 600 |
+| `visits/<id>-YYYYMMDD.jsonl` | 匿名访问记录（按天分文件；旧版 `<id>.jsonl` 仍兼容） | 600 |
 | `domain.json` | 固定域名隧道状态 | 600 |
 | `pool.json` | 预热隧道 PID/端口（异常退出回收） | 600 |
 | `license.json` | 离线许可/试用状态 | 600 |

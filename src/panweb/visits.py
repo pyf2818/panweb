@@ -105,6 +105,54 @@ def _clean_referrer(value):
     return host.lower()[:80]
 
 
+def _visits_path(entry_id, ts=None):
+    """按天分文件：目录再多访问量也只增长单日文件，聚合不再按 2MB 截断。"""
+    when = time.time() if ts is None else ts
+    day = time.strftime("%Y%m%d", time.localtime(when))
+    return os.path.join(runtime.VISITS_DIR, "%s-%s.jsonl" % (entry_id, day))
+
+
+def _iter_records(path):
+    """逐行读 JSONL；不把整个文件读进内存（单日文件可能很大）。"""
+    try:
+        with open(path, "rb") as f:
+            for raw in f:
+                try:
+                    yield json.loads(raw.decode("utf-8", "replace"))
+                except ValueError:
+                    continue
+    except OSError:
+        return
+
+
+def _visit_files(entry_id, since):
+    """挑出窗口可能覆盖的日志：分天文件按日期过滤，旧版单文件继续兼容。"""
+    names = []
+    try:
+        names = os.listdir(runtime.VISITS_DIR)
+    except OSError:
+        pass
+    prefix = "%s-" % entry_id
+    files = []
+    for name in names:
+        if not name.endswith(".jsonl") or name.startswith("._"):
+            continue
+        if name == "%s.jsonl" % entry_id:
+            files.append((float("-inf"), os.path.join(runtime.VISITS_DIR, name)))
+            continue
+        if not name.startswith(prefix):
+            continue
+        day = name[len(prefix):-6]
+        try:
+            day_start = time.mktime(time.strptime(day, "%Y%m%d"))
+        except ValueError:
+            continue
+        if day_start + 86400 > since:
+            files.append((day_start, os.path.join(runtime.VISITS_DIR, name)))
+    files.sort(key=lambda item: item[0])
+    return [path for _, path in files]
+
+
 def log_visit(entry_id, path, ip, ua, kind="app", referrer="", country=""):
     """记录一次页面访问（JSONL 追加，IP 用 HMAC 匿名化；不存查询串）。
 
@@ -129,7 +177,7 @@ def log_visit(entry_id, path, ip, ua, kind="app", referrer="", country=""):
         ctry = _clean_country(country)
         if ctry:
             rec["country"] = ctry
-        fpath = os.path.join(runtime.VISITS_DIR, "%s.jsonl" % entry_id)
+        fpath = _visits_path(entry_id)
         with open(fpath, "a", encoding="utf-8") as f:
             f.write(json.dumps(rec, ensure_ascii=False) + "\n")
         try:
@@ -142,7 +190,6 @@ def log_visit(entry_id, path, ip, ua, kind="app", referrer="", country=""):
 
 def aggregate_visits(entry_id, hours=24, recent=15):
     """聚合访问记录 → total/uv/points/last/recent/devices/countries/browsers。"""
-    path = os.path.join(runtime.VISITS_DIR, "%s.jsonl" % entry_id)
     since = time.time() - hours * 3600
     total, ips, points, last, recents = 0, set(), {}, None, []
     devices, browsers, countries, refs = {}, {}, {}, {}
@@ -151,43 +198,34 @@ def aggregate_visits(entry_id, hours=24, recent=15):
     n_buckets = int(hours * 3600 // bucket)
     now_bucket = int(time.time() // bucket) * bucket
     start = now_bucket - (n_buckets - 1) * bucket
-    try:
-        size = os.path.getsize(path)
-        with open(path, "rb") as f:
-            if size > 2 * 1024 * 1024:
-                f.seek(size - 2 * 1024 * 1024)
-                f.readline()
-            for raw in f:
-                try:
-                    rec = json.loads(raw.decode("utf-8", "replace"))
-                except ValueError:
-                    continue
-                ts = rec.get("ts", 0)
-                if ts < since:
-                    continue
-                total += 1
-                ips.add(rec.get("ip"))
-                if (rec.get("kind") or "app") == "share":
-                    share_count += 1
-                else:
-                    app_count += 1
-                key = int(ts // bucket) * bucket
-                points[key] = points.get(key, 0) + 1
-                last = max(last or 0, ts)
-                recents.append(rec)
-                dev = rec.get("device") or _ua_device(rec.get("ua"))
-                devices[dev] = devices.get(dev, 0) + 1
-                browser = rec.get("browser") or _visit_browser(rec.get("ua"))
-                if browser:
-                    browsers[browser] = browsers.get(browser, 0) + 1
-                country = rec.get("country")
-                if country:
-                    countries[country] = countries.get(country, 0) + 1
-                ref = rec.get("ref")
-                if ref:
-                    refs[ref] = refs.get(ref, 0) + 1
-    except OSError:
-        pass
+    recent_items = collections.deque(maxlen=max(1, recent))
+    for path in _visit_files(entry_id, since):
+        for rec in _iter_records(path):
+            ts = rec.get("ts", 0)
+            if ts < since:
+                continue
+            total += 1
+            ips.add(rec.get("ip"))
+            if (rec.get("kind") or "app") == "share":
+                share_count += 1
+            else:
+                app_count += 1
+            key = int(ts // bucket) * bucket
+            points[key] = points.get(key, 0) + 1
+            last = max(last or 0, ts)
+            recent_items.append(rec)
+            dev = rec.get("device") or _ua_device(rec.get("ua"))
+            devices[dev] = devices.get(dev, 0) + 1
+            browser = rec.get("browser") or _visit_browser(rec.get("ua"))
+            if browser:
+                browsers[browser] = browsers.get(browser, 0) + 1
+            country = rec.get("country")
+            if country:
+                countries[country] = countries.get(country, 0) + 1
+            ref = rec.get("ref")
+            if ref:
+                refs[ref] = refs.get(ref, 0) + 1
+    recents = list(recent_items)
     recents.sort(key=lambda r: -r.get("ts", 0))
     for r in recents:
         r["device"] = r.get("device") or _ua_device(r.get("ua"))
@@ -253,19 +291,22 @@ class VisitNotifier(threading.Thread):
             if eid not in entries:
                 self.offsets.pop(eid, None)
         for eid, entry in entries.items():
-            path = os.path.join(runtime.VISITS_DIR, "%s.jsonl" % eid)
+            path = _visits_path(eid)
             try:
                 size = os.path.getsize(path)
             except OSError:
-                self.offsets.setdefault(eid, 0)
+                self.offsets.setdefault(eid, (path, 0))
                 continue
-            offset = self.offsets.get(eid)
-            if offset is None:
-                self.offsets[eid] = size  # 跳过控制台启动前的历史记录
+            prev = self.offsets.get(eid)
+            if prev is None:
+                self.offsets[eid] = (path, size)  # 跳过控制台启动前的历史
                 continue
+            prev_path, offset = prev
+            if prev_path != path:
+                offset = 0  # 跨天换了文件，昨天的游标不能套在新文件上
             if size <= offset:
                 if size < offset:
-                    self.offsets[eid] = size
+                    self.offsets[eid] = (path, size)
                 continue
             try:
                 with open(path, "rb") as f:
@@ -277,7 +318,7 @@ class VisitNotifier(threading.Thread):
             if end < 0:
                 continue
             data = chunk[:end + 1]
-            self.offsets[eid] = offset + len(data)
+            self.offsets[eid] = (path, offset + len(data))
             for raw in data.splitlines():
                 try:
                     rec = json.loads(raw.decode("utf-8", "replace"))

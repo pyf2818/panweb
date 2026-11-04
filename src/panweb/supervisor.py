@@ -285,7 +285,12 @@ def cleanup_runtime_files():
     now = time.time()
     if os.path.isdir(runtime.VISITS_DIR):
         for name in os.listdir(runtime.VISITS_DIR):
-            if not name.endswith(".jsonl") or name[:-6] in state_ids:
+            if not name.endswith(".jsonl") or name.startswith("._"):
+                continue
+            stem = name[:-6]
+            # 访问日志按天分文件（<id>-YYYYMMDD.jsonl）；旧版单文件也要兼容。
+            owner = stem.rsplit("-", 1)[0] if "-" in stem else stem
+            if owner in state_ids:
                 continue
             path = os.path.join(runtime.VISITS_DIR, name)
             try:
