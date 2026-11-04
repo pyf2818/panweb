@@ -250,6 +250,39 @@ class UiSecurityTests(unittest.TestCase):
             left = json.loads(self.request("GET", "/api/term/sessions",
                                            headers=good)[1])["data"]["sessions"]
             self.assertEqual(left, [])
+    def test_command_route_parses_without_side_effects(self):
+        good = {"Host": "127.0.0.1:%d" % self.port,
+                "Content-Type": "application/json"}
+        before = store.load_state()
+        status, data = self.request(
+            "POST", "/api/command",
+            body=json.dumps({
+                "text": "发布 3000 pin=needle-777 有效期=1d"
+            }).encode("utf-8"),
+            headers=good)
+        payload = json.loads(data)
+        self.assertEqual(status, 200)
+        self.assertTrue(payload["ok"], payload)
+        self.assertEqual(payload["data"]["action"], "publish")
+        self.assertEqual(payload["data"]["options"]["pin"], "needle-777")
+        self.assertNotIn("raw", payload["data"])
+        self.assertEqual(store.load_state(), before)
+        for root, _dirs, files in os.walk(self.home):
+            for name in files:
+                with open(os.path.join(root, name), "rb") as f:
+                    self.assertNotIn(b"needle-777", f.read(),
+                                     os.path.join(root, name))
+        bad = json.loads(self.request(
+            "POST", "/api/command",
+            body=json.dumps({"text": "发布 3000; rm -rf /"}).encode("utf-8"),
+            headers=good)[1])
+        self.assertFalse(bad["ok"])
+        self.assertEqual(bad["error"]["type"], "invalid_command")
+        risky = json.loads(self.request(
+            "POST", "/api/command",
+            body=json.dumps({"text": "发布 5432"}).encode("utf-8"),
+            headers=good)[1])
+        self.assertEqual(risky["error"]["type"], "risky_port")
 
 
 if __name__ == "__main__":

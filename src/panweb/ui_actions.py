@@ -9,6 +9,7 @@ from . import events, jobs, runtime, ui_context
 from .agents import (AGENT_GUIDE, core_agent_connect, core_agent_disconnect,
                      core_agents, core_terminal_agents, skill_source_dir)
 from .browser import open_browser
+from .commands import parse_command
 from .discovery import core_discover, core_doctor
 from .diagnostics import core_report
 from .domain import (core_domain_bind, core_domain_login,
@@ -171,6 +172,12 @@ def _run_or_job(handler, body, kind, fn):
 
 
 def handle_post(handler, path, body):
+    if path == "/api/command":
+        parsed = parse_command(body.get("text") or "", load_publish_defaults())
+        if not parsed.get("ok"):
+            return handler.send_json({"ok": False,
+                                      "error": parsed["error"]}) or True
+        return handler.send_json({"ok": True, "data": parsed}) or True
     if path == "/api/publish":
         return _run_or_job(handler, body, "publish", lambda progress: core_publish(
             body.get("port"), body.get("name"), pin=body.get("pin"),

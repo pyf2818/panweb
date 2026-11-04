@@ -73,12 +73,63 @@ def entry_alive(entry):
     return 1 <= target <= 65535 and port_listening(target)
 
 
+def _node(state, detail):
+    return {"state": state, "detail": detail}
+
+
+def entry_nodes(entry):
+    """右栏三节点健康：只看现有进程/端口事实，缺失就是未知，不猜。"""
+    pid = entry.get("pid")
+    if not pid:
+        tunnel = _node("unknown", "隧道进程记录缺失")
+    elif pid_alive(pid):
+        tunnel = _node("online", "cloudflared 隧道运行中")
+    else:
+        tunnel = _node("offline", "cloudflared 隧道未运行")
+
+    proxy_port = entry.get("proxy_port")
+    if not proxy_port:
+        proxy = _node("disabled", "未启用（直连发布）")
+    elif not entry.get("server_pid"):
+        proxy = _node("unknown", "代理进程记录缺失")
+    elif not pid_alive(entry.get("server_pid")):
+        proxy = _node("offline", "代理进程未运行")
+    elif port_listening(proxy_port):
+        proxy = _node("online", "代理监听 127.0.0.1:%s" % proxy_port)
+    else:
+        proxy = _node("offline", "代理端口 %s 未监听" % proxy_port)
+
+    target = entry.get("target")
+    if entry.get("kind") == "pages":
+        if not target:
+            source = _node("unknown", "静态目录记录缺失")
+        elif os.path.isdir(str(target)):
+            source = _node("online", "静态目录存在")
+        else:
+            source = _node("offline", "静态目录不存在")
+    elif entry.get("kind") == "port":
+        try:
+            port = int(target)
+        except (TypeError, ValueError):
+            port = 0
+        if not 1 <= port <= 65535:
+            source = _node("unknown", "源端口记录缺失")
+        elif port_listening(port):
+            source = _node("online", "应用监听 127.0.0.1:%d" % port)
+        else:
+            source = _node("offline", "源端口 %d 未监听" % port)
+    else:
+        source = _node("unknown", "未知的发布类型")
+    return {"tunnel": tunnel, "proxy": proxy, "source": source}
+
+
 def core_list():
     """全部发布条目（死亡条目保留给健康监控自愈，stop 才移除）。"""
     entries = load_state()
     domain = load_domain() or {}
     for e in entries:
         e["alive"] = entry_alive(e)
+        e["nodes"] = entry_nodes(e)
         e["share_url"] = entry_share_url(e, domain)
         if e.get("auth_kind") and not upstream.read_auth(e.get("id")):
             # 密钥文件不在了就别在卡片上谎称已代填（详情抽屉读的是同一份真相）
