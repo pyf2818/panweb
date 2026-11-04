@@ -29,13 +29,28 @@
    于是 3 个用例从预期的 `network` / `not_found` / 成功路径变成 `checksum` 失败。
    本机是 arm64，所以一直通过。
 
-### macOS 尚未定位
+### macOS 根因（run 41775743909 已定位）
 
 macOS job 的 10 个失败全部止于 `port_listening(proxy_port)` 为假（“代理未启动”），
-涉及 `test_integration.py`（3）、`test_selfcheck.py`（4）、`test_upstream.py`（3）。
-该 job 已 `brew install cloudflared`，且 `test_update.py` 在 macOS 上没有失败，
-说明不是 cloudflared 或架构选择问题。当前 CI 日志只有断言行，没有子进程的
-`*-proxy.log` 内容，必须先取到子进程日志才能判断是环境假设还是产品缺陷。
+且 `proc.poll()` 为 `None`（子进程存活）、`*-proxy.log` 为空（没有 traceback）。
+诊断步骤在真实 runner 上实测：
+
+```
+127.0.0.1 'localhost' 35.018
+localhost 'localhost' 35.006
+Firewall is disabled. (State = 0)
+```
+
+即 `socket.getfqdn("127.0.0.1")` 在 macOS runner 上要 35 秒（反向解析超时）。
+`ThreadingHTTPServer.server_bind` 会先绑定再调用 `getfqdn`，`listen()` 要等它返回，
+所以代理在 20 秒断言窗口内仍未监听；防火墙已关闭，可以排除防火墙。
+
+判定：**runner 的 DNS 环境差异，不是产品缺陷**。此前等待窗口 8→20 秒不够，
+真实耗时约 35 秒，因此把三处等待窗口提高到 60 秒（断言条件不变）。诊断步骤在
+根因确认后从 workflow 移除，避免每次运行白等 70 秒。
+
+原推断保留：该 job 已 `brew install cloudflared`，且 `test_update.py` 在 macOS 上
+没有失败，说明不是 cloudflared 或架构选择问题。
 
 ## 目标
 
@@ -114,7 +129,7 @@ def proxy_log_tail(entry_id, limit=1500):
 | `No module named panweb` / `PYTHONPATH` / 解释器路径错误 | 测试启动子进程的环境假设 | 在测试侧显式设置子进程可导入路径或改用 `sys.executable -c`；只改测试/ workflow |
 | `Address already in use` / 端口相关 traceback | 测试端口选择竞态 | 测试内选择端口/重试策略调整，保留断言 |
 | 日志为空，子进程仍存活 | runner 回环访问/防火墙差异 | 在 workflow 测试前关闭 macOS 应用防火墙（`socketfilterfw --setglobalstate off`），并记录理由 |
-| 日志显示子进程启动耗时超过 8 秒 | 测试等待窗口过短 | 把三处 `deadline = time.time() + 8` 提高到 20 秒；断言不变 |
+| 日志显示子进程启动耗时超过 8 秒 | 测试等待窗口过短 | 先按实测把 `deadline` 提到 20 秒；实测 35 秒后提到 60 秒，断言不变 |
 | 日志显示真实产品 traceback（与运行环境无关） | 产品缺陷 | **停止**，不修、不推，向用户报告 |
 
 任何分支都必须保留断言强度；不确定时按“停止并报告”处理。

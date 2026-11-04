@@ -196,8 +196,8 @@ class ProxyUpstreamTests(unittest.TestCase):
         store.save_state([entry])
         proc = _spawn_proxy(proxy_port, entry_id, target_port=self.backend_port)
         self.assertIsNotNone(proc)
-        # macOS runner 首次启动子进程明显更慢，20 秒仍远小于测试超时
-        deadline = time.time() + 20
+        # macOS runner 上 HTTPServer 启动时的反解实测约 35 秒，等待窗口要留余量
+        deadline = time.time() + 60
         while time.time() < deadline and not port_listening(proxy_port):
             time.sleep(0.1)
         self.assertTrue(port_listening(proxy_port),
