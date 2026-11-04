@@ -28,10 +28,10 @@ class CliTests(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.home, ignore_errors=True)
 
-    def run_cli(self, *args):
+    def run_cli(self, *args, timeout=30):
         return subprocess.run([sys.executable, str(SCRIPT), *args],
                               capture_output=True, text=True, env=self.env,
-                              timeout=30)
+                              timeout=timeout)
 
     def test_json_error_contract(self):
         sock = socket.socket()
@@ -93,6 +93,30 @@ class CliTests(unittest.TestCase):
         payload = json.loads(out.stdout)
         self.assertTrue(payload["ok"])
         self.assertTrue(payload["data"]["state_dir"].startswith(self.home))
+
+    @unittest.skipUnless(sys.platform == "darwin",
+                         "install-app 只能在 macOS 上构建")
+    def test_install_app_json_stdout_is_one_json_document(self):
+        """--json 是机器接口：stdout 必须整体可解析，不能混入人类可读行。"""
+        # 不用 /bin/false：SIP 保护的二进制带着受限扩展属性，复制进 App 后
+        # chmod 会被拒绝；这里用自己写的假 cloudflared。
+        cf = os.path.join(self.home, "cloudflared")
+        with open(cf, "w", encoding="utf-8") as f:
+            f.write("#!/bin/sh\nexit 0\n")
+        os.chmod(cf, 0o755)
+        self.env["PANWEB_CLOUDFLARED"] = cf
+        app = os.path.join(self.home, "panweb.app")
+        out = self.run_cli("install-app", "--out", app, "--json", timeout=120)
+        self.assertEqual(out.returncode, 0, out.stderr)
+        self.assertEqual(len(out.stdout.strip().splitlines()), 1,
+                         "stdout 只能有一行 JSON，实际：%r" % out.stdout[:400])
+        payload = json.loads(out.stdout)
+        self.assertTrue(payload["ok"])
+        self.assertTrue(payload["data"]["app"].endswith("panweb.app"))
+        # 人类可读模式仍要说明签名状况，不能把提示一起删掉
+        human = self.run_cli("install-app", "--out", app, timeout=120)
+        self.assertEqual(human.returncode, 0, human.stderr)
+        self.assertIn("ad-hoc 签名", human.stdout)
 
 
 class CompatCliTests(unittest.TestCase):

@@ -138,4 +138,4 @@ def cmd_install_app(args):
         print("   不内置 Python 解释器：运行需系统 python3 ≥ 3.9，"
               "缺失时启动器会引导安装")
         print("   控制台已有实例运行时会直接打开浏览器（幂等）")
-    print("   %s" % codesign.describe(signed))
+        print("   %s" % codesign.describe(signed))
