@@ -3273,9 +3273,39 @@ body.rail-open #rail-backdrop, body.viz-open #viz-backdrop { display: block; }
 }
 
 /* ---------- 右栏：部署详情 ---------- */
-.viz-panel { gap: 7px; padding-top: 8px; }
+.viz-panel { gap: 7px; padding-top: 8px; flex: 1; }
+.viz-sub { font-family: var(--mono); font-size: 9px; color: var(--faint); margin-top: 3px; }
 .viz-url { display: none; }
 .dep-sec { border-top: 1px solid var(--border); padding-top: 8px; }
+.dep-group { padding-top: 7px; }
+.dep-group-btn {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+  width: 100%; padding: 0; margin: 0 0 5px; border: 0; background: none;
+  text-align: left; cursor: pointer; color: inherit; font: inherit;
+}
+.dep-group-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+.dep-group-btn:hover .dep-label { color: var(--ink); }
+.dep-group.is-collapsed .dep-group-btn { margin-bottom: 0; }
+.dep-group-body { min-width: 0; }
+.dep-caret {
+  font-family: var(--mono); font-size: 11px; color: var(--faint); flex: none;
+  transition: transform .2s ease; display: inline-block; line-height: 1;
+}
+.dep-group-btn[aria-expanded="false"] .dep-caret,
+.rail-collapse[aria-expanded="false"] .dep-caret { transform: rotate(-90deg); }
+.dep-sub { border-top: 1px dashed var(--border); margin-top: 7px; padding-top: 6px; }
+.dep-sub .dep-group-btn { margin-bottom: 4px; }
+.dep-sub .dep-label { font-size: 9.5px; }
+.dep-stopped-note {
+  border: 1px solid var(--expired-ring); border-radius: 9px; padding: 7px 9px;
+  background: var(--node-bg); font-size: 10px; color: var(--muted); line-height: 1.6;
+}
+.dep-stopped-note b { color: var(--expired); font-size: 10.5px; }
+.dep-actions {
+  position: sticky; bottom: -1px; z-index: 6; margin-top: auto;
+  padding: 9px 0 2px; background: var(--viz-bg); backdrop-filter: blur(10px);
+  border-top: 1px solid var(--accent);
+}
 .dep-label {
   display: flex; align-items: baseline; gap: 7px; margin-bottom: 6px;
   font-size: 10px; letter-spacing: .14em; color: var(--faint); text-transform: uppercase;
@@ -3355,6 +3385,81 @@ body.rail-open #rail-backdrop, body.viz-open #viz-backdrop { display: block; }
 .qr-target {
   font-family: var(--mono); font-size: 9.5px; color: var(--faint);
   overflow-wrap: anywhere; margin-bottom: 10px;
+}
+
+/* ---------- 工作台：左栏过滤 / 引导 / 中栏提示 ---------- */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+.rail-filters { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 2px 8px; }
+.rail-filter {
+  border: 1px solid var(--border); border-radius: 999px; background: transparent;
+  color: var(--faint); font-family: var(--mono); font-size: 9.5px;
+  padding: 3px 8px; min-height: 26px; cursor: pointer; transition: all .2s;
+}
+.rail-filter:hover { color: var(--accent); border-color: var(--accent); }
+.rail-filter[aria-pressed="true"] {
+  color: var(--accent); border-color: var(--accent); background: var(--accent-soft);
+}
+.rail-filter:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.rail-collapse {
+  display: flex; align-items: center; gap: 6px; padding: 0; border: 0;
+  background: none; color: var(--faint); cursor: pointer;
+  font: inherit; letter-spacing: inherit; text-transform: inherit;
+}
+.rail-collapse:hover { color: var(--ink); }
+.rail-collapse:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.rail-head-tools { display: flex; align-items: center; gap: 3px; }
+.rail-scope { font-family: var(--mono); font-size: 9px; color: var(--faint); letter-spacing: 0; text-transform: none; }
+.rail-steps { margin: 7px 0 8px; padding-left: 18px; color: var(--muted); }
+.rail-empty-guide b { color: var(--ink); font-size: 12px; }
+.rail-empty-actions { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.rail-empty-actions .btn { min-height: 26px; font-size: 10.5px; }
+.tl-scope-note {
+  font-family: var(--mono); font-size: 9px; color: var(--faint);
+  padding: 3px 5px 6px; letter-spacing: .04em;
+}
+.scan-list { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
+.scan-item {
+  display: flex; align-items: baseline; gap: 7px; width: 100%; padding: 6px 8px;
+  text-align: left; cursor: pointer; font-family: var(--mono); font-size: 10px;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: var(--node-bg); color: var(--muted);
+}
+.scan-item:hover { border-color: var(--accent); color: var(--ink); }
+.scan-item b { color: var(--accent); font-size: 10.5px; }
+.scan-item span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scan-tag { flex: none; color: var(--online); font-size: 9px; }
+.scan-note { font-size: 10px; color: var(--faint); }
+
+.guide-card {
+  margin: 12px 18px 0; padding: 14px 16px; border: 1px solid var(--border);
+  border-radius: 12px; background: var(--node-bg);
+}
+.guide-title { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+.guide-steps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 7px; }
+.guide-steps li { font-size: 12px; color: var(--muted); line-height: 1.6; }
+.guide-steps b { color: var(--ink); display: block; font-size: 12.5px; }
+.guide-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 11px; }
+.guide-results { margin-top: 9px; }
+.guide-results .scan-list { max-height: 220px; overflow-y: auto; }
+
+.cmd-hint-line {
+  min-height: 16px; padding: 0 16px 5px; font-size: 10px; color: var(--faint);
+  font-family: var(--mono); line-height: 1.5;
+}
+.cmd-hint-line.ok { color: var(--online); }
+.cmd-hint-line.warn { color: var(--expired); }
+.cmd-chip:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+
+@media (max-width: 900px) {
+  .guide-card { margin: 10px 12px 0; padding: 12px; }
+  .rail-filters { padding-bottom: 6px; }
+  .rail-filter { min-height: 30px; font-size: 10px; }
+  .dep-actions { padding-bottom: calc(4px + env(safe-area-inset-bottom)); }
 }
 
 /* ---------- 终端页：伪终端画面（xterm.js 渲染，控制台只搬字节） ---------- */
@@ -4220,13 +4325,25 @@ body[data-page="system"] .main { padding-bottom: 48px; }
   </div>
 
   <div class="rail-head"><span>资产档案</span><span class="rail-count" id="asset-count">0</span></div>
+  <div class="rail-filters" id="asset-filters" role="group" aria-label="按状态筛选资产">
+    <button class="rail-filter" type="button" data-filter="all" aria-pressed="true" onclick="setAssetFilter('all')">全部</button>
+    <button class="rail-filter" type="button" data-filter="online" aria-pressed="false" onclick="setAssetFilter('online')">运行中</button>
+    <button class="rail-filter" type="button" data-filter="offline" aria-pressed="false" onclick="setAssetFilter('offline')">已停止</button>
+    <button class="rail-filter" type="button" data-filter="expired" aria-pressed="false" onclick="setAssetFilter('expired')">已到期</button>
+    <button class="rail-filter" type="button" data-filter="hosted" aria-pressed="false" onclick="setAssetFilter('hosted')">云端托管</button>
+  </div>
   <div class="asset-list" id="asset-list">
     <div class="rail-empty">正在读取资产…</div>
   </div>
 
-  <div class="rail-head rail-head-timeline"><span>变更时间线</span><button class="rail-mini" onclick="reloadTimeline()" title="刷新时间线">↻</button></div>
+  <div class="rail-head rail-head-timeline">
+    <button class="rail-collapse" id="rail-timeline-btn" type="button" aria-expanded="true" aria-controls="asset-timeline" onclick="toggleRailTimeline()">
+      <span class="dep-caret" aria-hidden="true">⌄</span><span>变更时间线</span>
+    </button>
+    <span class="rail-head-tools"><span class="rail-scope" id="timeline-scope">全局</span><button class="rail-mini" onclick="showGlobalTimeline()" title="查看全局最近 10 条变更" aria-label="查看全局最近 10 条变更">全局</button><button class="rail-mini" onclick="reloadTimeline()" title="刷新时间线" aria-label="刷新变更时间线">↻</button></span>
+  </div>
   <div class="asset-timeline" id="asset-timeline">
-    <div class="rail-empty">选择左侧资产后显示发布、改口令、重建、停止与到期记录。</div>
+    <div class="rail-empty">未选中条目时显示最近 10 条全局变更；发布、改口令、重建、停止与到期都会记录。</div>
   </div>
 
   <div class="sidebar-env">
@@ -4305,22 +4422,39 @@ body[data-page="system"] .main { padding-bottom: 48px; }
           <button class="btn btn-sm ghost" onclick="openPublish('port')">高级发布</button>
         </div>
 
+        <div class="guide-card" id="guide-card" hidden>
+          <div class="guide-title">三步发出一个网址</div>
+          <ol class="guide-steps">
+            <li><b>选择要发布的东西</b><span>本机端口、静态文件夹，或让 panweb 启动一个项目。</span></li>
+            <li><b>确认能被访问</b><span>发布后打开链接自检；口令与有效期按需设置。</span></li>
+            <li><b>发送给别人</b><span>复制分享链接或二维码，手机扫码即可打开。</span></li>
+          </ol>
+          <div class="guide-actions">
+            <button class="btn btn-sm btn-primary" type="button" onclick="openPublish('port')">发布端口</button>
+            <button class="btn btn-sm" type="button" onclick="openPublish('pages')">发布文件夹</button>
+            <button class="btn btn-sm ghost" type="button" onclick="scanPorts('guide')">扫描本机端口</button>
+          </div>
+          <div class="guide-results" id="guide-results"></div>
+        </div>
+
         <div class="chat-log" id="chat-log" aria-live="polite"></div>
 
-        <div class="cmd-hints" id="cmd-hints">
-          <button type="button" class="cmd-chip" onclick="fillCommand('发布 3000')">发布 3000</button>
-          <button type="button" class="cmd-chip" onclick="fillCommand('发布 ~/Documents/site')">发布文件夹</button>
-          <button type="button" class="cmd-chip" onclick="fillCommand('停止 当前')">停止当前</button>
-          <button type="button" class="cmd-chip" onclick="fillCommand('检查 当前')">自检</button>
-          <button type="button" class="cmd-chip" onclick="fillCommand('帮助')">帮助</button>
+        <div class="cmd-hints" id="cmd-hints" role="group" aria-label="快捷指令">
+          <button type="button" class="cmd-chip" onclick="fillTemplate('发布 <端口>', '<端口>')" aria-label="填入发布端口的指令模板">发布端口</button>
+          <button type="button" class="cmd-chip" onclick="fillTemplate('发布 <文件夹路径>', '<文件夹路径>')" aria-label="填入发布文件夹的指令模板">发布文件夹</button>
+          <button type="button" class="cmd-chip" onclick="fillTemplate('停止 当前', '')" aria-label="填入停止当前发布的指令">停止当前</button>
+          <button type="button" class="cmd-chip" onclick="fillTemplate('检查 当前', '')" aria-label="填入重新自检的指令">检查一下</button>
+          <button type="button" class="cmd-chip" onclick="fillTemplate('帮助', '')" aria-label="填入帮助指令">帮助</button>
         </div>
+
+        <div class="cmd-hint-line" id="cmd-hint-line" role="status"></div>
 
         <form class="conv-composer" id="cmd-form" onsubmit="submitCommand(event)">
           <span class="cmd-prompt" aria-hidden="true">›</span>
           <textarea id="cmd-input" rows="1" placeholder="输入指令，例如 发布 3000 pin=1234 有效期=1d" autocomplete="off" spellcheck="false" aria-label="发布指令"></textarea>
           <button class="btn btn-primary cmd-run" id="cmd-run" type="submit">执行</button>
         </form>
-        <div class="conv-foot">Enter 执行 · Shift+Enter 换行 · 解析失败不会调用发布接口</div>
+        <div class="conv-foot">Enter 执行 · Shift+Enter 换行 · ↑ 回填上次指令（不含口令）· 解析失败不会调用发布接口</div>
       </div>
     </div>
   </section>
@@ -4476,6 +4610,7 @@ body[data-page="system"] .main { padding-bottom: 48px; }
     <div class="viz-radar" aria-hidden="true"><span></span></div>
     <b>等待选择资产</b>
     <p>从左侧选择一个应用或网页，这里会显示链接、二维码、历史网址、状态与操作。</p>
+    <button class="btn btn-sm" type="button" onclick="scanPorts('viz')">扫描本机端口</button>
   </div>
 
   <div class="viz-panel" id="viz-panel" hidden>
@@ -4483,95 +4618,126 @@ body[data-page="system"] .main { padding-bottom: 48px; }
       <div>
         <div class="viz-name" id="viz-name">—</div>
         <div class="viz-url" id="viz-url">—</div>
+        <div class="viz-sub" id="viz-sub">—</div>
       </div>
       <span class="viz-badge" id="viz-status">未知</span>
     </div>
 
-    <section class="dep-sec">
-      <div class="dep-label">链接 <span class="dep-note">复制或直接打开</span></div>
-      <div class="dep-link">
-        <span class="dep-key">公网</span>
-        <span class="dep-url" id="dep-url">—</span>
-        <button class="dep-cp" onclick="copyText(document.getElementById('dep-url').textContent)" title="复制公网地址">复制</button>
-        <button class="btn btn-sm ghost" onclick="openUrl(document.getElementById('dep-url').textContent)">打开</button>
-      </div>
-      <div class="dep-link" id="dep-share-row">
-        <span class="dep-key">分享</span>
-        <span class="dep-url" id="dep-share-url">—</span>
-        <button class="dep-cp" onclick="copyText(document.getElementById('dep-share-url').textContent)" title="复制分享链接">复制</button>
-        <button class="btn btn-sm ghost" onclick="openUrl(document.getElementById('dep-share-url').textContent)">打开</button>
-      </div>
-    </section>
+    <div class="dep-stopped-note" id="dep-stopped-note" hidden></div>
 
-    <section class="dep-sec">
-      <div class="dep-label">二维码 <span class="dep-note" id="dep-qr-note">本地生成</span></div>
-      <div class="dep-qr-wrap">
-        <div class="dep-qr" id="viz-qr" onclick="openQrZoom()" title="点击放大" role="button" tabindex="0"></div>
-        <div class="dep-qr-actions">
-          <button class="btn btn-sm ghost" onclick="openQrZoom()">放大</button>
-          <button class="btn btn-sm ghost" onclick="downloadVizQr()">下载 PNG</button>
-          <div class="dep-hint" id="dep-qr-target">—</div>
+    <section class="dep-sec dep-group" id="dep-group-links">
+      <button class="dep-group-btn" type="button" aria-expanded="true" aria-controls="dep-body-links" onclick="toggleDepGroup('links')">
+        <span class="dep-label">链接 <span class="dep-note">复制或直接打开</span></span>
+        <span class="dep-caret" aria-hidden="true">⌄</span>
+      </button>
+      <div class="dep-group-body" id="dep-body-links">
+        <div class="dep-link">
+          <span class="dep-key">公网</span>
+          <span class="dep-url" id="dep-url">—</span>
+          <button class="dep-cp" onclick="copyText(document.getElementById('dep-url').textContent)" title="复制公网地址" aria-label="复制公网地址">复制</button>
+          <button class="btn btn-sm ghost" onclick="openUrl(document.getElementById('dep-url').textContent)">打开</button>
+        </div>
+        <div class="dep-link" id="dep-share-row">
+          <span class="dep-key">分享</span>
+          <span class="dep-url" id="dep-share-url">—</span>
+          <button class="dep-cp" onclick="copyText(document.getElementById('dep-share-url').textContent)" title="复制分享链接" aria-label="复制分享链接">复制</button>
+          <button class="btn btn-sm ghost" onclick="openUrl(document.getElementById('dep-share-url').textContent)">打开</button>
+        </div>
+        <div class="dep-qr-wrap">
+          <div class="dep-qr" id="viz-qr" onclick="openQrZoom()" title="点击放大" role="button" tabindex="0" aria-label="放大二维码"></div>
+          <div class="dep-qr-actions">
+            <button class="btn btn-sm ghost" onclick="openQrZoom()">放大</button>
+            <button class="btn btn-sm ghost" onclick="downloadVizQr()">下载 PNG</button>
+            <div class="dep-hint" id="dep-qr-target">—</div>
+          </div>
         </div>
       </div>
     </section>
 
-    <section class="dep-sec">
-      <div class="dep-label">历史链接 <span class="dep-note">重建后旧网址</span></div>
-      <div class="dep-links" id="dep-links"><div class="rail-empty">读取中…</div></div>
-    </section>
-
-    <section class="dep-sec">
-      <div class="dep-label">状态</div>
-      <div class="dep-grid">
-        <div class="dep-row"><span>口令</span><b id="dep-pin">未知</b></div>
-        <div class="dep-row"><span>有效期</span><b id="dep-exp">未知</b></div>
-        <div class="dep-row"><span>发布时间</span><b id="dep-pub">未知</b></div>
-        <div class="dep-row"><span>访问 PV</span><b id="viz-pv">未知</b></div>
-        <div class="dep-row"><span>访客 UV</span><b id="viz-uv">未知</b></div>
-        <div class="dep-row"><span>最近访问</span><b id="viz-last">未知</b></div>
-        <div class="dep-row"><span>最近重建</span><b id="dep-last-rebuild">未知</b></div>
-        <div class="dep-row"><span>重建次数</span><b id="viz-rebuilds">未知</b></div>
-      </div>
-    </section>
-
-    <section class="dep-sec">
-      <div class="dep-label">进程 <span class="dep-note">实时</span></div>
-      <div class="viz-graph" id="viz-graph">
-        <div class="viz-node" id="viz-node-proxy" data-node="proxy">
-          <span class="viz-dot"></span>
-          <div><b>内置代理</b><span class="viz-detail">未知</span></div>
+    <section class="dep-sec dep-group" id="dep-group-status">
+      <button class="dep-group-btn" type="button" aria-expanded="true" aria-controls="dep-body-status" onclick="toggleDepGroup('status')">
+        <span class="dep-label">状态</span>
+        <span class="dep-caret" aria-hidden="true">⌄</span>
+      </button>
+      <div class="dep-group-body" id="dep-body-status">
+        <div class="dep-grid">
+          <div class="dep-row"><span>口令</span><b id="dep-pin">未知</b></div>
+          <div class="dep-row"><span>有效期</span><b id="dep-exp">未知</b></div>
+          <div class="dep-row" id="dep-stopped-row" hidden><span>停止时间</span><b id="dep-stopped-at">未知</b></div>
+          <div class="dep-row"><span>发布时间</span><b id="dep-pub">未知</b></div>
+          <div class="dep-row"><span>访问 PV</span><b id="viz-pv">未知</b></div>
+          <div class="dep-row"><span>访客 UV</span><b id="viz-uv">未知</b></div>
+          <div class="dep-row"><span>最近访问</span><b id="viz-last">未知</b></div>
+          <div class="dep-row"><span>最近重建</span><b id="dep-last-rebuild">未知</b></div>
+          <div class="dep-row"><span>重建次数</span><b id="viz-rebuilds">未知</b></div>
         </div>
-        <div class="viz-link" id="viz-link-proxy"><span></span></div>
-        <div class="viz-node" id="viz-node-tunnel" data-node="tunnel">
-          <span class="viz-dot"></span>
-          <div><b>cloudflared 隧道</b><span class="viz-detail">未知</span></div>
-        </div>
-        <div class="viz-link" id="viz-link-source"><span></span></div>
-        <div class="viz-node" id="viz-node-source" data-node="source">
-          <span class="viz-dot"></span>
-          <div><b>源应用</b><span class="viz-detail">未知</span></div>
+        <div class="dep-group dep-sub" id="dep-group-visitors">
+          <button class="dep-group-btn" type="button" aria-expanded="false" aria-controls="dep-body-visitors" onclick="toggleDepGroup('visitors')">
+            <span class="dep-label">最近访客 <span class="dep-note" id="dep-visitors-note">近 24 小时</span></span>
+            <span class="dep-caret" aria-hidden="true">⌄</span>
+          </button>
+          <div class="dep-group-body" id="dep-body-visitors" hidden>
+            <div class="viz-visitors" id="viz-visitors"><div class="rail-empty">展开后读取最近访客。</div></div>
+          </div>
         </div>
       </div>
     </section>
 
-    <section class="dep-sec dep-actions">
+    <section class="dep-sec dep-group" id="dep-group-history">
+      <button class="dep-group-btn" type="button" aria-expanded="false" aria-controls="dep-body-history" onclick="toggleDepGroup('history')">
+        <span class="dep-label">历史链接 <span class="dep-note">重建后旧网址</span></span>
+        <span class="dep-caret" aria-hidden="true">⌄</span>
+      </button>
+      <div class="dep-group-body" id="dep-body-history" hidden>
+        <div class="dep-links" id="dep-links"><div class="rail-empty">读取中…</div></div>
+      </div>
+    </section>
+
+    <section class="dep-sec dep-group" id="dep-group-process">
+      <button class="dep-group-btn" type="button" aria-expanded="false" aria-controls="dep-body-process" onclick="toggleDepGroup('process')">
+        <span class="dep-label">进程 <span class="dep-note">实时</span></span>
+        <span class="dep-caret" aria-hidden="true">⌄</span>
+      </button>
+      <div class="dep-group-body" id="dep-body-process" hidden>
+        <div class="viz-graph" id="viz-graph">
+          <div class="viz-node" id="viz-node-proxy" data-node="proxy">
+            <span class="viz-dot"></span>
+            <div><b>内置代理</b><span class="viz-detail">未知</span></div>
+          </div>
+          <div class="viz-link" id="viz-link-proxy"><span></span></div>
+          <div class="viz-node" id="viz-node-tunnel" data-node="tunnel">
+            <span class="viz-dot"></span>
+            <div><b>cloudflared 隧道</b><span class="viz-detail">未知</span></div>
+          </div>
+          <div class="viz-link" id="viz-link-source"><span></span></div>
+          <div class="viz-node" id="viz-node-source" data-node="source">
+            <span class="viz-dot"></span>
+            <div><b>源应用</b><span class="viz-detail">未知</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="dep-sec dep-actions" id="dep-actions">
       <div class="dep-label">操作</div>
       <div class="dep-act-row">
-        <button class="btn btn-sm btn-danger" onclick="vizStop()">停止</button>
-        <button class="btn btn-sm" onclick="vizRetry()" title="检查并重建失联通道">重试通道</button>
-        <button class="btn btn-sm" onclick="vizCheck()">重新自检</button>
+        <button class="btn btn-sm btn-primary" id="dep-republish-btn" onclick="vizRepublish()" hidden>用同样配置重新发布</button>
+        <button class="btn btn-sm btn-danger" id="dep-stop-btn" onclick="vizStop()">停止</button>
+        <button class="btn btn-sm" id="dep-retry-btn" onclick="vizRetry()" title="检查并重建失联通道">重试通道</button>
+        <button class="btn btn-sm" id="dep-check-btn" onclick="vizCheck()">重新自检</button>
       </div>
       <div class="dep-pin-row">
         <input type="text" id="viz-pin-input" maxlength="32" placeholder="新口令；留空提交=移除" autocomplete="off" aria-label="新访问口令">
-        <button class="btn btn-sm" onclick="vizSetPin()">改口令</button>
+        <button class="btn btn-sm" id="dep-pin-btn" onclick="vizSetPin()">改口令</button>
       </div>
-      <div class="dep-hint">口令只作为一次请求参数；详情仅显示「需要 / 无」，不会回显明文。</div>
+      <div class="dep-hint" id="dep-act-hint">口令只作为一次请求参数；详情仅显示「需要 / 无」，不会回显明文。</div>
     </section>
   </div>
 </aside>
 
 <div class="drawer-backdrop" id="rail-backdrop" onclick="closeDrawers()"></div>
 <div class="drawer-backdrop" id="viz-backdrop" onclick="closeDrawers()"></div>
+<div class="sr-only" id="sr-live" aria-live="polite" aria-atomic="true"></div>
 
 <!-- ======= 发布弹窗 ======= -->
 <div class="overlay" id="pub-overlay">
@@ -5227,6 +5393,22 @@ let selectedAssetId = localStorage.getItem("panweb-selected") || null;
 const TIMELINE_CACHE = {};
 const TIMELINE_PENDING = {};
 let timelineToken = 0;
+const GLOBAL_LIMIT = 10;
+let GLOBAL_TIMELINE = null;
+let GLOBAL_PENDING = false;
+let globalToken = 0;
+let globalPreview = false;
+
+const ASSET_FILTERS = ["all", "online", "offline", "expired", "hosted"];
+const FILTER_LABELS = {
+  all: "全部", online: "运行中", offline: "已停止", expired: "已到期",
+  hosted: "云端托管",
+};
+const ASSET_FILTER_KEY = "panweb-asset-filter";
+const RAIL_TL_KEY = "panweb-rail-timeline";
+let assetFilter = ASSET_FILTERS.includes(localStorage.getItem(ASSET_FILTER_KEY))
+  ? localStorage.getItem(ASSET_FILTER_KEY) : "all";
+let railTimelineOpen = localStorage.getItem(RAIL_TL_KEY) !== "false";
 
 const EVENT_LABELS = {
   publish: "发布", restart: "重建", url_change: "换网址",
@@ -5236,67 +5418,129 @@ const EVENT_LABELS = {
 function assetKey(a, hosted) {
   return hosted ? "h:" + a.name : a.id;
 }
-function allAssets(apps, hosted) {
-  return [{list: apps || [], hosted: false}, {list: hosted || [], hosted: true}]
-    .flatMap(g => g.list.map(a => ({a, hosted: g.hosted, id: assetKey(a, g.hosted)})));
+function allAssets(apps, hosted, snaps) {
+  const out = [];
+  (apps || []).forEach(a => out.push({a: a, hosted: false, snapshot: false, id: a.id}));
+  (snaps || []).forEach(s => out.push({a: s, hosted: false, snapshot: true, id: s.id}));
+  (hosted || []).forEach(a => out.push({
+    a: a, hosted: true, snapshot: false, id: assetKey(a, true)}));
+  return out;
+}
+function liveAssets() {
+  return allAssets(STATE && STATE.apps, STATE && STATE.hosted,
+    STATE && STATE.last_deployments);
 }
 function findAsset(id) {
-  for (const x of allAssets(STATE && STATE.apps, STATE && STATE.hosted)) {
+  for (const x of liveAssets()) {
     if (x.id === id) return x;
   }
   return null;
 }
 function findAssetByPort(port) {
-  return (STATE && STATE.apps || []).find(a => a.kind === "port" && Number(a.port) === Number(port)) || null;
+  return (STATE && STATE.apps || [])
+    .find(a => a.kind === "port" && Number(a.port) === Number(port)) || null;
 }
-function assetStatus(a, hosted) {
+function assetStatus(a, hosted, snapshot) {
   if (hosted) return "hosted";
+  if (snapshot) {
+    return (a.stop_reason === "expired" || a.stop_reason === "invalid_expires_at")
+      ? "expired" : "offline";
+  }
   if (a.expires_at && a.expires_at < Date.now() / 1000) return "expired";
   return a.alive ? "online" : "offline";
 }
 function statusText(state) {
-  return {online: "运行中", offline: "已停止", expired: "已到期", hosted: "云端托管"}[state] || "未知";
+  return {all: "全部", online: "运行中", offline: "已停止", expired: "已到期",
+    hosted: "云端托管"}[state] || "未知";
 }
-function lifecycleText(a, hosted) {
+function lifecycleText(a, hosted, snapshot) {
   if (hosted) return (a.files || 0) + " 文件 · " + (a.updated || "");
+  if (snapshot) return "上次 · " + (a.kind === "pages" ? "文件夹 " + a.folder :
+    "端口 " + a.port) + " · 停止于 " + eventTime(a.stopped_at);
   if (a.kind === "pages") return "文件夹 " + a.folder;
   return "端口 " + a.port;
 }
+function assetActivity(x) {
+  if (x.snapshot) return Number(x.a.stopped_at) || 0;
+  if (x.hosted) return 0;
+  const cached = TIMELINE_CACHE[x.a.id];
+  if (cached && cached.length) return Number(cached[0].ts) || 0;
+  const t = Date.parse((x.a.started || "").replace(" ", "T"));
+  return Number.isFinite(t) ? t / 1000 : 0;
+}
+function sortAssets(assets) {
+  return assets.sort((x, y) => (assetActivity(y) - assetActivity(x)) ||
+    (x.id < y.id ? -1 : x.id > y.id ? 1 : 0));
+}
+
+function setAssetFilter(f) {
+  if (!ASSET_FILTERS.includes(f)) return;
+  assetFilter = f;
+  try { localStorage.setItem(ASSET_FILTER_KEY, f); } catch (e) { /* 忽略 */ }
+  syncFilterChips();
+  renderAssetList();
+}
+function syncFilterChips() {
+  document.querySelectorAll("#asset-filters .rail-filter").forEach(b => {
+    b.setAttribute("aria-pressed",
+      b.dataset.filter === assetFilter ? "true" : "false");
+  });
+}
+function clearAssetFilters() {
+  const search = document.getElementById("asset-search");
+  if (search) search.value = "";
+  setAssetFilter("all");
+}
 
 function renderWorkbench(apps, hosted) {
-  const assets = allAssets(apps, hosted);
+  const assets = sortAssets(allAssets(apps, hosted, STATE.last_deployments || []));
   if (!assets.some(x => x.id === selectedAssetId)) {
     selectedAssetId = assets.length ? assets[0].id : null;
   }
+  const guide = document.getElementById("guide-card");
+  if (guide) guide.hidden = assets.length > 0;
   document.getElementById("asset-count").textContent = String(assets.length);
+  syncFilterChips();
   renderAssetList();
-  if (selectedAssetId) loadAssetTimeline(selectedAssetId);
-  else renderTimelineEmpty("还没有资产。输入「发布 3000」或点击「高级发布」。");
+  if (selectedAssetId && !globalPreview) loadAssetTimeline(selectedAssetId);
+  else loadGlobalTimeline();
 }
 
 function renderAssetList() {
   const box = document.getElementById("asset-list");
   const q = (document.getElementById("asset-search").value || "").trim().toLowerCase();
-  const assets = allAssets(STATE && STATE.apps, STATE && STATE.hosted);
+  const assets = sortAssets(liveAssets());
+  if (!assets.length) {
+    box.innerHTML = '<div class="rail-empty rail-empty-guide"><b>还没有发布</b>' +
+      '<ol class="rail-steps"><li>选择端口或文件夹</li><li>发布并确认能打开</li>' +
+      '<li>把链接或二维码发出去</li></ol>' +
+      '<div class="rail-empty-actions"><button class="btn btn-sm" type="button" ' +
+      'onclick="openPublish(\'port\')">发布端口</button>' +
+      '<button class="btn btn-sm ghost" type="button" ' +
+      'onclick="scanPorts(\'left\')">扫描本机端口</button></div></div>';
+    return;
+  }
   const shown = assets.filter(x => {
+    const st = assetStatus(x.a, x.hosted, x.snapshot);
+    if (assetFilter !== "all" && st !== assetFilter) return false;
     if (!q) return true;
     const a = x.a;
     return [a.name, a.title, a.folder, a.port, a.url, a.share_url, x.id]
       .filter(Boolean).join(" ").toLowerCase().includes(q);
   });
-  if (!assets.length) {
-    box.innerHTML = '<div class="rail-empty">还没有发布。<br><button class="btn btn-sm" ' +
-      'onclick="openPublish(\'port\')">高级发布</button></div>';
-    return;
-  }
   if (!shown.length) {
-    box.innerHTML = '<div class="rail-empty">没有匹配「' + esc(q) + '」的资产。</div>';
+    box.innerHTML = '<div class="rail-empty">' + (q
+      ? '没有匹配「' + esc(q) + '」的资产（筛选：' + esc(FILTER_LABELS[assetFilter]) + '）。'
+      : '当前筛选「' + esc(FILTER_LABELS[assetFilter]) + '」下没有资产。') +
+      '<br><button class="btn btn-sm ghost" type="button" onclick="clearAssetFilters()">清除筛选</button></div>';
     return;
   }
   box.innerHTML = shown.map(x => {
-    const a = x.a, st = assetStatus(a, x.hosted);
+    const a = x.a, st = assetStatus(a, x.hosted, x.snapshot);
     const pv = !x.hosted && a.pv ? "PV " + a.pv.total : "";
-    const exp = !x.hosted && a.expires_at ? " · " + fmtRemain(a.expires_at) : "";
+    const exp = !x.hosted
+      ? (x.snapshot ? (a.expires_text || "") : (a.expires_at ? fmtRemain(a.expires_at) : ""))
+      : "";
     const active = x.id === selectedAssetId ? " active" : "";
     return '<div class="asset-item' + active + '" data-id="' + esc(x.id) + '" role="button" ' +
       'tabindex="0" onclick="selectAsset(' + jsq(x.id) + ')" ' +
@@ -5304,7 +5548,8 @@ function renderAssetList() {
       '<span class="asset-dot ' + st + '"></span>' +
       '<span class="asset-body"><span class="asset-name">' + esc(a.title || a.name) + '</span>' +
       '<span class="asset-meta"><span class="asset-state ' + st + '">' + statusText(st) + '</span>' +
-      '<span>' + esc(lifecycleText(a, x.hosted)) + '</span><span>' + esc(exp) + '</span></span></span>' +
+      '<span>' + esc(lifecycleText(a, x.hosted, x.snapshot)) + '</span><span>' +
+      esc(exp) + '</span></span></span>' +
       '<span class="asset-pv">' + esc(pv) + '</span></div>';
   }).join("");
 }
@@ -5312,6 +5557,7 @@ function renderAssetList() {
 function selectAsset(id) {
   if (!findAsset(id)) return;
   selectedAssetId = id;
+  globalPreview = false;
   localStorage.setItem("panweb-selected", id);
   renderAssetList();
   loadAssetTimeline(id);
@@ -5329,19 +5575,60 @@ function eventTime(ts) {
   const p = n => String(n).padStart(2, "0");
   return p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes());
 }
+function timelineRows(events) {
+  return events.map(e => {
+    const detail = e.details ? (e.details.url_after || e.details.reason ||
+      e.details.port || "") : "";
+    return '<div class="tl-item"><span class="tl-time">' + esc(eventTime(e.ts)) +
+      '</span><span class="tl-body"><span class="tl-label"><span class="tl-type">' +
+      esc(timelineLabel(e.type)) + '</span> · ' + esc(e.summary || "") + '</span>' +
+      (detail ? '<span class="tl-detail">' + esc(detail) + '</span>' : "") + '</span></div>';
+  }).join("");
+}
 function renderTimeline(id, events) {
   if (id !== selectedAssetId) return;
+  const found = findAsset(id);
+  document.getElementById("timeline-scope").textContent =
+    (found && (found.a.title || found.a.name)) || "全局";
   if (!events || !events.length) {
     renderTimelineEmpty("这个资产还没有变更记录。");
     return;
   }
-  document.getElementById("asset-timeline").innerHTML = events.map(e => {
-    const detail = e.details ? (e.details.url_after || e.details.reason || e.details.port || "") : "";
-    return '<div class="tl-item"><span class="tl-time">' + esc(eventTime(e.ts)) + '</span>' +
-      '<span class="tl-body"><span class="tl-label"><span class="tl-type">' +
-      esc(timelineLabel(e.type)) + '</span> · ' + esc(e.summary || "") + '</span>' +
-      (detail ? '<span class="tl-detail">' + esc(detail) + '</span>' : "") + '</span></div>';
-  }).join("");
+  document.getElementById("asset-timeline").innerHTML = timelineRows(events);
+}
+function renderGlobalTimeline(events) {
+  document.getElementById("timeline-scope").textContent = "全局";
+  if (!events || !events.length) {
+    renderTimelineEmpty("还没有全局变更记录。");
+    return;
+  }
+  document.getElementById("asset-timeline").innerHTML =
+    '<div class="tl-scope-note">最近 ' + events.length + ' 条全局变更</div>' +
+    timelineRows(events);
+}
+function loadGlobalTimeline(force = false) {
+  if (!force && GLOBAL_TIMELINE) return renderGlobalTimeline(GLOBAL_TIMELINE);
+  if (GLOBAL_PENDING) return;
+  GLOBAL_PENDING = true;
+  const token = ++globalToken;
+  renderTimelineEmpty("正在读取全局时间线…");
+  api("/api/history?limit=" + GLOBAL_LIMIT).then(d => {
+    GLOBAL_PENDING = false;
+    if (!d.ok) {
+      return renderTimelineEmpty("时间线读取失败：" +
+        (d.error ? d.error.message : "未知错误"));
+    }
+    GLOBAL_TIMELINE = (d.data && d.data.events) || [];
+    if (token === globalToken && (globalPreview || !selectedAssetId)) {
+      renderGlobalTimeline(GLOBAL_TIMELINE);
+    }
+  });
+}
+function showGlobalTimeline() {
+  globalPreview = true;
+  if (!railTimelineOpen) toggleRailTimeline();
+  GLOBAL_TIMELINE = null;
+  loadGlobalTimeline(true);
 }
 function loadAssetTimeline(id, force = false) {
   const found = findAsset(id);
@@ -5361,12 +5648,83 @@ function loadAssetTimeline(id, force = false) {
       (d.error ? d.error.message : "未知错误"));
     TIMELINE_CACHE[id] = d.data.events || [];
     DETAIL_CACHE[id] = d.data.detail || null;
-    if (token === timelineToken) renderTimeline(id, TIMELINE_CACHE[id]);
+    if (token === timelineToken) {
+      renderTimeline(id, TIMELINE_CACHE[id]);
+      renderAssetList();
+    }
     if (typeof renderViz === "function") renderViz();
   });
 }
 function reloadTimeline() {
-  if (selectedAssetId) loadAssetTimeline(selectedAssetId, true);
+  GLOBAL_TIMELINE = null;
+  if (selectedAssetId && !globalPreview) loadAssetTimeline(selectedAssetId, true);
+  else loadGlobalTimeline(true);
+}
+
+// ---------- 时间线折叠（只存布尔）----------
+function applyRailTimeline() {
+  const btn = document.getElementById("rail-timeline-btn");
+  const body = document.getElementById("asset-timeline");
+  if (!btn || !body) return;
+  btn.setAttribute("aria-expanded", railTimelineOpen ? "true" : "false");
+  body.hidden = !railTimelineOpen;
+}
+function toggleRailTimeline() {
+  railTimelineOpen = !railTimelineOpen;
+  try {
+    localStorage.setItem(RAIL_TL_KEY, railTimelineOpen ? "true" : "false");
+  } catch (e) { /* 忽略 */ }
+  applyRailTimeline();
+  if (railTimelineOpen) reloadTimeline();
+}
+
+// ---------- 空态：扫描本机端口 ----------
+function scanCandidateHtml(c) {
+  const port = Number(c.port);
+  if (!port) return "";
+  const meta = [c.title, c.process].filter(Boolean).join(" · ") || "未知应用";
+  const used = c.published ? '<span class="scan-tag">已发布</span>' : "";
+  return '<button type="button" class="scan-item" onclick="fillCommand(' + jsq("发布 " + port) +
+    ')" aria-label="填入发布端口 ' + port + ' 的指令">' +
+    '<b>:' + esc(String(port)) + "</b><span>" + esc(meta) + "</span>" + used + "</button>";
+}
+async function scanPorts(target) {
+  const holderId = target === "guide" ? "guide-results" :
+    (target === "viz" ? "viz-empty" : "asset-list");
+  const holder = document.getElementById(holderId);
+  if (!holder) return;
+  if (target === "viz") {
+    holder.innerHTML = "<b>扫描本机端口</b><p>正在检查…</p>";
+  } else {
+    holder.innerHTML = '<div class="rail-empty">正在扫描本机监听端口…</div>';
+  }
+  const d = await api("/api/discover");
+  if (!d.ok) {
+    const msg = (d.error && d.error.message) || "扫描失败";
+    if (target === "viz") {
+      holder.innerHTML = "<b>扫描失败</b><p>" + esc(msg) + "</p>" +
+        '<button class="btn btn-sm" type="button" onclick="scanPorts(\'viz\')">重试</button>';
+    } else {
+      holder.innerHTML = '<div class="rail-empty">扫描失败：' + esc(msg) +
+        '<br><button class="btn btn-sm ghost" type="button" onclick="scanPorts(\'' +
+        target + '\')">重试</button></div>';
+    }
+    return;
+  }
+  const list = (d.data && d.data.candidates) || [];
+  const items = list.map(scanCandidateHtml).filter(Boolean).join("");
+  const body = items || '<div class="rail-empty">没有发现可发布的本机端口。</div>';
+  if (target === "viz") {
+    holder.innerHTML = "<b>发现 " + list.length + " 个端口</b>" +
+      '<p class="scan-note">点击填入输入框，确认后回车执行。</p>' +
+      '<div class="scan-list">' + body + "</div>" +
+      '<button class="btn btn-sm ghost" type="button" onclick="scanPorts(\'viz\')">重新扫描</button>';
+  } else {
+    holder.innerHTML = '<div class="rail-empty"><b>发现 ' + list.length +
+      ' 个端口</b><div class="scan-list">' + body + "</div>" +
+      '<button class="btn btn-sm ghost" type="button" onclick="scanPorts(\'' +
+      target + '\')">重新扫描</button></div>';
+  }
 }
 
 // ---------- 抽屉 / 视口 ----------
@@ -5388,12 +5746,14 @@ document.getElementById("asset-search").addEventListener("input", renderAssetLis
 document.addEventListener("keydown", e => {
   if (e.key === "Escape") closeDrawers();
 });
+applyRailTimeline();
+syncFilterChips();
 
 // ---------- 右栏：部署详情（只消费 /api/state 与 /api/history） ----------
-const VIZ_EMPTY_DEFAULT = "<b>等待选择资产</b><p>从左侧选择一个应用或网页，这里会显示链接、二维码、历史网址、状态与操作。</p>";
 const NODE_DEFAULT = {state: "unknown", detail: "暂无数据"};
 const DETAIL_CACHE = {};
 let VIZ_QR_URL = "";
+let VIZ_VISITS_ID = "";
 
 function fmtRemain(expiresAt) {
   if (!expiresAt) return "永久";
@@ -5407,68 +5767,105 @@ function fmtRemain(expiresAt) {
   return "剩余 " + Math.max(1, minutes) + " 分钟";
 }
 
-function renderDeployment(a) {
-  const detail = DETAIL_CACHE[a.id];
-  const url = a.url || (detail && detail.url) || "";
-  const share = a.share_url || (detail && detail.share_url) || "";
+function vizSubject() {
+  const snap = typeof currentSnapshot === "function" ? currentSnapshot() : null;
+  if (snap) return {snap: snap, detail: DETAIL_CACHE[snap.id]};
+  const a = currentAsset();
+  return a ? {a: a, detail: DETAIL_CACHE[a.id]} : null;
+}
+
+function subjectUrl(subject) {
+  const {a, snap, detail} = subject;
+  return (snap && snap.url) || (a && a.url) || (detail && detail.url) || "";
+}
+function subjectShare(subject) {
+  const {a, snap, detail} = subject;
+  return (snap && snap.share_url) || (a && a.share_url) ||
+    (detail && detail.share_url) || "";
+}
+
+function renderBase(subject, badgeText, badgeClass, subText) {
+  document.getElementById("viz-name").textContent =
+    (subject.snap && subject.snap.title) || (subject.a && (subject.a.title || subject.a.name)) || "—";
+  document.getElementById("viz-url").textContent =
+    subjectUrl(subject) || "尚未生成公网网址";
+  document.getElementById("viz-sub").textContent = subText || "—";
+  document.getElementById("viz-status").textContent = badgeText;
+  document.getElementById("viz-status").className = "viz-badge " + (badgeClass || "");
+}
+
+function renderLinks(subject) {
+  const url = subjectUrl(subject);
+  const share = subjectShare(subject);
   document.getElementById("dep-url").textContent = url || "尚未生成";
   const shareRow = document.getElementById("dep-share-row");
   document.getElementById("dep-share-url").textContent = share || "未生成分享页";
   shareRow.classList.toggle("is-empty", !share);
   shareRow.querySelectorAll("button").forEach(b => { b.disabled = !share; });
+  drawVizQr(subject);
+}
 
-  document.getElementById("dep-pin").textContent = a.pinned ? "需要口令" : "无口令";
-  document.getElementById("dep-exp").textContent = fmtRemain(a.expires_at);
-  document.getElementById("dep-pub").textContent =
-    a.started || (detail && detail.published_at) || "未知";
-  const pv = a.proxy_port ? a.pv : null;
-  document.getElementById("viz-pv").textContent = pv ? String(pv.total) : "未知";
-  document.getElementById("viz-uv").textContent = pv ? String(pv.uv) : "未知";
-  document.getElementById("viz-last").textContent = pv ? fmtVisitTime(pv.last) : "未知";
-  const count = detail ? detail.rebuild_count : rebuildCount(a.id);
-  document.getElementById("viz-rebuilds").textContent =
-    count === null || count === undefined ? "未知" : String(count);
-  document.getElementById("dep-last-rebuild").textContent = detail
-    ? (detail.last_rebuild_at ? fmtVisitTime(detail.last_rebuild_at) : "暂无")
-    : "未知";
-
+function renderHistoryLinks(detail) {
   const links = document.getElementById("dep-links");
   if (detail === undefined) {
     links.innerHTML = '<div class="rail-empty">读取中…</div>';
-  } else if (!detail || !detail.links || !detail.links.length) {
-    links.innerHTML = '<div class="rail-empty">还没有历史链接，重建后旧网址会记录在这里。</div>';
-  } else {
-    links.innerHTML = detail.links.map(l => {
-      const current = l.status === "current";
-      const tag = current ? "当前" : "已失效";
-      const when = current ? "" : fmtVisitTime(l.ts);
-      return '<div class="dep-link-item ' + (current ? "current" : "") + '">' +
-        '<div class="dep-link-tag"><span class="tag-' + (current ? "current" : "expired") +
-        '">' + tag + "</span>" + (when ? "<span>" + esc(when) + "</span>" : "") +
-        '<button class="dep-cp" onclick="copyText(' + jsq(l.url) + ')">复制</button></div>' +
-        '<div class="u">' + esc(l.url) + "</div></div>";
-    }).join("");
+    return;
   }
-  drawVizQr(a, detail);
+  if (!detail || !detail.links || !detail.links.length) {
+    links.innerHTML = '<div class="rail-empty">还没有历史链接，重建后旧网址会记录在这里。</div>';
+    return;
+  }
+  links.innerHTML = detail.links.map(l => {
+    const current = l.status === "current";
+    const tag = current ? "当前" : "已失效";
+    const when = current ? "" : fmtVisitTime(l.ts);
+    return '<div class="dep-link-item ' + (current ? "current" : "") + '">' +
+      '<div class="dep-link-tag"><span class="tag-' + (current ? "current" : "expired") +
+      '">' + tag + "</span>" + (when ? "<span>" + esc(when) + "</span>" : "") +
+      '<button class="dep-cp" onclick="copyText(' + jsq(l.url) + ')">复制</button></div>' +
+      '<div class="u">' + esc(l.url) + "</div></div>";
+  }).join("");
 }
 
-function qrTarget(a, detail) {
-  return (detail && detail.share_url) || a.share_url ||
-    (detail && detail.url) || a.url || "";
+function renderStatusFields(f) {
+  document.getElementById("dep-pin").textContent = f.pinned ? "需要口令" : "无口令";
+  document.getElementById("dep-exp").textContent = f.exp || "未知";
+  document.getElementById("dep-pub").textContent = f.pub || "未知";
+  document.getElementById("viz-pv").textContent = f.pv ? String(f.pv.total) : "未知";
+  document.getElementById("viz-uv").textContent = f.pv ? String(f.pv.uv) : "未知";
+  document.getElementById("viz-last").textContent = f.pv ? fmtVisitTime(f.pv.last) : "未知";
+  document.getElementById("viz-rebuilds").textContent =
+    f.count === null || f.count === undefined ? "未知" : String(f.count);
+  document.getElementById("dep-last-rebuild").textContent = f.lastRebuild || "未知";
+  const stoppedRow = document.getElementById("dep-stopped-row");
+  stoppedRow.hidden = !f.stoppedAt;
+  document.getElementById("dep-stopped-at").textContent = f.stoppedAt || "未知";
 }
 
-function qrSvg(url, cell, margin) {
-  const q = qrcode(0, "M");
-  q.addData(url);
-  q.make();
-  return q.createSvgTag({cellSize: cell, margin: margin, scalable: true});
+function renderDeployment(a) {
+  const detail = DETAIL_CACHE[a.id];
+  renderLinks({a: a, detail: detail});
+  renderStatusFields({
+    pinned: !!a.pinned,
+    exp: fmtRemain(a.expires_at),
+    pub: a.started || (detail && detail.published_at) || "未知",
+    pv: a.proxy_port ? a.pv : null,
+    count: detail ? detail.rebuild_count : rebuildCount(a.id),
+    lastRebuild: detail
+      ? (detail.last_rebuild_at ? fmtVisitTime(detail.last_rebuild_at) : "暂无")
+      : "未知",
+    stoppedAt: "",
+  });
+  renderHistoryLinks(detail);
+  loadVizVisits(a.id);
 }
 
-function drawVizQr(a, detail) {
+function drawVizQr(subject) {
   const holder = document.getElementById("viz-qr");
-  const target = qrTarget(a, detail);
+  const share = subjectShare(subject);
+  const target = share || subjectUrl(subject);
   document.getElementById("dep-qr-target").textContent =
-    target ? (a.share_url || (detail && detail.share_url) ? "扫码打开分享页" : "扫码打开应用") : "未生成网址";
+    target ? (share ? "扫码打开分享页" : "扫码打开应用") : "未生成网址";
   if (!target || !window.qrcode) {
     holder.innerHTML = '<div class="rail-empty">—</div>';
     return;
@@ -5477,6 +5874,13 @@ function drawVizQr(a, detail) {
   VIZ_QR_URL = target;
   holder.innerHTML = qrSvg(target, 3, 2);
   holder.title = target;
+}
+
+function qrSvg(url, cell, margin) {
+  const q = qrcode(0, "M");
+  q.addData(url);
+  q.make();
+  return q.createSvgTag({cellSize: cell, margin: margin, scalable: true});
 }
 
 function setVizNode(key, node) {
@@ -5502,12 +5906,14 @@ function rebuildCount(id) {
 
 function clearDeployment() {
   ["dep-url", "dep-share-url", "dep-pin", "dep-exp", "dep-pub", "viz-pv",
-   "viz-uv", "viz-last", "viz-rebuilds", "dep-last-rebuild", "viz-name", "viz-url"]
-    .forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.textContent = "—";
-    });
+   "viz-uv", "viz-last", "viz-rebuilds", "dep-last-rebuild", "viz-name",
+   "viz-url", "viz-sub"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = "—";
+  });
   document.getElementById("dep-share-row").classList.add("is-empty");
+  document.getElementById("dep-stopped-row").hidden = true;
+  document.getElementById("dep-stopped-note").hidden = true;
   document.getElementById("dep-links").innerHTML =
     '<div class="rail-empty">还没有历史链接。</div>';
   const qr = document.getElementById("viz-qr");
@@ -5515,48 +5921,71 @@ function clearDeployment() {
   qr.title = "";
   document.getElementById("dep-qr-target").textContent = "—";
   VIZ_QR_URL = "";
+  document.getElementById("viz-visitors").innerHTML =
+    '<div class="rail-empty">展开后读取最近访客。</div>';
+  document.getElementById("dep-visitors-note").textContent = "近 24 小时";
+  VIZ_VISITS_ID = "";
   document.getElementById("viz-status").textContent = "未知";
   document.getElementById("viz-status").className = "viz-badge";
 }
 
-function renderViz() {
+function resetActions() {
+  const rep = document.getElementById("dep-republish-btn");
+  rep.hidden = true;
+  ["dep-stop-btn", "dep-retry-btn", "dep-check-btn", "dep-pin-btn"].forEach(id => {
+    const el = document.getElementById(id);
+    el.disabled = false;
+    el.removeAttribute("title");
+  });
+  document.getElementById("dep-check-btn").textContent = "重新自检";
+  document.getElementById("dep-pin-btn").textContent = "改口令";
+  document.getElementById("viz-pin-input").placeholder = "新口令；留空提交=移除";
+  document.getElementById("dep-act-hint").textContent =
+    "口令只作为一次请求参数；详情仅显示「需要 / 无」，不会回显明文。";
+}
+
+function setActionsDisabled(reason) {
+  ["dep-stop-btn", "dep-retry-btn", "dep-check-btn"].forEach(id => {
+    const el = document.getElementById(id);
+    el.disabled = true;
+    el.title = reason;
+  });
+}
+
+function renderVizEmpty(html) {
   const empty = document.getElementById("viz-empty");
-  const panel = document.getElementById("viz-panel");
+  empty.hidden = false;
+  empty.innerHTML = html;
+  document.getElementById("viz-panel").hidden = true;
+  clearDeployment();
+}
+
+function renderViz() {
+  resetActions();
   const found = findAsset(selectedAssetId);
   if (!found) {
-    empty.hidden = false;
-    empty.innerHTML = VIZ_EMPTY_DEFAULT;
-    clearDeployment();
-    panel.hidden = true;
+    renderVizEmpty("<b>等待选择资产</b><p>从左侧选择一个应用或网页，这里会显示链接、二维码、历史网址、状态与操作。</p>" +
+      '<button class="btn btn-sm" type="button" onclick="scanPorts(\'viz\')">扫描本机端口</button>');
     return;
   }
   if (found.hosted) {
-    empty.hidden = false;
-    empty.innerHTML = "<b>云端托管</b><p>这个资产不在这台电脑上运行，没有本机代理 / 隧道 / 源应用节点。</p>";
-    clearDeployment();
-    panel.hidden = true;
+    renderVizEmpty("<b>云端托管</b><p>这个资产不在这台电脑上运行，没有本机代理 / 隧道 / 源应用节点。</p>");
     return;
   }
-  empty.hidden = true;
-  panel.hidden = false;
-
-  const a = found.a;
-  document.getElementById("viz-name").textContent = a.title || a.name || "—";
-  document.getElementById("viz-url").textContent = a.url || "尚未生成公网网址";
-  renderDeployment(a);
-
-  const expired = a.expires_at && a.expires_at < Date.now() / 1000;
-  const badge = document.getElementById("viz-status");
-  if (expired) {
-    badge.textContent = "已到期";
-    badge.className = "viz-badge expired";
-  } else if (a.alive) {
-    badge.textContent = "在线";
-    badge.className = "viz-badge online";
-  } else {
-    badge.textContent = "已停止";
-    badge.className = "viz-badge offline";
+  if (found.snapshot) {
+    renderStopped(found.a);
+    return;
   }
+  const a = found.a;
+  document.getElementById("viz-empty").hidden = true;
+  document.getElementById("viz-panel").hidden = false;
+  const expired = a.expires_at && a.expires_at < Date.now() / 1000;
+  renderBase({a: a, detail: DETAIL_CACHE[a.id]},
+    expired ? "已到期" : (a.alive ? "在线" : "已停止"),
+    expired ? "expired" : (a.alive ? "online" : "offline"),
+    (a.alive ? "当前发布 · 运行中" : "当前发布 · 进程失联，可重试通道") +
+      " · " + (a.kind === "pages" ? "文件夹" : "端口"));
+  renderDeployment(a);
 
   const nodes = a.nodes || {};
   setVizNode("proxy", nodes.proxy);
@@ -5566,11 +5995,12 @@ function renderViz() {
     nodes.tunnel && nodes.tunnel.state === "online"));
   setVizLink("viz-link-source", !!(nodes.tunnel && nodes.tunnel.state === "online" &&
     nodes.source && nodes.source.state === "online"));
+  if (VISITS_LOADED.has(a.id)) renderVizVisitors(a.id);
 }
 
 function currentAsset() {
   const found = findAsset(selectedAssetId);
-  return found && !found.hosted ? found.a : null;
+  return found && !found.hosted && !found.snapshot ? found.a : null;
 }
 
 function vizStop() {
@@ -5580,6 +6010,8 @@ function vizStop() {
 }
 
 function vizCheck() {
+  const snap = typeof currentSnapshot === "function" ? currentSnapshot() : null;
+  if (snap) return vizCheckSource(snap);
   const a = currentAsset();
   if (!a) return;
   doCheck({id: a.id});
@@ -5624,6 +6056,8 @@ async function vizRetry() {
 }
 
 async function vizSetPin() {
+  const snap = typeof currentSnapshot === "function" ? currentSnapshot() : null;
+  if (snap) return vizRepublish();
   const a = currentAsset();
   if (!a) return;
   const input = document.getElementById("viz-pin-input");
@@ -5655,9 +6089,9 @@ async function vizSetPin() {
 }
 
 function openQrZoom() {
-  const a = currentAsset();
-  if (!a) return;
-  const target = qrTarget(a, DETAIL_CACHE[a.id]);
+  const subject = vizSubject();
+  if (!subject) return;
+  const target = subjectShare(subject) || subjectUrl(subject);
   if (!target || !window.qrcode) return;
   const holder = document.getElementById("qr-zoom");
   holder.innerHTML = qrSvg(target, 8, 4);
@@ -5670,9 +6104,9 @@ function closeQrZoom() {
 }
 
 function downloadVizQr() {
-  const a = currentAsset();
-  if (!a) return;
-  const target = qrTarget(a, DETAIL_CACHE[a.id]);
+  const subject = vizSubject();
+  if (!subject) return;
+  const target = subjectShare(subject) || subjectUrl(subject);
   if (!target || !window.qrcode) return toast("还没有可下载的二维码", false);
   const q = qrcode(0, "M");
   q.addData(target);
@@ -5694,7 +6128,8 @@ function downloadVizQr() {
   canvas.toBlob(blob => {
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = "panweb-qr-" + (a.id || "app") + ".png";
+    const id = (subject.a && subject.a.id) || (subject.snap && subject.snap.id) || "app";
+    link.download = "panweb-qr-" + id + ".png";
     link.click();
     setTimeout(() => URL.revokeObjectURL(link.href), 1500);
   }, "image/png");
@@ -5710,6 +6145,246 @@ document.addEventListener("visibilitychange", () => {
 });
 if (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) {
   document.body.classList.add("low-power");
+}
+
+// ---------- 右栏：分组折叠（只持久化布尔）与最近访客 ----------
+const DEP_GROUP_KEYS = ["links", "status", "visitors", "history", "process"];
+const DEP_GROUP_DEFAULTS = {
+  links: true, status: true, visitors: false, history: false, process: false,
+};
+const DEP_GROUP_STORE = "panweb-dep-groups";
+const VISIT_CACHE = {};
+const VISITS_LOADED = new Set();
+
+function depGroupState() {
+  const out = Object.assign({}, DEP_GROUP_DEFAULTS);
+  try {
+    const raw = JSON.parse(localStorage.getItem(DEP_GROUP_STORE) || "{}");
+    DEP_GROUP_KEYS.forEach(k => {
+      if (typeof raw[k] === "boolean") out[k] = raw[k];
+    });
+  } catch (e) { /* 坏数据回退默认 */ }
+  return out;
+}
+
+function saveDepGroupState(state) {
+  try {
+    const out = {};
+    DEP_GROUP_KEYS.forEach(k => { out[k] = !!state[k]; });
+    localStorage.setItem(DEP_GROUP_STORE, JSON.stringify(out));
+  } catch (e) { /* 隐私模式忽略 */ }
+}
+
+function applyDepGroup(id, open) {
+  const group = document.getElementById("dep-group-" + id);
+  const body = document.getElementById("dep-body-" + id);
+  if (!group || !body) return;
+  const btn = group.querySelector(".dep-group-btn");
+  if (btn) btn.setAttribute("aria-expanded", open ? "true" : "false");
+  body.hidden = !open;
+  group.classList.toggle("is-collapsed", !open);
+}
+
+function toggleDepGroup(id) {
+  const btn = document.getElementById("dep-group-" + id)
+    .querySelector(".dep-group-btn");
+  const open = btn.getAttribute("aria-expanded") !== "true";
+  applyDepGroup(id, open);
+  const state = depGroupState();
+  state[id] = open;
+  saveDepGroupState(state);
+  if (id === "visitors" && open) loadVizVisits(selectedAssetId, true);
+}
+
+function initDepGroups() {
+  const state = depGroupState();
+  DEP_GROUP_KEYS.forEach(k => applyDepGroup(k, state[k]));
+}
+
+function renderVizVisitors(id) {
+  const box = document.getElementById("viz-visitors");
+  const rows = VISIT_CACHE[id] || [];
+  if (!rows.length) {
+    box.innerHTML = '<div class="rail-empty">近 24 小时还没有访问记录。</div>';
+    return;
+  }
+  box.innerHTML = rows.map(v => {
+    const meta = [v.device, v.country, v.browser].filter(Boolean).join(" · ") || "未知设备";
+    const path = v.path || "/";
+    return '<div class="viz-visitor"><span class="v-name">' + esc(path) +
+      '</span><span class="v-meta">' + esc(meta) + " · " +
+      esc(fmtVisitTime(v.ts)) + "</span></div>";
+  }).join("");
+}
+
+async function loadVizVisits(id, force) {
+  if (!id) return;
+  const snap = typeof currentSnapshot === "function" ? currentSnapshot() : null;
+  if (snap) {
+    document.getElementById("dep-visitors-note").textContent = "停止时已清理";
+    document.getElementById("viz-visitors").innerHTML =
+      '<div class="rail-empty">访问明细随停止清理；上方 PV/UV 为停止前统计。</div>';
+    return;
+  }
+  const a = currentAsset();
+  if (!a) return;
+  if (!a.proxy_port) {
+    document.getElementById("dep-visitors-note").textContent = "无代理";
+    document.getElementById("viz-visitors").innerHTML =
+      '<div class="rail-empty">该条目没有经过内置代理，没有访客明细。</div>';
+    return;
+  }
+  if (!force && VISITS_LOADED.has(id)) {
+    renderVizVisitors(id);
+    return;
+  }
+  VISITS_LOADED.add(id);
+  const d = await api("/api/visits?id=" + encodeURIComponent(id));
+  if (!d.ok || selectedAssetId !== id) return;
+  VISIT_CACHE[id] = (d.data && d.data.recent) || [];
+  renderVizVisitors(id);
+}
+
+// ---------- 右栏：已停止/已到期条目的上次发布快照与重发 ----------
+function currentSnapshot() {
+  if (!selectedAssetId || !Array.isArray(STATE.last_deployments)) return null;
+  return STATE.last_deployments.find(s => s.id === selectedAssetId) || null;
+}
+
+function snapStopLabel(reason) {
+  if (reason === "expired") return "有效期到期，自动收回";
+  if (reason === "invalid_expires_at") return "有效期字段损坏，按到期收回";
+  if (reason === "cleanup") return "长时间离线，自动清理";
+  return "手动停止";
+}
+
+function renderStopped(snap) {
+  const detail = DETAIL_CACHE[snap.id];
+  const expired = snap.stop_reason === "expired" ||
+    snap.stop_reason === "invalid_expires_at";
+  document.getElementById("viz-empty").hidden = true;
+  document.getElementById("viz-panel").hidden = false;
+  renderBase({snap: snap, detail: detail},
+    expired ? "已到期" : "已停止", expired ? "expired" : "offline",
+    "上次发布 · " + (snap.kind === "pages"
+      ? "文件夹 " + (snap.folder || "未知")
+      : "端口 " + (snap.port || "未知")));
+  renderLinks({snap: snap, detail: detail});
+  renderStatusFields({
+    pinned: !!snap.pinned,
+    exp: snap.expires_text || fmtRemain(snap.expires_at),
+    pub: snap.started || "未知",
+    pv: snap.pv,
+    count: detail ? detail.rebuild_count : null,
+    lastRebuild: detail && detail.last_rebuild_at
+      ? fmtVisitTime(detail.last_rebuild_at) : "未知",
+    stoppedAt: snap.stopped_at ? fmtVisitTime(snap.stopped_at) : "未知",
+  });
+  renderHistoryLinks(detail);
+
+  const note = document.getElementById("dep-stopped-note");
+  note.hidden = false;
+  note.innerHTML = "<b>上次发布已停止</b><div>停止于 " +
+    esc(fmtVisitTime(snap.stopped_at)) + " · " + esc(snapStopLabel(snap.stop_reason)) +
+    "。链接已不可访问，可以用同样配置重新发布。</div>";
+
+  const rep = document.getElementById("dep-republish-btn");
+  rep.hidden = false;
+  rep.disabled = false;
+  const stopBtn = document.getElementById("dep-stop-btn");
+  stopBtn.disabled = true;
+  stopBtn.title = "条目已停止，重新发布后才能停止";
+  const retryBtn = document.getElementById("dep-retry-btn");
+  retryBtn.disabled = true;
+  retryBtn.title = "条目已停止，重新发布后才能重试通道";
+  const checkBtn = document.getElementById("dep-check-btn");
+  checkBtn.textContent = "检查源状态";
+  checkBtn.title = "检查源端口或文件夹是否仍在（不代表旧链接可访问）";
+  document.getElementById("dep-pin-btn").textContent = "重发并设口令";
+  document.getElementById("viz-pin-input").placeholder = "重发时的新口令（可选）";
+  document.getElementById("dep-act-hint").textContent =
+    "重发复用上次端口/文件夹与名称；有效期与分享取后端记忆；旧口令不会恢复。";
+
+  setVizNode("proxy", {state: "offline", detail: "条目已停止"});
+  setVizNode("tunnel", {state: "offline", detail: "隧道已关闭"});
+  setVizNode("source", {state: "offline", detail: "上次的源目标"});
+  setVizLink("viz-link-proxy", false);
+  setVizLink("viz-link-source", false);
+  loadVizVisits(snap.id);
+}
+
+async function vizRepublish() {
+  const snap = currentSnapshot();
+  if (!snap) return;
+  if (commandBusy) return toast("有指令正在执行，稍后再试", false);
+  const input = document.getElementById("viz-pin-input");
+  const pin = (input.value || "").trim();
+  if (pin && pin.length < 4) {
+    return addError("口令太短", "至少 4 位；留空表示不带口令重发", null);
+  }
+  const body = {async: true, pin: pin || null};
+  if (snap.name) body.name = snap.name;
+  if (snap.title) body.title = snap.title;
+  let endpoint = "";
+  if (snap.kind === "pages" && snap.folder) {
+    endpoint = "/api/pages";
+    body.folder = snap.folder;
+  } else if (snap.kind === "port" && snap.port) {
+    endpoint = "/api/publish";
+    body.port = snap.port;
+  } else {
+    return addError("上次目标缺失", "快照里没有端口或文件夹；请用「高级发布」重新填写。", null);
+  }
+  setCommandBusy(true);
+  addStep("正在用上次配置重新发布" + (pin ? "（带新口令）" : "") + "…");
+  input.value = "";
+  try {
+    const d = await api(endpoint, body);
+    if (!d.ok) {
+      const err = d.error || {};
+      return addError(err.message || "重新发布失败", err.hint || "检查目标后重试",
+        null, '<button class="btn btn-sm ghost" onclick="openPublish(\'port\')">高级发布</button>');
+    }
+    if (d.data && d.data.job) return await pollJob(d.data.job, {options: {pin: pin || ""}});
+    return await onJobSuccess(d.data, {options: {pin: pin || ""}});
+  } finally {
+    setCommandBusy(false);
+  }
+}
+
+async function vizCheckSource(snap) {
+  if (!snap || commandBusy) return;
+  addStep(snap.kind === "pages" ? "正在检查上次的文件夹是否还在…" :
+    "正在检查上次的端口是否还在监听…");
+  try {
+    if (snap.kind === "pages") {
+      if (!snap.folder) return addError("上次目标缺失", "快照里没有文件夹路径。", null);
+      const d = await api("/api/detect?folder=" + encodeURIComponent(snap.folder));
+      if (!d.ok) {
+        const err = d.error || {};
+        return addError("文件夹不可用", err.message || err.hint || "路径可能已被移动或删除", null);
+      }
+      const info = d.data || {};
+      return addResult("<b>文件夹仍在</b><div class=\"err-hint\">" +
+        esc(snap.folder) + " · " + esc(info.detail || info.type || "可识别") +
+        "</div><div class=\"err-hint\">这里只检查源，不代表旧链接仍可访问。</div>");
+    }
+    if (!snap.port) return addError("上次目标缺失", "快照里没有端口号。", null);
+    const d = await api("/api/discover");
+    if (!d.ok) return addError("端口扫描失败", "稍后重试", null);
+    const hit = ((d.data && d.data.candidates) || [])
+      .find(c => Number(c.port) === Number(snap.port));
+    if (!hit) {
+      return addError("端口 " + snap.port + " 未在监听",
+        "源应用可能已退出；先启动它，再重新发布。", null);
+    }
+    addResult("<b>源端口仍在监听</b><div class=\"err-hint\">端口 " +
+      esc(String(snap.port)) + (hit.title ? " · " + esc(hit.title) : "") +
+      (hit.process ? " · " + esc(hit.process) : "") +
+      "</div><div class=\"err-hint\">这里只检查源端口，不代表旧链接仍可访问。</div>");
+  } catch (e) {
+    addError("检查失败", String(e && e.message || e), null);
+  }
 }
 
 // ---------- 中栏：对话式发布（解析 → 异步 job → 回执/重试） ----------
@@ -5793,6 +6468,7 @@ function fillCommand(text) {
   input.value = text;
   input.focus();
   autoGrowCommand();
+  input.dispatchEvent(new Event("input"));
 }
 function autoGrowCommand() {
   const input = document.getElementById("cmd-input");
@@ -5819,6 +6495,7 @@ async function submitCommand(event) {
   const input = document.getElementById("cmd-input");
   const text = (input.value || "").trim();
   if (!text) return;
+  if (typeof rememberCommand === "function") rememberCommand(text);
   addUser(text);
   input.value = "";
   autoGrowCommand();
@@ -5971,7 +6648,7 @@ function resolveStopTarget(parsed) {
   if (parsed.scope === "all") return "all";
   if (parsed.scope === "current") {
     const found = findAsset(selectedAssetId);
-    if (!found || found.hosted) return null;
+    if (!found || found.hosted || found.snapshot) return null;
     return found.a.id;
   }
   if (parsed.port) {
@@ -5984,8 +6661,11 @@ function resolveStopTarget(parsed) {
 async function stopFromCommand(parsed) {
   const target = resolveStopTarget(parsed);
   if (!target) {
-    return addError(parsed.port ? "没有发布在端口 " + parsed.port + " 的应用" :
-      "没有选中的应用", "先从左侧选择资产，或写：停止 8080", null);
+    const snap = typeof currentSnapshot === "function" ? currentSnapshot() : null;
+    return addError(snap ? "当前选中条目已停止" : (parsed.port
+      ? "没有发布在端口 " + parsed.port + " 的应用" : "没有选中的应用"),
+      snap ? "在右栏点「用同样配置重新发布」，或先选择运行中的条目"
+        : "先从左侧选择资产，或写：停止 8080", null);
   }
   const d = await api("/api/stop", {target});
   if (!d.ok) {
@@ -5997,7 +6677,10 @@ async function stopFromCommand(parsed) {
   addResult("<b>已停止 " + stopped.length + " 个应用</b>" +
     stopped.map(s => '<div class="err-hint">' + esc(s.name || s.id || "") + "</div>").join(""),
     '<button class="btn btn-sm ghost" onclick="refresh(true)">刷新状态</button>');
-  if (stopped.some(s => s.id === selectedAssetId)) selectedAssetId = null;
+  if (stopped.some(s => s.id === selectedAssetId)) {
+    // 停止后会生成只读快照，保留选中，右栏直接切到「上次发布」状态。
+    loadAssetTimeline(selectedAssetId, true);
+  }
   await refresh(true);
   reloadTimeline();
 }
@@ -6011,7 +6694,7 @@ function stopCurrent() {
 function resolveCheckTarget(parsed) {
   if (parsed.scope === "current") {
     const found = findAsset(selectedAssetId);
-    if (!found || found.hosted) return null;
+    if (!found || found.hosted || found.snapshot) return null;
     return found.a.id;
   }
   if (parsed.port) {
@@ -6024,8 +6707,11 @@ function resolveCheckTarget(parsed) {
 async function doCheck(parsed) {
   const id = resolveCheckTarget(parsed);
   if (!id) {
-    return addError(parsed.port ? "没有发布在端口 " + parsed.port + " 的应用" :
-      "没有可检查的应用", "先从左侧选择资产，或写：检查 8080", null);
+    const snap = typeof currentSnapshot === "function" ? currentSnapshot() : null;
+    return addError(snap ? "当前选中条目已停止" : (parsed.port
+      ? "没有发布在端口 " + parsed.port + " 的应用" : "没有可检查的应用"),
+      snap ? "在右栏点「检查源状态」确认源端口或文件夹是否还在" :
+        "先从左侧选择资产，或写：检查 8080", null);
   }
   addStep("正在从访客视角自检…");
   const d = await api("/api/check", {id});
@@ -6047,6 +6733,114 @@ async function doCheck(parsed) {
     '<button class="btn btn-sm ghost" onclick="openDrawer(' + jsq(id) + ')">详情</button>');
   loadAssetTimeline(id, true);
 }
+
+// ---------- 中栏：快捷模板 / 语法提示（复用后端解析）/ ↑↓ 历史（仅内存） ----------
+const CMD_HISTORY = [];
+let cmdHistPos = 0;
+let cmdHistDraft = "";
+let hintTimer = null;
+let hintSeq = 0;
+
+// 历史里绝不保留口令：pin=xxx / pin xxx 整段剥离后再入栈。
+function stripPin(text) {
+  return String(text || "")
+    .replace(/(pin)(\s*=\s*|\s+)(?:"[^"]*"|'[^']*'|\S+)/gi, "")
+    .replace(/\s+/g, " ").trim();
+}
+
+function rememberCommand(text) {
+  const clean = stripPin(text);
+  if (!clean) return;
+  if (CMD_HISTORY[CMD_HISTORY.length - 1] !== clean) CMD_HISTORY.push(clean);
+  while (CMD_HISTORY.length > 30) CMD_HISTORY.shift();
+  cmdHistPos = CMD_HISTORY.length;
+  cmdHistDraft = "";
+}
+
+function recallCommand(delta) {
+  if (!CMD_HISTORY.length) return;
+  const input = document.getElementById("cmd-input");
+  if (cmdHistPos === CMD_HISTORY.length) cmdHistDraft = input.value;
+  const next = Math.max(0, Math.min(CMD_HISTORY.length, cmdHistPos + delta));
+  if (next === cmdHistPos) return;
+  cmdHistPos = next;
+  input.value = cmdHistPos === CMD_HISTORY.length
+    ? cmdHistDraft : CMD_HISTORY[cmdHistPos];
+  const end = input.value.length;
+  input.setSelectionRange(end, end);
+  autoGrowCommand();
+  updateCmdHint(input.value);
+}
+
+function fillTemplate(text, token) {
+  const input = document.getElementById("cmd-input");
+  input.value = text;
+  input.focus();
+  if (token) {
+    const at = text.indexOf(token);
+    if (at >= 0) input.setSelectionRange(at, at + token.length);
+  }
+  autoGrowCommand();
+  updateCmdHint(text);
+}
+
+function setCmdHint(text, kind) {
+  const line = document.getElementById("cmd-hint-line");
+  if (!line) return;
+  line.textContent = text || "";
+  line.className = "cmd-hint-line" + (kind ? " " + kind : "");
+}
+
+function updateCmdHint(value) {
+  clearTimeout(hintTimer);
+  const input = document.getElementById("cmd-input");
+  const text = String(value == null ? input.value : value).trim();
+  if (!text) {
+    hintSeq += 1;
+    setCmdHint("");
+    return;
+  }
+  // 快捷模板里的占位符不是真实指令，先提示替换，别让后端的转义错误误导人。
+  if (/<[^>]+>/.test(text)) {
+    hintSeq += 1;
+    setCmdHint("把占位符换成实际值再回车，例如：发布 3000", "");
+    return;
+  }
+  hintTimer = setTimeout(() => checkCmdSyntax(text), 400);
+}
+
+async function checkCmdSyntax(text) {
+  const seq = ++hintSeq;
+  const d = await api("/api/command", {text: text});
+  if (seq !== hintSeq) return;
+  if (document.getElementById("cmd-input").value.trim() !== text) return;
+  if (!d.ok) {
+    const err = d.error || {};
+    return setCmdHint(err.hint || err.message || "语法还不完整", "warn");
+  }
+  const data = d.data || {};
+  const action = {publish: "发布端口", pages: "发布文件夹", run: "启动项目",
+    stop: "停止", check: "自检", help: "帮助"}[data.action] || "指令";
+  setCmdHint("语法可执行 · " + action, "ok");
+}
+
+function initComposer() {
+  const input = document.getElementById("cmd-input");
+  if (!input) return;
+  input.addEventListener("input", () => updateCmdHint(input.value));
+  input.addEventListener("keydown", e => {
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      recallCommand(-1);
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      recallCommand(1);
+    }
+  });
+  input.addEventListener("blur", () => setCmdHint(""));
+}
+
+initComposer();
 
 // ---------- 发布弹窗 ----------
 let pubTab = "port";
@@ -6395,8 +7189,18 @@ function pollPublish(jobId, btn, spin) {
 }
 
 // ---------- 动作 ----------
+function announce(text) {
+  const el = document.getElementById("sr-live");
+  if (!el) return;
+  el.textContent = "";
+  setTimeout(() => { el.textContent = text; }, 30);
+}
 function copyText(s) {
-  const done = () => toast("已复制：" + s);
+  const short = s && s.length > 120 ? s.slice(0, 117) + "…" : s;
+  const done = () => {
+    toast("已复制：" + s);
+    announce("已复制 " + (short || "内容") + " 到剪贴板");
+  };
   if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(s).then(done, () => fallbackCopy(s, done));
   else fallbackCopy(s, done);
 }
@@ -6404,7 +7208,10 @@ function fallbackCopy(s, done) {
   const ta = document.createElement("textarea");
   ta.value = s; ta.style.position = "fixed"; ta.style.opacity = "0";
   document.body.appendChild(ta); ta.select();
-  try { document.execCommand("copy"); done(); } catch (e) { toast("复制失败，请手动选择", false); }
+  try { document.execCommand("copy"); done(); } catch (e) {
+    toast("复制失败，请手动选择", false);
+    announce("复制失败，请手动选择");
+  }
   ta.remove();
 }
 function openUrl(url, entryId) {
@@ -7201,13 +8008,27 @@ function renderKz(q) {
 }
 document.addEventListener("keydown", e => {
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+    const page = document.getElementById("page-apps");
+    if (page && page.classList.contains("show")) {
+      e.preventDefault();
+      const input = document.getElementById("cmd-input");
+      if (input) {
+        input.focus();
+        input.setSelectionRange(input.value.length, input.value.length);
+      }
+      return;
+    }
     e.preventDefault();
     toggleKz();
     return;
   }
+  if (e.key === "Escape") {
+    document.querySelectorAll(".overlay.show").forEach(o => o.classList.remove("show"));
+    if (typeof closeDrawer === "function") closeDrawer();
+    if (typeof closeDrawers === "function") closeDrawers();
+  }
   const ov = document.getElementById("kz-overlay");
   if (!ov.classList.contains("show")) return;
-  if (e.key === "Escape") { ov.classList.remove("show"); return; }
   if (e.key === "ArrowDown" || e.key === "ArrowUp") {
     e.preventDefault();
     kzSel = Math.max(0, Math.min(kzItems.length - 1, kzSel + (e.key === "ArrowDown" ? 1 : -1)));
@@ -7974,6 +8795,7 @@ const fx = (() => {
 // ---------- 启动 ----------
 const PAGES = ["apps", "feed", "agents", "term", "system"];
 initTheme();
+if (typeof initDepGroups === "function") initDepGroups();
 switchPage(PAGES.includes(currentPage) ? currentPage : "apps");
 initChat();
 refresh();
