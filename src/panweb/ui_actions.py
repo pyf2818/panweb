@@ -6,7 +6,7 @@ import threading
 import time
 import urllib.parse
 
-from . import jobs, runtime, ui_context
+from . import events, jobs, runtime, ui_context
 from .agents import (AGENT_GUIDE, core_agent_connect, core_agent_disconnect,
                      core_agents, core_terminal_agents, skill_source_dir)
 from .browser import open_browser
@@ -116,6 +116,16 @@ def handle_get(handler, path):
             tail = []
         return handler.send_json({"ok": True, "data": {
             "log": tail, "file": log_file}}) or True
+    if path == "/api/history":
+        q = _query(handler)
+        entry_id = _first(q, "id") or None
+        try:
+            limit = min(max(int(_first(q, "limit", "30") or 30), 1),
+                        events.MAX_LIMIT)
+        except ValueError:
+            limit = 30
+        return handler.send_json({"ok": True, "data": {
+            "events": events.read_events(entry_id, limit)}}) or True
     if path == "/api/agents":
         return handler.send_json({"ok": True, "data": {
             "agents": core_agents()}}) or True

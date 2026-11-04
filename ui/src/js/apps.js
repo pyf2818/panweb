@@ -30,6 +30,7 @@ function openDrawer(id) {
   document.getElementById("drawer").classList.add("show");
   compatCache = null;
   loadCompat(id);
+  loadTimeline(id);
   loadDetail();
   clearInterval(drawerTimer);
   drawerTimer = setInterval(() => { if (currentDrawerId) loadDetail(); }, 2500);
@@ -39,6 +40,33 @@ function closeDrawer() {
   clearInterval(drawerTimer);
   document.getElementById("drawer-mask").classList.remove("show");
   document.getElementById("drawer").classList.remove("show");
+}
+const TIMELINE_LABELS = {publish:"发布", restart:"重启", url_change:"换网址",
+  pin_change:"改口令", expire:"到期", stop:"停止", error:"出错"};
+function loadTimeline(id) {
+  const el = document.getElementById("dw-timeline");
+  el.innerHTML = '<div class="feed-empty">正在读取…</div>';
+  fetch("/api/history?id=" + encodeURIComponent(id) + "&limit=20")
+    .then(r => r.json()).then(d => {
+      if (!d.ok) throw new Error();
+      const rows = (d.data && d.data.events) || [];
+      if (!rows.length) {
+        el.innerHTML = '<div class="feed-empty">还没有变更记录；发布、改口令、重建通道或停止后会出现在这里。</div>';
+        return;
+      }
+      el.innerHTML = rows.map(e => {
+        const t = new Date(e.ts * 1000);
+        const ts = t.toLocaleDateString() + " " + t.toTimeString().slice(0, 8);
+        const x = e.details || {};
+        const diff = (x.url_before && x.url_after && x.url_before !== x.url_after)
+          ? '<span class="v-path" style="color:var(--faint)">' + esc(x.url_before) +
+            " → " + esc(x.url_after) + '</span>' : "";
+        return '<div class="v-row"><span class="v-time">' + esc(ts) + '</span>' +
+          '<span class="v-kind">' + esc(TIMELINE_LABELS[e.type] || e.type) + '</span>' +
+          '<span class="v-path">' + esc(e.summary || "") + '</span>' + diff + '</div>';
+      }).join("");
+    })
+    .catch(() => { el.innerHTML = '<div class="feed-empty">时间线读取失败，稍后重试</div>'; });
 }
 function setChartHours(h) {
   chartHours = h;
