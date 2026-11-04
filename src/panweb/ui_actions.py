@@ -164,7 +164,8 @@ def handle_get(handler, path):
 def _run_or_job(handler, body, kind, fn):
     """慢动作可以异步跑：返回 job id，前端轮询拿步骤与结果。"""
     if body.get("async"):
-        job_id = jobs.start(kind, fn)
+        target = body.get("port") or body.get("folder") or body.get("target")
+        job_id = jobs.start(kind, fn, key=target)
         return handler.send_json({"ok": True, "data": {
             "job": job_id, "kind": kind}}) or True
     return handler.send_json({"ok": True, "data": fn(None)}) or True

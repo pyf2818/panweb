@@ -2,6 +2,7 @@
 import threading
 import time
 import unittest
+from unittest import mock
 
 from helpers import temp_home  # noqa: F401  顺带把 src/ 放进 sys.path
 from panweb import jobs
@@ -13,6 +14,13 @@ class JobTests(unittest.TestCase):
         self.ctx = temp_home("panweb-jobs-")
         self.ctx.__enter__()
         self.addCleanup(self.ctx.__exit__, None, None, None)
+        self._reset()
+        self.addCleanup(self._reset)
+
+    def _reset(self):
+        with jobs._LOCK:
+            jobs._JOBS.clear()
+            jobs._FLIGHT.clear()
 
     def _wait(self, job_id, timeout=2.0):
         deadline = time.time() + timeout
@@ -67,6 +75,55 @@ class JobTests(unittest.TestCase):
 
         state = self._wait(jobs.start("demo", work))
         self.assertEqual(state["steps"], ["同一步"])
+
+    def test_running_jobs_are_never_evicted(self):
+        gate = threading.Event()
+
+        def slow(progress):
+            gate.wait(2)
+            return True
+
+        with mock.patch.object(jobs, "MAX_JOBS", 2):
+            ids = [jobs.start("slow", slow, key=str(i)) for i in range(4)]
+        try:
+            for job_id in ids:
+                self.assertIsNotNone(jobs.get(job_id), "运行中的任务不能被淘汰")
+        finally:
+            gate.set()
+        for job_id in ids:
+            self._wait(job_id)
+
+    def test_terminal_jobs_are_evicted_first(self):
+        with mock.patch.object(jobs, "MAX_JOBS", 2):
+            ids = []
+            for i in range(4):
+                ids.append(jobs.start("quick", lambda p: True, key=str(i)))
+                self._wait(ids[-1])
+        self.assertEqual(len(jobs._JOBS), 2)
+        self.assertIsNone(jobs.get(ids[0]))
+        self.assertIsNotNone(jobs.get(ids[-1]))
+
+    def test_same_kind_target_is_single_flight(self):
+        gate = threading.Event()
+        calls = []
+
+        def work(progress):
+            calls.append(1)
+            gate.wait(2)
+            return True
+
+        first = jobs.start("publish", work, key=3000)
+        again = jobs.start("publish", work, key="3000")
+        other = jobs.start("publish", work, key=4000)
+        self.assertEqual(first, again, "同目标重复提交应复用运行中的 job")
+        self.assertNotEqual(first, other)
+        gate.set()
+        for job_id in (first, other):
+            self._wait(job_id)
+        self.assertEqual(len(calls), 2, "复用请求不能再执行一遍")
+        retry = jobs.start("publish", lambda p: True, key=3000)
+        self.assertNotEqual(retry, first, "终态后重试应创建新任务")
+        self._wait(retry)
 
 
 if __name__ == "__main__":
