@@ -79,12 +79,17 @@ docs/licensing.md           # 许可运营手册
 
 ```
                  cli.py ── cli_commands.py      ui_server.py ── ui_actions.py ── ui_context.py
-                 mcp_server.py（AI 客户端入口，复用同一批 core_* 函数）
+                 cli_commands.py ── cli_render.py / cli_input.py
+                 mcp_server.py（AI 客户端入口，复用同一批 core_* 函数；
+                               发布类工具走 jobs 异步提交，get_job 轮询）
                  ├── system.py / packaging.py / console.py / installer.py
                  ├── diagnostics.py / update.py ── licensing.py
                  ├── codesign.py（只在构建期被 tools 调用）
                  ├── supervisor.py ── domain.py
-                 ├── publish.py ── entries.py ── lifecycle.py
+                 ├── publish.py ── publish_support.py / publish_defaults.py
+                 │      ├── publish_text.py / publish_options.py ── project_config.py
+                 │      ├── project.py（项目类型识别）
+                 │      ├── entries.py ── lifecycle.py
                  │      ├── healthcheck.py ── upstream.py
                  │      ├── forwarder.py ── tunnel.py
                  │      └── pins.py / share.py
@@ -128,6 +133,9 @@ docs/licensing.md           # 许可运营手册
   「安装说明」，签名失败不当作构建失败（开发机不该被凭据卡住）。
 - `cli.py` 只定义参数并调度，`cli_commands.py` 只渲染输出，二者都不含业务逻辑；
   控制台与打包命令按需延迟导入，避免每次 CLI 启动加载整条 UI/代理链。
+- 发布默认值只走一条优先级链：显式参数 > 项目根 `.panweb.json` > 上次发布记忆
+  > 内置默认值（`publish_options.resolve_options`）。配置只读当前目录、不向上递归；
+  未知键（尤其 pin/token）一律拒绝，文件内容不进日志、事件流、分享页与 MCP 回执。
 - 业务能力只写在 core 模块，UI/CLI 复用同一组 `core_*` 函数，不复制逻辑。
 - 循环依赖靠 `ui_context`（进程内共享句柄）拆开，不用函数内 import 绕。
 - 单文件体积由测试守住（`tests/test_build.py`）：后端 ≤500、前端模块 ≤400、

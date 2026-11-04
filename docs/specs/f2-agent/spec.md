@@ -66,8 +66,9 @@
 
 - 所有 schema 为 `type: object`；`port` integer（1–65535）；`expires` enum `["1h","1d","7d","permanent"]`；`share` boolean；`title` `maxLength: 80`；`desc` `maxLength: 300`；`wait` boolean 默认 `false`；`pin` 描述明确「仅本次会话内存 / stdin，不落盘」。
 - `folder` 缺省 `"."`；`publish_port` 的 `folder` 只用于定位 `.panweb.json`。
+- `default` 只声明真正自包含的字段（`wait=false`、`folder="."`）；`expires/share/name/title/desc` 的缺省值依赖项目配置与上次记忆，写进 description 而不写 `default`，避免客户端自动填充反而覆盖 `.panweb.json` 的优先级。
 - 发布类工具提交后立即返回 job id 与 `state="running"`；同一目标重复提交复用 `jobs.start` 的 single-flight（key 为端口或绝对文件夹路径），不另起队列。
-- `wait=true`：最多等待 `WAIT_TIMEOUT=20` 秒；完成则返回最终回执；超时返回 `ok=true, state="running", job_id`（**不算失败**），hint 提示用 `get_job` 继续轮询。
+- `wait=true`：最多等待 `WAIT_TIMEOUT=20` 秒；完成则返回最终回执；超时返回 `ok=true, state="running", job_id`（**不算失败**），Agent 用 `get_job` 继续轮询（工具 description 已写明该语义）。
 - job 保留策略沿用 `jobs.py`（单进程、最多 20、只淘汰终态）；MCP 不修改全局语义。
 
 ## 4 统一回执

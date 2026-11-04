@@ -73,7 +73,7 @@ Command Line Tools），
 | --- | --- |
 | `panweb ui` | **启动本机控制台**（浏览器仪表盘，http://127.0.0.1:7788，UUMit 风格） |
 | `panweb discover` | 扫描本机监听端口，识别可发布的 HTTP 应用（只读） |
-| `panweb publish [端口] [--name 名字] [--share\|--no-share] [--pin 口令] [--expires 时长] [--permanent] [--no-check]` | 发布端口上正在运行的应用 → 公网网址；**端口可省略**（自动挑上次用过或唯一在跑的应用，多个候选时直接告诉你该填哪个）；有效期/分享选项默认沿用上次设置 |
+| `panweb publish [端口] [--name 名字] [--share\|--no-share] [--pin 口令] [--expires 时长] [--permanent] [--no-check]` | 发布端口上正在运行的应用 → 公网网址；**端口可省略**（读当前目录 `.panweb.json`、自动挑上次用过或唯一在跑的应用）；有效期/分享选项按 `.panweb.json` → 上次设置 → 内置默认解析 |
 | `panweb pages [文件夹] [--name 名字] [--expires 时长]` | 文件夹发布成只读网页 → 公网网址（自动带分享页与统计）；**文件夹可省略**，默认当前目录 |
 | `panweb run [文件夹] [--name 名字] [--share\|--no-share] [--pin 口令] [--expires 时长]` | **识别并自动启动项目**（静态/Node），一条命令直达公网；`--share` 生成分享页与统计 |
 | `panweb check <id\|名称\|网址> [--no-fix]` | **按访客视角自检已发布的应用**：首页/静态资源/WebSocket 逐项给结论，默认会依据取证自动修正 Host 模式；未通过时退出码 1 |
@@ -98,6 +98,29 @@ Command Line Tools），
 
 **少一步、可预期**：`publish/pages/run` 的端口、文件夹、有效期、分享选项都有默认值——文件夹默认当前目录，端口空着由 panweb 自动探测（优先上次用过的那个），有效期与分享开关沿用上次发布；只有真正跑不起来时才需要你补参数。耗时步骤（端口探测、启动项目、建立隧道）在 CLI 里逐行输出 `→` 步骤，在控制台里显示步骤列表；失败时给的是下一步动作（`重试` / `去启动项目` / `重新扫描`）而不是一条错误堆栈。PIN 只在本次会话里复用，不写进任何状态文件。
 
+### 项目级默认值 `.panweb.json`
+
+把项目固定的发布参数放在项目根目录（`publish` 读当前目录，`pages`/`run` 读目标文件夹），不用每次重复：
+
+```json
+{
+  "port": 3000,
+  "script": "dev",
+  "name": "我的应用",
+  "expires": "1h",
+  "share": true,
+  "title": "分享页标题",
+  "desc": "一句话说明",
+  "pin_policy": "required"
+}
+```
+
+- 优先级：**显式参数 > `.panweb.json` > 上次发布记忆（`meta.json`）> 内置默认值**；显式 `--share/--no-share`、`--expires` 永远赢。
+- 只读当前目录，**不向上递归**；不存在就是没有配置。
+- 未知键一律拒绝（拼错字段会直接报错）；`pin`/`token`/`password` 等密钥字段没有合法位置——口令只在发布时通过 `--pin`、`--pin-stdin` 或 MCP `pin` 传入，不落盘。
+- 文件对同组/其他用户可读时给出权限告警，`panweb doctor` 也会提示；建议 `chmod 600 .panweb.json`。
+- 配置内容不会出现在事件流、活动日志、分享页或 MCP 回执里。
+
 ## 代码结构（1.6 模块化）
 
 ```text
@@ -107,7 +130,9 @@ src/panweb/             # 按职责分包，单文件均 < 500 行
   processes/tunnel      # PID/端口/cloudflared、快速隧道
   pins/visits/share     # 口令、匿名统计、分享页
   proxy/forwarder       # 内置代理、预热隧道池
-  publish/entries       # 发布、自动启动、生命周期
+  publish/*             # 发布、探测守卫、默认值记忆、标题说明校验、优先级解析
+  project_config        # 项目根 .panweb.json（不向上递归、未知键拒绝、权限告警）
+  entries/lifecycle     # 条目状态、有效期与到期收回
   upstream/healthcheck  # 上游兼容层（Host 模式/凭据注入）、访客视角自检
   term                  # 控制台里的真终端：PTY 会话、非阻塞读写、SSE 画面推流
   agents                # 本机 Agent 探测与技能安装、终端可执行的 Agent 白名单
@@ -121,7 +146,8 @@ src/panweb/             # 按职责分包，单文件均 < 500 行
   jobs                  # 发布/启动等慢操作的后台任务与进度
   licensing             # 离线买断许可
   cli/cli_commands      # 参数解析与调度 / 命令输出渲染
-  mcp_server            # MCP stdio（复用同一批 core_* 函数）
+  cli_render/cli_input  # 输出渲染、stdin 口令与凭据读取
+  mcp_server            # MCP stdio（发布工具异步 job + get_job + 结构化回执）
 ui/src/                 # 前端源码：6 个 CSS、11 个 JS、2 个 partials + index + manifest
 ui/index.html           # tools/build_ui.py 组装的单文件产物（文件头标注「请勿直接编辑」）
 site/                   # 项目介绍页：独立静态站（index + 3 CSS + 4 JS），`panweb pages site` 即可发布
@@ -268,7 +294,7 @@ panweb status            # 查看运行状态（含后台 pid）
 | ⌘K 命令面板 | 发布 / 停止 / 打开 / 切换主题，键盘流一等公民 |
 | ⚡ 首次运行引导 | 缺 cloudflared 时界面内一键安装 |
 | 🖥 菜单栏常驻 | Swift 编译的原生菜单栏（在线应用数 + 停止全部 + 打开控制台） |
-| 🔌 MCP Server | `panweb mcp` 以 MCP stdio 协议暴露 9 个工具（含自检与上游兼容设置），任何 MCP 客户端可接入 |
+| 🔌 MCP Server | `panweb mcp` 以 MCP stdio 协议暴露 10 个工具（发布类工具提交后立即返回 `job_id`，用 `get_job` 轮询；也可 `wait=true` 有限等待，超时不算失败）。参数有完整 JSON Schema，Agent 可直接发现 `port/folder/script/pin/expires/share/title/desc/wait` |
 | 📊 统计增强 | 24 小时 / 7 天视图切换 + 分享页浏览/应用打开拆分 + 设备/浏览器/国家/来源分布 |
 | 🧬 一键诊断包 | 「系统与数据」页或 `panweb report` 导出脱敏 zip（版本/环境/发布状态/动态/日志尾部）；凭据目录、口令、访客记录与许可密钥本体不打包，出包前还会自审一遍 |
 | ⬆️ 检查更新 | 界面与 `panweb update` 都能查 GitHub Releases 最新版；买断的 1 年窗口内可取回升级包（必须通过 SHA256SUMS 摘要校验），过期如实拒绝——**不偷偷替换正在运行的 App** |

@@ -1,0 +1,105 @@
+{
+  "site": "/tmp/f2-evidence-site",
+  "initialize": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": {
+      "protocolVersion": "2024-11-05",
+      "capabilities": {
+        "tools": {}
+      },
+      "serverInfo": {
+        "name": "panweb",
+        "version": "1.6.0"
+      }
+    }
+  },
+  "tools": [
+    "check_app",
+    "discover_apps",
+    "get_job",
+    "list_apps",
+    "publish_pages",
+    "publish_port",
+    "run_project",
+    "set_compat",
+    "status",
+    "stop"
+  ],
+  "get_job_schema": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "string",
+        "description": "发布工具返回的 job_id"
+      },
+      "wait": {
+        "type": "boolean",
+        "default": false,
+        "description": "true 时最多等待 20 秒；完成返回最终回执，超时返回 state=running 与 job_id（不是失败）"
+      }
+    },
+    "required": [
+      "id"
+    ]
+  },
+  "submit_receipt": {
+    "ok": true,
+    "job_id": "413c3f6d",
+    "state": "running",
+    "id": null,
+    "url": null,
+    "share_url": null,
+    "expires_at": null,
+    "check": null,
+    "error": null,
+    "steps": [],
+    "step": "准备中…"
+  },
+  "success_receipt": {
+    "ok": true,
+    "job_id": "413c3f6d",
+    "state": "succeeded",
+    "id": "da8e66",
+    "url": "https://values-picnic-catalog-happening.trycloudflare.com",
+    "share_url": "https://values-picnic-catalog-happening.trycloudflare.com/__panweb/share/8voUrkIUhDHV",
+    "expires_at": 1793801687.628076,
+    "check": null,
+    "error": null,
+    "steps": [
+      "检查网页文件夹…",
+      "检查发布许可与隧道引擎…",
+      "启动内置代理与分享页…",
+      "建立公网隧道（通常需要数秒）…",
+      "验证公网可达…",
+      "发布完成"
+    ],
+    "step": "完成"
+  },
+  "failure_receipt": {
+    "ok": false,
+    "job_id": "274aaa2e",
+    "state": "failed",
+    "id": null,
+    "url": null,
+    "share_url": null,
+    "expires_at": null,
+    "check": null,
+    "error": {
+      "type": "invalid_argument",
+      "message": "文件夹不存在：/tmp/f2-definitely-missing-folder",
+      "hint": "确认路径存在；相对路径基于当前工作目录"
+    },
+    "steps": [],
+    "step": "完成"
+  },
+  "stop_receipt": {
+    "stopped": [
+      {
+        "id": "da8e66",
+        "name": "F2 验收站点",
+        "url": "https://values-picnic-catalog-happening.trycloudflare.com"
+      }
+    ]
+  }
+}
