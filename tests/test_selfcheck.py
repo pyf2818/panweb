@@ -32,11 +32,13 @@ class CoreCheckTests(unittest.TestCase):
         store.save_state([entry])
         proc = _spawn_proxy(proxy_port, entry_id, target_port=backend_port)
         self.addCleanup(stop_process, proc, ("--internal-proxy",))
-        deadline = time.time() + 8
+        # macOS runner 首次启动子进程明显更慢，20 秒仍远小于测试超时
+        deadline = time.time() + 20
         while time.time() < deadline and not port_listening(proxy_port):
             time.sleep(0.1)
         self.assertTrue(port_listening(proxy_port),
-                        "代理未启动\n" + proxy_log_tail(entry_id))
+                        "代理未启动（poll=%r）\n%s" %
+                        (proc.poll(), proxy_log_tail(entry_id)))
         return entry
 
     def test_host_validation_is_fixed_by_passing_the_public_host(self):

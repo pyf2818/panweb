@@ -68,11 +68,13 @@ class ProxySpawnTests(unittest.TestCase):
                             target_port=self.backend_port)
         self.assertIsNotNone(proc)
         try:
-            deadline = time.time() + 8
+            # macOS runner 首次启动子进程明显更慢，20 秒仍远小于测试超时
+            deadline = time.time() + 20
             while time.time() < deadline and not port_listening(proxy_port):
                 time.sleep(0.1)
             self.assertTrue(port_listening(proxy_port),
-                            "代理未启动\n" + proxy_log_tail(entry_id))
+                            "代理未启动（poll=%r）\n%s" %
+                            (proc.poll(), proxy_log_tail(entry_id)))
             status, _, body = self.request(proxy_port, "GET", "/")
             self.assertEqual(status, 200)
             self.assertIn(b"HELLO-FROM-BACKEND", body)
@@ -97,11 +99,13 @@ class ProxySpawnTests(unittest.TestCase):
                             target_port=self.backend_port, pin="secret99")
         self.assertIsNotNone(proc)
         try:
-            deadline = time.time() + 8
+            # macOS runner 首次启动子进程明显更慢，20 秒仍远小于测试超时
+            deadline = time.time() + 20
             while time.time() < deadline and not port_listening(proxy_port):
                 time.sleep(0.1)
             self.assertTrue(port_listening(proxy_port),
-                            "代理未启动\n" + proxy_log_tail(entry_id))
+                            "代理未启动（poll=%r）\n%s" %
+                            (proc.poll(), proxy_log_tail(entry_id)))
             status, headers, _ = self.request(
                 proxy_port, "GET", "/")
             self.assertEqual(status, 302)
@@ -133,11 +137,13 @@ class ProxySpawnTests(unittest.TestCase):
                             target_port=self.backend_port)
         self.assertIsNotNone(proc)
         try:
-            deadline = time.time() + 8
+            # macOS runner 首次启动子进程明显更慢，20 秒仍远小于测试超时
+            deadline = time.time() + 20
             while time.time() < deadline and not port_listening(proxy_port):
                 time.sleep(0.1)
             self.assertTrue(port_listening(proxy_port),
-                            "代理未启动\n" + proxy_log_tail(entry_id))
+                            "代理未启动（poll=%r）\n%s" %
+                            (proc.poll(), proxy_log_tail(entry_id)))
             status, _, body = self.request(
                 proxy_port, "POST", "/", body=b"",
                 headers={"Content-Length":

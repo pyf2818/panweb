@@ -196,11 +196,13 @@ class ProxyUpstreamTests(unittest.TestCase):
         store.save_state([entry])
         proc = _spawn_proxy(proxy_port, entry_id, target_port=self.backend_port)
         self.assertIsNotNone(proc)
-        deadline = time.time() + 8
+        # macOS runner 首次启动子进程明显更慢，20 秒仍远小于测试超时
+        deadline = time.time() + 20
         while time.time() < deadline and not port_listening(proxy_port):
             time.sleep(0.1)
         self.assertTrue(port_listening(proxy_port),
-                        "代理未启动\n" + proxy_log_tail(entry_id))
+                        "代理未启动（poll=%r）\n%s" %
+                        (proc.poll(), proxy_log_tail(entry_id)))
         return proxy_port, proc
 
     def get(self, port):
