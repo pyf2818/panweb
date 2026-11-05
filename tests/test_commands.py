@@ -164,15 +164,20 @@ class EntryNodesTests(unittest.TestCase):
             self.assertIn("nodes", item)
             self.assertEqual(set(item["nodes"]), {"tunnel", "proxy", "source"})
 class FrontendPinTests(unittest.TestCase):
-    def test_command_ui_never_persists_pin(self):
+    def test_console_never_persists_pin(self):
         root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        with open(os.path.join(root, "ui", "src", "js",
-                               "commands.js"), encoding="utf-8") as fh:
+        for name in ("commands.js", "stage.js", "preview.js", "notify.js"):
+            with open(os.path.join(root, "ui", "src", "js", name), encoding="utf-8") as fh:
+                source = fh.read()
+            self.assertNotIn("localStorage", source, name)
+            self.assertNotIn("sessionStorage", source, name)
+        with open(os.path.join(root, "ui", "src", "js", "publish.js"),
+                  encoding="utf-8") as fh:
             source = fh.read()
-        self.assertNotIn("localStorage", source)
         self.assertNotIn("sessionStorage", source)
-        self.assertIn("maskPin(text)", source)
-        self.assertIn('"$1$2****"', source)
+        self.assertNotIn("localStorage", source)
+        self.assertIn('const pinEl = document.getElementById("in-pin")', source)
+        self.assertIn("pinEl.value = \"\"", source)
 
 
 if __name__ == "__main__":

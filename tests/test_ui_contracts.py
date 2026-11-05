@@ -73,36 +73,119 @@ class RailFilterContractTests(unittest.TestCase):
         self.assertIn("assetActivity", wb)
 
 
-class ComposerContractTests(unittest.TestCase):
-    def test_quick_templates_fill_placeholders_without_executing(self):
+class StageContractTests(unittest.TestCase):
+    """三栏常驻 + 快捷指令区，对话式入口彻底移除。"""
+
+    def test_three_pane_structure_is_permanent(self):
         pages = ui("partials", "pages.html")
-        self.assertIn("fillTemplate('发布 <端口>', '<端口>')", pages)
-        self.assertIn("fillTemplate('发布 <文件夹路径>', '<文件夹路径>')", pages)
-        self.assertIn("fillTemplate('停止 当前', '')", pages)
-        self.assertIn("fillTemplate('检查 当前', '')", pages)
-        self.assertNotIn("fillCommand('发布 3000')", pages)
-        comp = ui("js", "composer.js")
-        self.assertIn("function fillTemplate(text, token)", comp)
-        self.assertIn("setSelectionRange(at, at + token.length)", comp)
-        self.assertNotIn("submitCommand(", comp)
+        for marker in ('id="page-apps"', 'id="stage"', 'id="stage-head"', 'id="stage-body"',
+                       'id="stage-empty"', 'id="stage-preview"', 'id="stage-create"',
+                       'id="stage-quickbar"', 'id="stage-note"', 'id="stage-tools"'):
+            self.assertIn(marker, pages)
+        html = ui("index.html")
+        for marker in ('id="asset-rail"', 'id="viz-rail"', 'id="rail-new"'):
+            self.assertIn(marker, html)
+        self.assertIn('id="topbar-new"', pages)
+        css = ui("styles", "console.css")
+        self.assertIn("position: sticky", css)
+        self.assertIn("top: 0", css)
+        self.assertIn("@media (max-width: 900px)", css)
+        self.assertNotIn("chat-log", pages)
+        self.assertNotIn("cmd-input", pages)
+        self.assertNotIn("cmd-form", pages)
+        self.assertNotIn("cmd-hints", pages)
+        self.assertNotIn("guide-card", pages)
 
-    def test_live_hint_reuses_backend_command_parser(self):
-        comp = ui("js", "composer.js")
-        self.assertIn('api("/api/command", {text: text})', comp)
-        self.assertIn("setTimeout(() => checkCmdSyntax(text), 400)", comp)
-        self.assertIn("err.hint", comp)
-        self.assertIn("/<[^>]+>/", comp)
-        self.assertIn('id="cmd-hint-line"', ui("partials", "pages.html"))
+    def test_no_frontend_command_endpoint_or_composer(self):
+        self.assertFalse(os.path.exists(os.path.join(UI, "js", "composer.js")),
+                         "composer.js 应已删除")
+        self.assertNotIn("js/composer.js", ui("manifest.json"))
+        for name in os.listdir(os.path.join(UI, "js")):
+            if not name.endswith(".js") or name.startswith("qrcode"):
+                continue
+            self.assertNotIn("/api/command", ui("js", name),
+                             "%s 不应再调用 /api/command" % name)
+        self.assertNotIn("fillTemplate", ui("partials", "pages.html"))
+        self.assertNotIn("openPublish('port')", ui("partials", "overlays.html"))
+        self.assertNotIn('id="pub-overlay"', ui("partials", "overlays.html"))
 
-    def test_history_is_memory_only_and_strips_pin(self):
-        comp = ui("js", "composer.js")
-        self.assertIn("const CMD_HISTORY = [];", comp)
-        self.assertIn("function stripPin(text)", comp)
-        self.assertIn("rememberCommand(text)", ui("js", "commands.js"))
-        self.assertIn("CMD_HISTORY.push(clean)", comp)
-        self.assertNotIn("localStorage", comp)
-        self.assertNotIn("sessionStorage", comp)
-        self.assertIn("ArrowUp", comp)
+    def test_capability_map_has_entries_for_every_action(self):
+        pages = ui("partials", "pages.html")
+        html = ui("index.html")
+        ids = ["stage-open", "stage-copy", "stage-refresh", "stage-stop", "stage-republish",
+               "quick-port", "quick-pages", "quick-project", "quick-stop", "quick-check",
+               "quick-scan", "topbar-new"]
+        for item in ids:
+            self.assertIn('id="%s"' % item, pages)
+        self.assertIn('id="rail-new"', html)
+        for item in ("dep-pin-btn", "dep-check-btn", "dep-retry-btn", "dep-republish-btn",
+                     "viz-qr", "dep-url", "dep-share-url"):
+            self.assertIn('id="%s"' % item, html)
+        for fn in ("stageOpen", "stageCopy", "stageRefresh", "stageStop", "stageRepublish",
+                   "quickPublish", "quickStopCurrent", "quickCheckCurrent", "quickScan",
+                   "openPublishPort", "openPublish", "vizRepublish", "vizRetry", "vizSetPin"):
+            self.assertIn("function %s" % fn, ui("js", "stage.js") + ui("js", "preview.js") +
+                          ui("js", "viz.js") + ui("js", "publish.js") +
+                          ui("js", "lastpub.js") + ui("js", "workbench.js") +
+                          ui("js", "commands.js"))
+
+    def test_quickbar_calls_existing_apis(self):
+        stage = ui("js", "stage.js")
+        self.assertIn('api("/api/discover")', stage)
+        self.assertIn("stopCurrent()", stage)
+        self.assertIn("doCheck({scope: \"current\"})", stage)
+        self.assertIn("openPublish(\"port\")", stage)
+        cmd = ui("js", "commands.js")
+        self.assertIn('api("/api/stop", {target})', cmd)
+        self.assertIn('api("/api/check", {id})', cmd)
+        pub = ui("js", "publish.js")
+        self.assertIn("function doPublish", pub)
+        for endpoint in ('"/api/publish"', '"/api/pages"', '"/api/run"'):
+            self.assertIn(endpoint, pub)
+
+
+class PreviewSecurityContractTests(unittest.TestCase):
+    def test_iframe_only_from_preview_api_with_sandbox(self):
+        pv = ui("js", "preview.js")
+        self.assertIn('api("/api/preview?id="', pv)
+        self.assertIn('sandbox="allow-scripts allow-same-origin allow-forms allow-popups"', pv)
+        self.assertIn('referrerpolicy="no-referrer"', pv)
+        self.assertIn("8 秒", pv)
+        self.assertIn("该应用禁止内嵌，请用打开", pv)
+        self.assertIn("云端托管不提供本地预览", pv)
+        self.assertNotIn("entry.url", pv)
+        self.assertNotIn("a.url +", pv)
+        stage = ui("js", "stage.js")
+        self.assertIn("stageRepublish", stage)
+        self.assertIn("stageStop", stage)
+
+    def test_backend_only_returns_localhost_and_checks_headers(self):
+        acts = read(ROOT, "src", "panweb", "ui_actions.py")
+        self.assertIn('if path == "/api/preview":', acts)
+        self.assertIn("http://127.0.0.1:%d/", acts)
+        self.assertIn('headers.get("X-Frame-Options")', acts)
+        self.assertIn("frame-ancestors", acts)
+        self.assertIn('PREVIEW_BLOCK_REASON = "该应用禁止内嵌，请用打开"', acts)
+        self.assertIn('PREVIEW_DOWN_REASON = "本机预览加载失败，请用打开"', acts)
+        self.assertIn("frame-src http://127.0.0.1:* http://localhost:*",
+                      read(ROOT, "src", "panweb", "ui_server.py"))
+
+
+class NotifyPanelContractTests(unittest.TestCase):
+    def test_panel_uses_history_and_jumps_to_entry(self):
+        nt = ui("js", "notify.js")
+        self.assertIn('api("/api/history?limit=" + NOTIFY_LIMIT)', nt)
+        self.assertIn("function notifyGo", nt)
+        self.assertIn("findAsset(ev.entry_id)", nt)
+        self.assertIn("selectAsset(ev.entry_id)", nt)
+        self.assertIn("function notifyPanelClose", nt)
+        self.assertNotIn("setInterval", nt)
+        pages = ui("partials", "pages.html")
+        self.assertIn('id="bell-btn"', pages)
+        self.assertIn('aria-label="通知"', pages)
+        self.assertIn('id="bell-panel"', pages)
+        core = ui("js", "core.js")
+        self.assertIn('panweb-read-ts', core)
 
 
 class EmptyStateAccessibilityTests(unittest.TestCase):
@@ -112,9 +195,10 @@ class EmptyStateAccessibilityTests(unittest.TestCase):
         self.assertIn("选择要发布的东西", pages)
         self.assertIn("确认能被访问", pages)
         self.assertIn("发送给别人", pages)
-        self.assertIn("scanPorts('guide')", pages)
+        self.assertIn('onclick="quickScan()"', pages)
+        stage = ui("js", "stage.js")
+        self.assertIn('api("/api/discover")', stage)
         wb = ui("js", "workbench.js")
-        self.assertIn('api("/api/discover")', wb)
         self.assertIn("function scanPorts(target)", wb)
         self.assertIn('id="viz-empty"', ui("index.html"))
         self.assertIn("扫描本机端口", ui("index.html"))
@@ -124,13 +208,15 @@ class EmptyStateAccessibilityTests(unittest.TestCase):
         apps = ui("js", "apps.js")
         self.assertIn("function announce(text)", apps)
         self.assertIn('announce("已复制 ', apps)
+        self.assertIn('aria-live="polite"', ui("partials", "pages.html"))
 
     def test_shortcuts(self):
         ws = ui("js", "workspace.js")
         self.assertIn("e.metaKey || e.ctrlKey", ws)
         self.assertIn('page.classList.contains("show")', ws)
-        self.assertIn('document.getElementById("cmd-input")', ws)
+        self.assertIn('document.querySelector("#stage-quickbar .quick-btn:not([disabled])")', ws)
         self.assertIn('document.querySelectorAll(".overlay.show")', ws)
+        self.assertIn("notifyPanelClose", ws)
 
 
 class StoppedSnapshotContractTests(unittest.TestCase):
@@ -165,7 +251,8 @@ class StoppedSnapshotContractTests(unittest.TestCase):
         built = read(BUILT)
         for marker in ("function renderStopped(snap)", "function toggleDepGroup",
                        "function renderVizVisitors", "function initDepGroups",
-                       "function fillTemplate", "panweb-dep-groups",
+                       "function renderStage", "function renderPreview",
+                       "function toggleBell", "panweb-dep-groups",
                        "panweb-asset-filter", "sr-live"):
             self.assertIn(marker, built)
 
