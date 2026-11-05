@@ -107,13 +107,12 @@ function renderWorkbench(apps, hosted) {
   if (!assets.some(x => x.id === selectedAssetId)) {
     selectedAssetId = assets.length ? assets[0].id : null;
   }
-  const guide = document.getElementById("guide-card");
-  if (guide) guide.hidden = assets.length > 0;
   document.getElementById("asset-count").textContent = String(assets.length);
   syncFilterChips();
   renderAssetList();
   if (selectedAssetId && !globalPreview) loadAssetTimeline(selectedAssetId);
   else loadGlobalTimeline();
+  if (typeof renderStage === "function") renderStage();
 }
 
 function renderAssetList() {
@@ -169,9 +168,11 @@ function selectAsset(id) {
   selectedAssetId = id;
   globalPreview = false;
   localStorage.setItem("panweb-selected", id);
+  if (typeof stageResetToPreview === "function") stageResetToPreview();
   renderAssetList();
   loadAssetTimeline(id);
   if (typeof renderViz === "function") renderViz();
+  if (typeof renderStage === "function") renderStage();
 }
 
 function timelineLabel(type) { return EVENT_LABELS[type] || type; }
@@ -294,8 +295,8 @@ function scanCandidateHtml(c) {
   if (!port) return "";
   const meta = [c.title, c.process].filter(Boolean).join(" · ") || "未知应用";
   const used = c.published ? '<span class="scan-tag">已发布</span>' : "";
-  return '<button type="button" class="scan-item" onclick="fillCommand(' + jsq("发布 " + port) +
-    ')" aria-label="填入发布端口 ' + port + ' 的指令">' +
+  return '<button type="button" class="scan-item" onclick="openPublishPort(' + port +
+    ')" aria-label="在新建表单中发布端口 ' + port + '">' +
     '<b>:' + esc(String(port)) + "</b><span>" + esc(meta) + "</span>" + used + "</button>";
 }
 async function scanPorts(target) {
@@ -326,7 +327,7 @@ async function scanPorts(target) {
   const body = items || '<div class="rail-empty">没有发现可发布的本机端口。</div>';
   if (target === "viz") {
     holder.innerHTML = "<b>发现 " + list.length + " 个端口</b>" +
-      '<p class="scan-note">点击填入输入框，确认后回车执行。</p>' +
+      '<p class="scan-note">点击端口会填入中栏新建表单。</p>' +
       '<div class="scan-list">' + body + "</div>" +
       '<button class="btn btn-sm ghost" type="button" onclick="scanPorts(\'viz\')">重新扫描</button>';
   } else {

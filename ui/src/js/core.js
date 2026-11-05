@@ -244,17 +244,7 @@ function checkNotifs() {
   const newest = acts.length ? new Date(acts[0].ts.replace(" ", "T")).getTime() : 0;
   if (newest > lastPushTs) lastPushTs = newest;
   localStorage.setItem("panweb-notify-ts", String(lastPushTs));
-  // 铃铛面板内容
-  const list = document.getElementById("bell-list");
-  list.innerHTML = unreadItems.length
-    ? unreadItems.slice(0, 10).map(f =>
-        '<div class="bell-item">' + esc(f.text) + '<div class="t">' + esc(f.ts) + '</div></div>').join("")
-    : '<div class="feed-empty">暂无新通知</div>';
-}
-function toggleBell(e) {
-  if (e) e.stopPropagation();
-  document.getElementById("bell-panel").classList.toggle("show");
-  checkNotifs();
+  // 面板内容由 notify.js 在展开时按 /api/history 拉取，不随 4s 状态刷新重拉。
 }
 function markAllRead() {
   readTs = Date.now();
@@ -273,6 +263,6 @@ function askNotifyPerm() {
 document.addEventListener("click", e => {
   const p = document.getElementById("bell-panel");
   if (p.classList.contains("show") && !p.contains(e.target) && e.target.closest("#bell-btn") === null)
-    p.classList.remove("show");
+    notifyPanelClose();
 });
 

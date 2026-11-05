@@ -1,4 +1,5 @@
 """控制台 API 路由：GET 查询与 POST 动作。"""
+import http.client
 import os
 import signal
 import threading
@@ -23,7 +24,7 @@ from .installer import core_install_cf, core_install_cf_status
 from .licensing import (activate_license, deactivate_license,
                         license_status)
 from .menubar import core_install_menubar
-from .models import entry_share_url
+from .models import entry_port, entry_share_url
 from .publish import (core_detect, core_pages, core_publish, core_run,
                       core_set_pin, load_publish_defaults, normalize_desc)
 from .share import new_share_token
@@ -45,6 +46,74 @@ def _query(handler):
 
 def _first(q, key, default=""):
     return (q.get(key) or [default])[0]
+
+
+PREVIEW_BLOCK_REASON = "该应用禁止内嵌，请用打开"
+PREVIEW_DOWN_REASON = "本机预览加载失败，请用打开"
+
+
+def _preview_url(entry):
+    """预览只允许本机代理端口或源端口；绝不返回公网地址。"""
+    if entry.get("proxy_port"):
+        return "http://127.0.0.1:%d/" % int(entry["proxy_port"])
+    port = entry_port(entry)
+    if port is not None:
+        return "http://127.0.0.1:%d/" % int(port)
+    return None
+
+
+def _preview_embed_check(url):
+    """HEAD 一次目标，按 X-Frame-Options / CSP frame-ancestors 判断能否内嵌。"""
+    parts = urllib.parse.urlsplit(url)
+    try:
+        conn = http.client.HTTPConnection(parts.hostname, parts.port, timeout=2)
+        try:
+            conn.request("HEAD", parts.path or "/")
+            resp = conn.getresponse()
+            resp.read()
+            headers = resp.headers
+        finally:
+            conn.close()
+    except (OSError, http.client.HTTPException, ValueError):
+        return False, PREVIEW_DOWN_REASON
+    xfo = (headers.get("X-Frame-Options") or "").strip().lower()
+    if xfo.startswith("deny") or xfo.startswith("sameorigin"):
+        return False, PREVIEW_BLOCK_REASON
+    csp = headers.get("Content-Security-Policy") or ""
+    for directive in csp.split(";"):
+        name, _, rest = directive.strip().partition(" ")
+        if name.strip().lower() != "frame-ancestors":
+            continue
+        sources = rest.replace("'", " ").split()
+        if not sources:
+            return False, PREVIEW_BLOCK_REASON
+        if "*" in sources:
+            return True, ""
+        allowed = any(s in ("127.0.0.1", "localhost", "127.0.0.1:*",
+                            "localhost:*", "http://127.0.0.1",
+                            "http://127.0.0.1:*", "http://localhost",
+                            "http://localhost:*") for s in sources)
+        return allowed, "" if allowed else PREVIEW_BLOCK_REASON
+    return True, ""
+
+
+def _preview_payload(entry_id):
+    """解析真实条目的本机预览地址；只读，不写状态、不记录口令。"""
+    entry = next((e for e in core_list() if e.get("id") == entry_id), None)
+    if not entry:
+        return None, {"type": "not_found",
+                      "message": "该条目没有本机预览，请用打开"}
+    if not entry.get("alive"):
+        return None, {"type": "not_found",
+                      "message": "应用已停止，右栏可用同样配置重新发布"}
+    url = _preview_url(entry)
+    if not url:
+        return None, {"type": "not_found",
+                      "message": "该条目没有本机端口，无法预览"}
+    embeddable, reason = _preview_embed_check(url)
+    return {"id": entry_id, "url": url, "embeddable": embeddable,
+            "reason": reason,
+            "source": "proxy" if entry.get("proxy_port") else "port"}, None
 
 
 def handle_get(handler, path):
@@ -145,6 +214,11 @@ def handle_get(handler, path):
                     detail["expires_text"] = (snap.get("expires_text")
                                               or detail.get("expires_text"))
                 data["detail"] = detail
+        return handler.send_json({"ok": True, "data": data}) or True
+    if path == "/api/preview":
+        data, error = _preview_payload(_first(_query(handler), "id"))
+        if error:
+            return handler.send_json({"ok": False, "error": error}) or True
         return handler.send_json({"ok": True, "data": data}) or True
     if path == "/api/agents":
         return handler.send_json({"ok": True, "data": {

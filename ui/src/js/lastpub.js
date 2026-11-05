@@ -86,7 +86,7 @@ async function vizRepublish() {
     endpoint = "/api/publish";
     body.port = snap.port;
   } else {
-    return addError("上次目标缺失", "快照里没有端口或文件夹；请用「高级发布」重新填写。", null);
+    return addError("上次目标缺失", "快照里没有端口或文件夹；请用「新建应用」重新填写。", null);
   }
   setCommandBusy(true);
   addStep("正在用上次配置重新发布" + (pin ? "（带新口令）" : "") + "…");
@@ -96,7 +96,7 @@ async function vizRepublish() {
     if (!d.ok) {
       const err = d.error || {};
       return addError(err.message || "重新发布失败", err.hint || "检查目标后重试",
-        null, '<button class="btn btn-sm ghost" onclick="openPublish(\'port\')">高级发布</button>');
+        null, '<button class="btn btn-sm ghost" onclick="openPublish(\'port\')">新建应用</button>');
     }
     if (d.data && d.data.job) return await pollJob(d.data.job, {options: {pin: pin || ""}});
     return await onJobSuccess(d.data, {options: {pin: pin || ""}});

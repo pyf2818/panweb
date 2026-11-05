@@ -277,18 +277,7 @@ body.low-power .msg {
   animation: none !important;
 }
 
-/* 非工作台页：右栏收起；终端页左右都收起 */
-body[data-page="feed"] .viz,
-body[data-page="agents"] .viz,
-body[data-page="system"] .viz,
-body[data-page="feed"] .viz-drag,
-body[data-page="agents"] .viz-drag,
-body[data-page="system"] .viz-drag,
-body[data-page="feed"] #viz-backdrop,
-body[data-page="agents"] #viz-backdrop,
-body[data-page="system"] #viz-backdrop { display: none; }
-
-/* 终端只占中栏：左右两栏保留；移动端仍按既有单栏抽屉策略 */
+/* 常驻三栏：功能页与终端页都保留右栏，只让中栏内容切换 */
 
 /* 终端 / 全幅功能页的面板质感 */
 body[data-page="term"] .main,

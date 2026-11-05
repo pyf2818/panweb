@@ -1,18 +1,7 @@
-// ---------- 发布弹窗 ----------
+// ---------- 新建应用：中栏就地表单（不再弹独立模态） ----------
 let pubTab = "port";
 let pubDefaults = null;
 let pubPoll = null;
-const PUB_PIN_KEY = "panweb.pin";
-
-function storedPin() {
-  try { return sessionStorage.getItem(PUB_PIN_KEY) || ""; } catch (e) { return ""; }
-}
-function rememberPin(pin) {
-  try {
-    if (pin) sessionStorage.setItem(PUB_PIN_KEY, pin);
-    else sessionStorage.removeItem(PUB_PIN_KEY);
-  } catch (e) { /* 隐私模式禁用存储也不影响发布 */ }
-}
 
 function openPublish(tab) {
   if (STATE && STATE.license && STATE.license.activation_required) {
@@ -28,7 +17,7 @@ function openPublish(tab) {
   document.getElementById("in-port").value = "";
   document.getElementById("in-folder").value = "";
   document.getElementById("in-project").value = "";
-  document.getElementById("in-pin").value = storedPin();
+  document.getElementById("in-pin").value = "";
   document.getElementById("in-share").checked = true;
   document.getElementById("in-exp").value = "";
   document.getElementById("in-files").value = "";
@@ -37,17 +26,18 @@ function openPublish(tab) {
   selPort = null; selPortRisky = null; detected = null;
   resetPubFeedback();
   updateRisk();
-  document.getElementById("pub-overlay").classList.add("show");
+  openStageCreate(pubTab);
   loadPublishOptions();
   setTimeout(() => {
     const el = pubTab === "port" ? "in-port" : pubTab === "pages" ? "in-folder"
       : pubTab === "cloud" ? "in-cloudfolder" : "in-project";
-    document.getElementById(el).focus();
+    const input = document.getElementById(el);
+    if (input) input.focus();
   }, 120);
 }
 function closePublish() {
-  document.getElementById("pub-overlay").classList.remove("show");
   if (pubPoll) { clearInterval(pubPoll); pubPoll = null; }
+  stageBack();
 }
 function resetPubFeedback() {
   const btn = document.getElementById("pub-btn");
@@ -114,7 +104,6 @@ function applyStoredDefaults(d) {
   const bits = [];
   if (pubDefaults.last_port) bits.push("上次端口 " + pubDefaults.last_port);
   if (pubDefaults.expires) bits.push("上次有效期 " + pubDefaults.expires);
-  if (storedPin()) bits.push("口令沿用本标签页");
   const note = document.getElementById("pub-smart");
   if (bits.length) {
     note.textContent = "已按上次设置预填：" + bits.join(" · ") + "（可随时改）";
@@ -311,10 +300,13 @@ function pubFail(err) {
 }
 function pubDone(data) {
   if (pubPoll) { clearInterval(pubPoll); pubPoll = null; }
-  rememberPin(document.getElementById("in-pin").value.trim());
-  closePublish();
+  // 口令只作为当次请求参数，成功后立即清空表单字段
+  const pinEl = document.getElementById("in-pin");
+  if (pinEl) pinEl.value = "";
+  const entryId = data && (data.id || (data.entry && data.entry.id)) || null;
+  stageBack();
   toast("已发布：" + (data.share_url || data.url));
-  refresh();
+  stageAfterPublish(entryId, data);
 }
 function pollPublish(jobId, btn, spin) {
   return new Promise(resolve => {

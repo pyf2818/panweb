@@ -179,7 +179,8 @@ class UiHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Security-Policy",
                          "default-src 'self'; img-src 'self' data:; "
                          "style-src 'self' 'unsafe-inline'; "
-                         "script-src 'self' 'unsafe-inline'; connect-src 'self'")
+                         "script-src 'self' 'unsafe-inline'; connect-src 'self'; "
+                         "frame-src http://127.0.0.1:* http://localhost:*")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)

@@ -70,7 +70,10 @@ function switchPage(page) {
   if (page === "agents") loadAgents();
   if (page === "term") tmEnterPage(); else tmLeavePage();
   if (page === "system") { loadSystem(); loadDomain(); }
-  if (page === "apps" && typeof renderViz === "function") renderViz();
+  if (page === "apps") {
+    if (typeof renderViz === "function") renderViz();
+    if (typeof renderStage === "function") renderStage();
+  }
 }
 
 // ---------- 系统与数据页 ----------
@@ -309,10 +312,10 @@ document.addEventListener("keydown", e => {
     const page = document.getElementById("page-apps");
     if (page && page.classList.contains("show")) {
       e.preventDefault();
-      const input = document.getElementById("cmd-input");
-      if (input) {
-        input.focus();
-        input.setSelectionRange(input.value.length, input.value.length);
+      const first = document.querySelector("#stage-quickbar .quick-btn:not([disabled])");
+      if (first) {
+        first.focus();
+        announce("已聚焦快捷指令区");
       }
       return;
     }
@@ -322,6 +325,7 @@ document.addEventListener("keydown", e => {
   }
   if (e.key === "Escape") {
     document.querySelectorAll(".overlay.show").forEach(o => o.classList.remove("show"));
+    if (typeof notifyPanelClose === "function") notifyPanelClose();
     if (typeof closeDrawer === "function") closeDrawer();
     if (typeof closeDrawers === "function") closeDrawers();
   }

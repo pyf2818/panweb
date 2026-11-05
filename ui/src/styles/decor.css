@@ -63,7 +63,7 @@ body[data-page="term"]::after { opacity: .16; }
   border-radius: 2px; background: linear-gradient(135deg, var(--accent), var(--gold));
   opacity: .8;
 }
-.topbar { position: relative; border-bottom-color: transparent; }
+.topbar { position: sticky; top: 0; z-index: 30; border-bottom-color: transparent; }
 .topbar::after {
   content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px;
   background: linear-gradient(90deg, rgba(51,121,107,.5), rgba(185,151,91,.32) 24%,

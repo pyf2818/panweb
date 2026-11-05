@@ -2966,6 +2966,7 @@ body {
   padding: 8px 10px; margin-bottom: 14px;
   background: var(--search-bg);
 }
+.rail-new { width: 100%; margin: 2px 0 10px; min-height: 36px; font-size: 12.5px; justify-content: center; }
 .rail-search svg { width: 14px; height: 14px; color: var(--faint); flex-shrink: 0; }
 .rail-search input {
   width: 100%; border: 0; outline: none; background: transparent;
@@ -3035,12 +3036,15 @@ body {
 .rail .sidebar-env { padding: 10px 6px 0; margin-top: 8px; font-size: 10.5px; line-height: 1.8; }
 .rail .env-license { margin-top: 6px; }
 
-/* ---------- 中栏：导航 + 对话 ---------- */
-.main { flex: 1; min-width: 0; max-width: none; padding: 14px 22px 40px; }
+/* ---------- 中栏：导航 + 常驻三栏 ---------- */
+.main { flex: 1; min-width: 0; max-width: none; padding: 0 22px 40px; }
 .topbar {
+  position: sticky; top: 0; z-index: 30;
   display: flex; flex-direction: column; align-items: stretch; gap: 10px;
-  padding-bottom: 10px; margin-bottom: 14px; border-bottom: 1px solid var(--border);
+  padding: 10px 0 10px; margin-bottom: 14px; border-bottom: 1px solid var(--border);
+  background: var(--bg);
 }
+.topbar-actions { position: relative; }
 .topbar-nav {
   display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none;
   border-bottom: 1px solid var(--border); padding-bottom: 7px;
@@ -3068,99 +3072,114 @@ body {
 .theme-label { letter-spacing: .04em; }
 
 .workbench { min-height: 520px; }
-.conv {
+.stage {
   display: flex; flex-direction: column; min-height: 0;
-  height: calc(100vh - 196px);
+  height: calc(100vh - 214px);
   border: 1px solid var(--border); border-radius: 14px;
   background: var(--conv-bg); overflow: hidden;
 }
-.conv-head {
-  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
-  padding: 14px 16px 12px; border-bottom: 1px solid var(--border);
+.stage-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 12px 14px; border-bottom: 1px solid var(--border);
+  background: var(--conv-head-bg); flex-wrap: wrap;
+}
+.stage-title { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.stage-kind {
+  font-family: var(--mono); font-size: 9px; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--accent);
+  border: 1px solid var(--border); border-radius: 6px; padding: 2px 6px;
+}
+.stage-title b {
+  font-family: var(--serif); font-size: 16px; font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.stage-badge {
+  font-family: var(--mono); font-size: 9.5px; border: 1px solid var(--border);
+  border-radius: 999px; padding: 2px 7px; color: var(--muted); flex-shrink: 0;
+}
+.stage-tools { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.stage-tools .btn { white-space: nowrap; }
+.stage-tools .btn-danger { color: var(--danger); border-color: var(--danger); background: transparent; }
+.stage-body {
+  flex: 1; min-height: 0; overflow-y: auto; padding: 14px;
+  display: flex; flex-direction: column;
+}
+.stage-empty {
+  margin: auto; width: 100%; max-width: 560px; padding: 18px 20px;
+  border: 1px solid var(--border); border-radius: 12px; background: var(--node-bg);
+}
+.stage-preview { flex: 1; min-height: 0; display: flex; }
+.stage-create { display: flex; flex-direction: column; }
+.stage-foot {
+  display: flex; justify-content: flex-end; gap: 8px;
+  padding: 10px 0 2px; position: sticky; bottom: 0;
+  background: var(--conv-bg);
+}
+
+.pv-frame { flex: 1; min-height: 0; border-radius: 10px; overflow: hidden; background: var(--field-bg); }
+.pv-frame iframe { width: 100%; height: 100%; min-height: 360px; border: 0; display: block; background: #fff; }
+.pv-loading {
+  margin: auto; display: flex; align-items: center; gap: 10px;
+  color: var(--muted); font-family: var(--mono); font-size: 12px;
+}
+.spin {
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid var(--border); border-top-color: var(--accent);
+  animation: pv-spin 1s linear infinite;
+}
+@keyframes pv-spin { to { transform: rotate(360deg); } }
+.pv-degrade {
+  margin: auto; max-width: 480px; padding: 22px; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.pv-ico {
+  width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--expired);
+  color: var(--expired); display: grid; place-items: center; font-weight: 700;
+}
+.pv-degrade b { font-size: 14px; }
+.pv-degrade p { font-size: 12px; color: var(--muted); line-height: 1.7; max-width: 380px; }
+.pv-actions { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; justify-content: center; }
+
+.stage-note {
+  padding: 8px 14px; border-top: 1px solid var(--border);
+  font-size: 12px; line-height: 1.6; background: var(--composer-bg);
+}
+.stage-note.good { border-top-color: var(--ok-bubble-border); background: var(--ok-bubble-bg); }
+.stage-note.bad { border-top-color: var(--err-bubble-border); background: var(--err-bubble-bg); }
+.stage-note b { font-size: 12.5px; }
+.sn-step { color: var(--muted); font-family: var(--mono); font-size: 11.5px; }
+.sn-err { color: var(--danger); }
+.sn-hint { display: block; color: var(--muted); font-size: 11px; margin-top: 3px; }
+.sn-url { display: block; font-family: var(--mono); font-size: 11px; color: var(--accent); word-break: break-all; margin-top: 2px; }
+.sn-acts { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+
+.stage-quickbar {
+  display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
+  padding: 9px 12px; border-top: 1px solid var(--border);
   background: var(--conv-head-bg);
 }
-.conv-title { font-family: var(--serif); font-size: 15.5px; font-weight: 600; display: flex; align-items: center; gap: 9px; }
-.conv-live {
-  font-family: var(--mono); font-size: 9px; letter-spacing: .16em;
-  color: var(--online); border: 1px solid var(--online-ring);
-  padding: 2px 6px; border-radius: 999px;
+.quick-btn {
+  border: 1px solid var(--border); background: var(--node-bg); color: var(--muted);
+  font-family: var(--mono); font-size: 11px; padding: 6px 10px; border-radius: 999px;
+  cursor: pointer; min-height: 32px; white-space: nowrap; transition: all .18s;
 }
-.conv-head > div { min-width: 0; }
-.conv-head .btn { white-space: nowrap; flex-shrink: 0; }
-.conv-sub { font-size: 11.5px; color: var(--muted); line-height: 1.7; margin-top: 5px; max-width: 620px; }
+.quick-btn:hover { color: var(--accent); border-color: var(--accent); }
+.quick-btn:disabled { opacity: .5; cursor: default; }
+.quick-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-.chat-log { flex: 1; overflow-y: auto; padding: 18px 18px 8px; min-height: 140px; }
-.msg { max-width: 86%; margin-bottom: 12px; animation: msg-rise .28s ease both; }
-.msg.user { margin-left: auto; }
-.msg.system { max-width: 100%; }
-.msg .bubble {
-  padding: 10px 13px; border-radius: 12px; font-size: 13px; line-height: 1.65;
-  border: 1px solid var(--border); background: var(--bubble-bg); color: var(--ink);
-  white-space: pre-wrap; word-break: break-word;
+.bell-btn { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 11.5px; }
+.bell-btn svg { width: 15px; height: 15px; }
+.bell-label { letter-spacing: .04em; }
+.bell-item {
+  display: flex; flex-direction: column; gap: 2px; width: 100%;
+  text-align: left; background: none; border: 0; border-bottom: 1px dashed var(--border);
+  color: var(--ink); cursor: pointer; font-family: var(--sans);
 }
-.msg.user .bubble {
-  background: var(--user-bubble-bg); border-color: var(--user-bubble-border);
-  border-bottom-right-radius: 4px;
-}
-.msg.step .bubble {
-  font-family: var(--mono); font-size: 11.5px; color: var(--muted);
-  background: transparent; border-style: dashed; border-bottom-left-radius: 4px;
-}
-.msg.step .bubble::before { content: "◇ "; color: var(--accent); }
-.msg.success .bubble { border-color: var(--ok-bubble-border); background: var(--ok-bubble-bg); }
-.msg.error .bubble { border-color: var(--err-bubble-border); background: var(--err-bubble-bg); }
-.msg.system .bubble { color: var(--muted); font-size: 12px; border-style: dashed; }
-.msg-role {
-  font-family: var(--mono); font-size: 9px; letter-spacing: .12em;
-  color: var(--faint); margin: 0 4px 4px;
-}
-.msg.user .msg-role { text-align: right; }
-.msg-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
-.msg-actions .btn { font-size: 11.5px; padding: 5px 9px; }
-.receipt { display: grid; gap: 7px; margin-top: 8px; }
-.receipt-url {
-  font-family: var(--mono); font-size: 11.5px; color: var(--accent);
-  word-break: break-all; background: var(--code-bg);
-  border: 1px solid var(--border); border-radius: 8px; padding: 7px 9px;
-}
-.receipt-qr { display: flex; gap: 12px; align-items: center; margin-top: 4px; }
-.receipt-qr svg { width: 92px; height: 92px; background: #fff; border-radius: 7px; padding: 4px; }
-.receipt-qr .qr-note { font-size: 10.5px; color: var(--faint); line-height: 1.6; }
-.err-hint { color: var(--muted); font-size: 11.5px; margin-top: 5px; }
-.example-list { display: flex; flex-direction: column; gap: 5px; margin-top: 8px; }
-.example-row {
-  display: flex; align-items: center; gap: 7px;
-  font-family: var(--mono); font-size: 11px; color: var(--accent);
-}
-.example-row .ex {
-  flex: 1; background: var(--code-bg); border: 1px solid var(--border);
-  border-radius: 7px; padding: 6px 8px; word-break: break-all; text-align: left;
-}
-.example-row .ex:hover { border-color: var(--accent); }
-
-.cmd-hints { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 16px 8px; }
-.cmd-chip {
-  border: 1px solid var(--border); background: transparent; color: var(--muted);
-  font-family: var(--mono); font-size: 10.5px; padding: 5px 9px; border-radius: 999px;
-  cursor: pointer; min-height: 32px; transition: all .2s;
-}
-.cmd-chip:hover { color: var(--accent); border-color: var(--accent); }
-.conv-composer {
-  display: flex; align-items: flex-end; gap: 8px;
-  padding: 10px 14px 12px; border-top: 1px solid var(--border);
-  background: var(--composer-bg);
-}
-.cmd-prompt { color: var(--accent); font-family: var(--mono); font-size: 18px; padding-bottom: 7px; }
-.conv-composer textarea {
-  flex: 1; resize: none; min-height: 40px; max-height: 128px;
-  border: 1px solid var(--border); border-radius: 9px;
-  background: var(--field-bg); color: var(--ink);
-  padding: 9px 11px; font-family: var(--mono); font-size: 13px; line-height: 1.5;
-  outline: none;
-}
-.conv-composer textarea:focus { border-color: var(--accent); }
-.conv-composer .cmd-run { min-height: 40px; }
-.conv-foot { font-size: 9.5px; color: var(--faint); padding: 0 16px 9px; }
+.bell-item:hover { background: var(--asset-hover); }
+.bell-item-unread .bell-text::before { content: "● "; color: var(--accent); }
+.bell-text { font-size: 12.5px; line-height: 1.5; }
+.bell-kind { font-family: var(--mono); font-size: 9.5px; color: var(--accent); }
+.topbar-new { display: none; }
 
 /* ---------- 右栏：进程 ---------- */
 .viz {
@@ -3261,12 +3280,22 @@ body.rail-open #rail-backdrop, body.viz-open #viz-backdrop { display: block; }
   .topbar-actions .drawer-btn { display: inline-flex; min-height: 48px; }
   .topbar-actions .btn { min-height: 48px; }
   .theme-label { display: none; }
-  .theme-btn { padding-left: 10px; padding-right: 10px; }
-  .conv { height: calc(100dvh - 250px); min-height: 420px; }
-  .conv-composer textarea { font-size: 16px; min-height: 48px; }
-  .conv-composer .cmd-run { min-height: 48px; }
-  .cmd-chip { min-height: 40px; }
-  .msg { max-width: 94%; }
+  .theme-btn, .bell-btn { justify-content: center; min-width: 48px; padding-left: 8px; padding-right: 8px; }
+  .bell-label { display: none; }
+  .topbar-new { display: inline-flex; justify-content: center; min-width: 48px; }
+  #topbar-pub { display: none; }
+  .stage { height: calc(100dvh - 238px); min-height: 420px; }
+  .stage-head { padding: 10px 12px; }
+  .stage-tools { gap: 6px; }
+  .stage-tools .btn { min-height: 44px; }
+  .stage-body { padding: 10px; }
+  .stage-quickbar {
+    flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin;
+    padding: 8px 10px; -webkit-overflow-scrolling: touch;
+  }
+  .quick-btn { flex: 0 0 auto; min-height: 48px; padding: 10px 14px; }
+  .stage-note { font-size: 12px; padding: 8px 12px; }
+  .stage .field input, .stage .field select, #in-files { font-size: 16px; min-height: 44px; }
   .asset-item, .rail-search, .rail-mini { min-height: 48px; }
   .rail-search input { font-size: 16px; }
   .viz .btn { min-height: 48px; }
@@ -3924,7 +3953,7 @@ body[data-page="term"]::after { opacity: .16; }
   border-radius: 2px; background: linear-gradient(135deg, var(--accent), var(--gold));
   opacity: .8;
 }
-.topbar { position: relative; border-bottom-color: transparent; }
+.topbar { position: sticky; top: 0; z-index: 30; border-bottom-color: transparent; }
 .topbar::after {
   content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px;
   background: linear-gradient(90deg, rgba(51,121,107,.5), rgba(185,151,91,.32) 24%,
@@ -4277,18 +4306,7 @@ body.low-power .msg {
   animation: none !important;
 }
 
-/* 非工作台页：右栏收起；终端页左右都收起 */
-body[data-page="feed"] .viz,
-body[data-page="agents"] .viz,
-body[data-page="system"] .viz,
-body[data-page="feed"] .viz-drag,
-body[data-page="agents"] .viz-drag,
-body[data-page="system"] .viz-drag,
-body[data-page="feed"] #viz-backdrop,
-body[data-page="agents"] #viz-backdrop,
-body[data-page="system"] #viz-backdrop { display: none; }
-
-/* 终端只占中栏：左右两栏保留；移动端仍按既有单栏抽屉策略 */
+/* 常驻三栏：功能页与终端页都保留右栏，只让中栏内容切换 */
 
 /* 终端 / 全幅功能页的面板质感 */
 body[data-page="term"] .main,
@@ -4318,6 +4336,8 @@ body[data-page="system"] .main { padding-bottom: 48px; }
     </div>
     <button class="drawer-x" id="rail-close" onclick="closeDrawers()" aria-label="关闭资产栏">×</button>
   </div>
+
+  <button class="btn btn-primary rail-new" id="rail-new" type="button" onclick="openPublish('port')" aria-label="新建应用">＋ 新建应用</button>
 
   <div class="rail-search">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg>
@@ -4381,13 +4401,15 @@ body[data-page="system"] .main { padding-bottom: 48px; }
           <span class="theme-label" id="theme-label">跟随系统</span>
         </button>
         <span class="pill" id="env-pill"><b>检查中…</b></span>
-        <button class="btn" id="bell-btn" onclick="toggleBell(event)" title="通知">
+        <button class="btn bell-btn" id="bell-btn" onclick="toggleBell(event)" title="通知" aria-label="通知">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>
+          <span class="bell-label">通知</span>
           <span id="bell-badge">0</span>
         </button>
         <div class="bell-panel" id="bell-panel">
           <div class="bell-head"><b>通知</b>
             <span style="display:flex;gap:8px;align-items:center">
+              <button class="ctab" onclick="notifyReload()" aria-label="刷新通知">刷新</button>
               <button class="ctab" onclick="askNotifyPerm()" id="notify-perm-btn">开启系统通知</button>
               <button class="ctab" onclick="markAllRead()">全部已读</button>
             </span>
@@ -4397,9 +4419,10 @@ body[data-page="system"] .main { padding-bottom: 48px; }
         <button class="btn" onclick="refresh(true)" title="刷新" aria-label="刷新状态">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
         </button>
+        <button class="btn btn-primary topbar-new" id="topbar-new" onclick="openPublish('port')" aria-label="新建应用">＋</button>
         <button class="btn btn-primary" id="topbar-pub" onclick="openPublish('port')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-          高级发布
+          新建应用
         </button>
       </div>
     </div>
@@ -4410,51 +4433,148 @@ body[data-page="system"] .main { padding-bottom: 48px; }
     <button class="btn btn-sm btn-primary" onclick="openLicense()">激活买断版</button>
   </div>
 
-  <!-- ======= 页面：三栏工作台（中栏对话） ======= -->
+  <!-- ======= 页面：三栏工作台（预览 / 新建 / 快捷指令） ======= -->
   <section class="page show" id="page-apps">
     <div class="workbench">
-      <div class="conv">
-        <div class="conv-head">
-          <div>
-            <div class="conv-title">对话式发布 <span class="conv-live">LIVE</span></div>
-            <div class="conv-sub">直接输入指令回车执行：发布端口 / 文件夹、启动项目、停止、自检。口令只用于当次请求，不会留在页面里。</div>
+      <div class="stage" id="stage" data-mode="empty">
+        <div class="stage-head" id="stage-head">
+          <div class="stage-title">
+            <span class="stage-kind" id="stage-kind">预览</span>
+            <b id="stage-name">等待选择应用</b>
+            <span class="stage-badge" id="stage-badge" hidden>未知</span>
           </div>
-          <button class="btn btn-sm ghost" onclick="openPublish('port')">高级发布</button>
-        </div>
-
-        <div class="guide-card" id="guide-card" hidden>
-          <div class="guide-title">三步发出一个网址</div>
-          <ol class="guide-steps">
-            <li><b>选择要发布的东西</b><span>本机端口、静态文件夹，或让 panweb 启动一个项目。</span></li>
-            <li><b>确认能被访问</b><span>发布后打开链接自检；口令与有效期按需设置。</span></li>
-            <li><b>发送给别人</b><span>复制分享链接或二维码，手机扫码即可打开。</span></li>
-          </ol>
-          <div class="guide-actions">
-            <button class="btn btn-sm btn-primary" type="button" onclick="openPublish('port')">发布端口</button>
-            <button class="btn btn-sm" type="button" onclick="openPublish('pages')">发布文件夹</button>
-            <button class="btn btn-sm ghost" type="button" onclick="scanPorts('guide')">扫描本机端口</button>
+          <div class="stage-tools" id="stage-tools" hidden>
+            <button class="btn btn-sm ghost" id="stage-open" onclick="stageOpen()" aria-label="打开当前应用">打开</button>
+            <button class="btn btn-sm ghost" id="stage-copy" onclick="stageCopy()" aria-label="复制当前链接">复制链接</button>
+            <button class="btn btn-sm ghost" id="stage-refresh" onclick="stageRefresh()" aria-label="刷新预览">刷新</button>
+            <button class="btn btn-sm btn-danger" id="stage-stop" onclick="stageStop()">停止</button>
+            <button class="btn btn-sm" id="stage-republish" onclick="stageRepublish()" hidden>重新发布</button>
+            <button class="btn btn-sm ghost" id="stage-back" onclick="stageBack()" hidden>返回预览</button>
           </div>
-          <div class="guide-results" id="guide-results"></div>
         </div>
 
-        <div class="chat-log" id="chat-log" aria-live="polite"></div>
+        <div class="stage-body" id="stage-body">
+          <div class="stage-empty" id="stage-empty">
+            <div class="guide-title">三步发出一个网址</div>
+            <ol class="guide-steps">
+              <li><b>选择要发布的东西</b><span>本机端口、静态文件夹，或让 panweb 启动一个项目。</span></li>
+              <li><b>确认能被访问</b><span>发布后打开链接自检；口令与有效期按需设置。</span></li>
+              <li><b>发送给别人</b><span>复制分享链接或二维码，手机扫码即可打开。</span></li>
+            </ol>
+            <div class="guide-actions">
+              <button class="btn btn-sm btn-primary" type="button" onclick="openPublish('port')">发布端口</button>
+              <button class="btn btn-sm" type="button" onclick="openPublish('pages')">发布文件夹</button>
+              <button class="btn btn-sm ghost" type="button" onclick="quickScan()">扫描本机端口</button>
+            </div>
+            <div class="guide-results" id="guide-results"></div>
+          </div>
+          <div class="stage-preview" id="stage-preview" hidden></div>
+          <div class="stage-create" id="stage-create" hidden>
+            <div class="tabs">
+              <button class="tab active" id="tab-port" onclick="switchTab('port')">发布端口</button>
+              <button class="tab" id="tab-pages" onclick="switchTab('pages')">发布文件夹</button>
+              <button class="tab" id="tab-project" onclick="switchTab('project')">启动项目</button>
+              <button class="tab" id="tab-cloud" onclick="switchTab('cloud')">云端托管</button>
+            </div>
 
-        <div class="cmd-hints" id="cmd-hints" role="group" aria-label="快捷指令">
-          <button type="button" class="cmd-chip" onclick="fillTemplate('发布 <端口>', '<端口>')" aria-label="填入发布端口的指令模板">发布端口</button>
-          <button type="button" class="cmd-chip" onclick="fillTemplate('发布 <文件夹路径>', '<文件夹路径>')" aria-label="填入发布文件夹的指令模板">发布文件夹</button>
-          <button type="button" class="cmd-chip" onclick="fillTemplate('停止 当前', '')" aria-label="填入停止当前发布的指令">停止当前</button>
-          <button type="button" class="cmd-chip" onclick="fillTemplate('检查 当前', '')" aria-label="填入重新自检的指令">检查一下</button>
-          <button type="button" class="cmd-chip" onclick="fillTemplate('帮助', '')" aria-label="填入帮助指令">帮助</button>
+            <div class="smart-note" id="pub-smart" hidden></div>
+
+            <div id="pane-port">
+              <div class="field"><label>本机正在运行的应用</label>
+                <div class="cand-list" id="cand-list"><div class="feed-empty">扫描中…</div></div>
+              </div>
+              <div class="field"><label>或手动输入端口</label>
+                <input type="number" id="in-port" placeholder="例如 3000" min="1" max="65535">
+              </div>
+            </div>
+
+            <div id="pane-pages" style="display:none">
+              <div class="field"><label>文件夹路径（将作为只读网页发布）</label>
+                <div class="field-inline">
+                  <input type="text" id="in-folder" placeholder="例如 项目 dist 或 Documents/周报">
+                  <button class="btn" onclick="openFolderPicker('in-folder')">选择…</button>
+                </div>
+              </div>
+            </div>
+
+            <div id="pane-cloud" style="display:none">
+              <div class="public-note" style="background:var(--accent-soft);color:var(--accent-deep)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 17.6A5 5 0 0018 8h-1.3A8 8 0 104 15.2"/></svg>
+                <span>🌐 上传到 GitHub Pages（免费、网址固定）—— <b>电脑关机也能访问</b>。仓库公开，勿传敏感内容；需要 GitHub 登录（一次）。</span>
+              </div>
+              <div class="field"><label>选择文件（HTML / Markdown / Excel，自动转换，可多选）</label>
+                <input type="file" id="in-files" multiple style="font-size:12.5px">
+              </div>
+              <div class="field"><label>或本地文件夹 / 单文件路径（整站上传）</label>
+                <div class="field-inline">
+                  <input type="text" id="in-cloudfolder" placeholder="例如 项目 dist">
+                  <button class="btn" onclick="openFolderPicker('in-cloudfolder')">选择…</button>
+                </div>
+              </div>
+            </div>
+
+            <div id="pane-project" style="display:none">
+              <div class="field"><label>项目文件夹（panweb 自动识别并启动）</label>
+                <div class="field-inline">
+                  <input type="text" id="in-project" placeholder="例如 我的项目">
+                  <button class="btn" onclick="openFolderPicker('in-project')">选择…</button>
+                  <button class="btn" onclick="detectProject()">识别</button>
+                </div>
+              </div>
+              <div class="detect-line" id="detect-line"></div>
+            </div>
+
+            <div class="field"><label>应用名称（可选）</label>
+              <input type="text" id="in-name" placeholder="例如 周报页面、演示版">
+            </div>
+            <div class="field" id="title-field"><label>分享页标题（可选，最多 80 字）</label>
+              <input type="text" id="in-title" maxlength="80" placeholder="默认使用应用名称">
+            </div>
+            <div class="field" id="desc-field"><label>分享页说明（可选，最多 300 字）</label>
+              <input type="text" id="in-desc" maxlength="300" placeholder="默认使用内置说明">
+            </div>
+            <div class="field" id="pin-field"><label>访问口令（可选，打开网址需先输入）</label>
+              <input type="text" id="in-pin" placeholder="留空则公开访问；例如 8668" maxlength="32" autocomplete="off">
+            </div>
+            <div class="check-line" id="share-line" style="display:flex">
+              <input type="checkbox" id="in-share" checked>
+              <label for="in-share" style="margin:0;cursor:pointer">生成分享页 + 访问统计（推荐）</label>
+            </div>
+            <div class="d-hint" id="share-hint" style="margin:-4px 0 10px">分享链接会先展示应用名、说明、有效期和口令入口；取消勾选则直连发布（更快，但无统计）。</div>
+            <div class="field"><label>有效期（到期自动收回，防忘记关）</label>
+              <select id="in-exp">
+                <option value="">永久有效</option>
+                <option value="1h">1 小时</option>
+                <option value="1d">1 天</option>
+                <option value="7d">7 天</option>
+              </select>
+            </div>
+            <div class="risk-warn" id="risk-warn"></div>
+            <div class="check-line" id="risk-check" style="display:none">
+              <input type="checkbox" id="risk-ack"><label for="risk-ack" style="margin:0;cursor:pointer">我了解风险，确认发布这个服务</label>
+            </div>
+            <div class="pub-error" id="pub-error" hidden></div>
+            <div class="pub-progress" id="pub-progress" hidden>
+              <div class="pp-head"><span class="pp-dot"></span><span id="pub-step">准备中…</span></div>
+              <ol class="pp-steps" id="pub-steps"></ol>
+            </div>
+            <div class="stage-foot">
+              <button class="btn" onclick="stageBack()">取消</button>
+              <button class="btn btn-primary" id="pub-btn" onclick="doPublish()">发布</button>
+            </div>
+          </div>
         </div>
 
-        <div class="cmd-hint-line" id="cmd-hint-line" role="status"></div>
+        <div class="stage-note" id="stage-note" role="status" aria-live="polite"></div>
 
-        <form class="conv-composer" id="cmd-form" onsubmit="submitCommand(event)">
-          <span class="cmd-prompt" aria-hidden="true">›</span>
-          <textarea id="cmd-input" rows="1" placeholder="输入指令，例如 发布 3000 pin=1234 有效期=1d" autocomplete="off" spellcheck="false" aria-label="发布指令"></textarea>
-          <button class="btn btn-primary cmd-run" id="cmd-run" type="submit">执行</button>
-        </form>
-        <div class="conv-foot">Enter 执行 · Shift+Enter 换行 · ↑ 回填上次指令（不含口令）· 解析失败不会调用发布接口</div>
+        <div class="stage-quickbar" id="stage-quickbar" role="toolbar" aria-label="快捷指令">
+          <button class="quick-btn" id="quick-port" type="button" onclick="quickPublish('port')" aria-label="发布本机端口">发布端口</button>
+          <button class="quick-btn" id="quick-pages" type="button" onclick="quickPublish('pages')" aria-label="发布静态文件夹">发布文件夹</button>
+          <button class="quick-btn" id="quick-project" type="button" onclick="quickPublish('project')" aria-label="启动项目并发布">启动项目</button>
+          <button class="quick-btn" id="quick-stop" type="button" onclick="quickStopCurrent()" aria-label="停止当前选中的应用">停止当前</button>
+          <button class="quick-btn" id="quick-check" type="button" onclick="quickCheckCurrent()" aria-label="重新自检当前应用">检查一下</button>
+          <button class="quick-btn" id="quick-scan" type="button" onclick="quickScan()" aria-label="扫描本机运行中的端口">扫描端口</button>
+        </div>
       </div>
     </div>
   </section>
@@ -4740,109 +4860,6 @@ body[data-page="system"] .main { padding-bottom: 48px; }
 <div class="sr-only" id="sr-live" aria-live="polite" aria-atomic="true"></div>
 
 <!-- ======= 发布弹窗 ======= -->
-<div class="overlay" id="pub-overlay">
-  <div class="modal">
-    <div class="modal-title">发布应用到公网</div>
-    <div class="modal-sub">免费、零服务器；生成随机公网网址，发给谁谁就能打开</div>
-    <div class="public-note">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>
-      <span>发布后网址为<b>公开访问</b>（随机子域名，未泄露即外人不知道）。无密码的服务请先加密码再发布。</span>
-    </div>
-    <div class="tabs">
-      <button class="tab active" id="tab-port" onclick="switchTab('port')">发布端口</button>
-      <button class="tab" id="tab-pages" onclick="switchTab('pages')">发布文件夹</button>
-      <button class="tab" id="tab-project" onclick="switchTab('project')">启动项目</button>
-      <button class="tab" id="tab-cloud" onclick="switchTab('cloud')">云端托管</button>
-    </div>
-
-    <div class="smart-note" id="pub-smart" hidden></div>
-
-    <div id="pane-port">
-      <div class="field"><label>本机正在运行的应用</label>
-        <div class="cand-list" id="cand-list"><div class="feed-empty">扫描中…</div></div>
-      </div>
-      <div class="field"><label>或手动输入端口</label>
-        <input type="number" id="in-port" placeholder="例如 3000" min="1" max="65535">
-      </div>
-    </div>
-
-    <div id="pane-pages" style="display:none">
-      <div class="field"><label>文件夹路径（将作为只读网页发布）</label>
-        <div class="field-inline">
-          <input type="text" id="in-folder" placeholder="例如 项目 dist 或 Documents/周报">
-          <button class="btn" onclick="openFolderPicker('in-folder')">选择…</button>
-        </div>
-      </div>
-    </div>
-
-    <div id="pane-cloud" style="display:none">
-      <div class="public-note" style="background:var(--accent-soft);color:var(--accent-deep)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 17.6A5 5 0 0018 8h-1.3A8 8 0 104 15.2"/></svg>
-        <span>🌐 上传到 GitHub Pages（免费、网址固定）—— <b>电脑关机也能访问</b>。仓库公开，勿传敏感内容；需要 GitHub 登录（一次）。</span>
-      </div>
-      <div class="field"><label>选择文件（HTML / Markdown / Excel，自动转换，可多选）</label>
-        <input type="file" id="in-files" multiple style="font-size:12.5px">
-      </div>
-      <div class="field"><label>或本地文件夹 / 单文件路径（整站上传）</label>
-        <div class="field-inline">
-          <input type="text" id="in-cloudfolder" placeholder="例如 项目 dist">
-          <button class="btn" onclick="openFolderPicker('in-cloudfolder')">选择…</button>
-        </div>
-      </div>
-    </div>
-
-    <div id="pane-project" style="display:none">
-      <div class="field"><label>项目文件夹（panweb 自动识别并启动）</label>
-        <div class="field-inline">
-          <input type="text" id="in-project" placeholder="例如 我的项目">
-          <button class="btn" onclick="openFolderPicker('in-project')">选择…</button>
-          <button class="btn" onclick="detectProject()">识别</button>
-        </div>
-      </div>
-      <div class="detect-line" id="detect-line"></div>
-    </div>
-
-    <div class="field"><label>应用名称（可选）</label>
-      <input type="text" id="in-name" placeholder="例如 周报页面、演示版">
-    </div>
-    <div class="field" id="title-field"><label>分享页标题（可选，最多 80 字）</label>
-      <input type="text" id="in-title" maxlength="80" placeholder="默认使用应用名称">
-    </div>
-    <div class="field" id="desc-field"><label>分享页说明（可选，最多 300 字）</label>
-      <input type="text" id="in-desc" maxlength="300" placeholder="默认使用内置说明">
-    </div>
-    <div class="field" id="pin-field"><label>访问口令（可选，打开网址需先输入）</label>
-      <input type="text" id="in-pin" placeholder="留空则公开访问；例如 8668" maxlength="32">
-    </div>
-    <div class="check-line" id="share-line" style="display:flex">
-      <input type="checkbox" id="in-share" checked>
-      <label for="in-share" style="margin:0;cursor:pointer">生成分享页 + 访问统计（推荐）</label>
-    </div>
-    <div class="d-hint" id="share-hint" style="margin:-4px 0 10px">分享链接会先展示应用名、说明、有效期和口令入口；取消勾选则直连发布（更快，但无统计）。</div>
-    <div class="field"><label>有效期（到期自动收回，防忘记关）</label>
-      <select id="in-exp">
-        <option value="">永久有效</option>
-        <option value="1h">1 小时</option>
-        <option value="1d">1 天</option>
-        <option value="7d">7 天</option>
-      </select>
-    </div>
-    <div class="risk-warn" id="risk-warn"></div>
-    <div class="check-line" id="risk-check" style="display:none">
-      <input type="checkbox" id="risk-ack"><label for="risk-ack" style="margin:0;cursor:pointer">我了解风险，确认发布这个服务</label>
-    </div>
-    <div class="pub-error" id="pub-error" hidden></div>
-    <div class="pub-progress" id="pub-progress" hidden>
-      <div class="pp-head"><span class="pp-dot"></span><span id="pub-step">准备中…</span></div>
-      <ol class="pp-steps" id="pub-steps"></ol>
-    </div>
-    <div class="modal-foot">
-      <button class="btn" onclick="closePublish()">取消</button>
-      <button class="btn btn-primary" id="pub-btn" onclick="doPublish()">发布</button>
-    </div>
-  </div>
-</div>
-
 <!-- ======= 文件夹选择器 ======= -->
 <div class="overlay" id="folder-overlay">
   <div class="modal" style="width:560px">
@@ -5356,17 +5373,7 @@ function checkNotifs() {
   const newest = acts.length ? new Date(acts[0].ts.replace(" ", "T")).getTime() : 0;
   if (newest > lastPushTs) lastPushTs = newest;
   localStorage.setItem("panweb-notify-ts", String(lastPushTs));
-  // 铃铛面板内容
-  const list = document.getElementById("bell-list");
-  list.innerHTML = unreadItems.length
-    ? unreadItems.slice(0, 10).map(f =>
-        '<div class="bell-item">' + esc(f.text) + '<div class="t">' + esc(f.ts) + '</div></div>').join("")
-    : '<div class="feed-empty">暂无新通知</div>';
-}
-function toggleBell(e) {
-  if (e) e.stopPropagation();
-  document.getElementById("bell-panel").classList.toggle("show");
-  checkNotifs();
+  // 面板内容由 notify.js 在展开时按 /api/history 拉取，不随 4s 状态刷新重拉。
 }
 function markAllRead() {
   readTs = Date.now();
@@ -5385,7 +5392,7 @@ function askNotifyPerm() {
 document.addEventListener("click", e => {
   const p = document.getElementById("bell-panel");
   if (p.classList.contains("show") && !p.contains(e.target) && e.target.closest("#bell-btn") === null)
-    p.classList.remove("show");
+    notifyPanelClose();
 });
 
 // ---------- 左栏：资产档案 + 时间线 ----------
@@ -5497,13 +5504,12 @@ function renderWorkbench(apps, hosted) {
   if (!assets.some(x => x.id === selectedAssetId)) {
     selectedAssetId = assets.length ? assets[0].id : null;
   }
-  const guide = document.getElementById("guide-card");
-  if (guide) guide.hidden = assets.length > 0;
   document.getElementById("asset-count").textContent = String(assets.length);
   syncFilterChips();
   renderAssetList();
   if (selectedAssetId && !globalPreview) loadAssetTimeline(selectedAssetId);
   else loadGlobalTimeline();
+  if (typeof renderStage === "function") renderStage();
 }
 
 function renderAssetList() {
@@ -5559,9 +5565,11 @@ function selectAsset(id) {
   selectedAssetId = id;
   globalPreview = false;
   localStorage.setItem("panweb-selected", id);
+  if (typeof stageResetToPreview === "function") stageResetToPreview();
   renderAssetList();
   loadAssetTimeline(id);
   if (typeof renderViz === "function") renderViz();
+  if (typeof renderStage === "function") renderStage();
 }
 
 function timelineLabel(type) { return EVENT_LABELS[type] || type; }
@@ -5684,8 +5692,8 @@ function scanCandidateHtml(c) {
   if (!port) return "";
   const meta = [c.title, c.process].filter(Boolean).join(" · ") || "未知应用";
   const used = c.published ? '<span class="scan-tag">已发布</span>' : "";
-  return '<button type="button" class="scan-item" onclick="fillCommand(' + jsq("发布 " + port) +
-    ')" aria-label="填入发布端口 ' + port + ' 的指令">' +
+  return '<button type="button" class="scan-item" onclick="openPublishPort(' + port +
+    ')" aria-label="在新建表单中发布端口 ' + port + '">' +
     '<b>:' + esc(String(port)) + "</b><span>" + esc(meta) + "</span>" + used + "</button>";
 }
 async function scanPorts(target) {
@@ -5716,7 +5724,7 @@ async function scanPorts(target) {
   const body = items || '<div class="rail-empty">没有发现可发布的本机端口。</div>';
   if (target === "viz") {
     holder.innerHTML = "<b>发现 " + list.length + " 个端口</b>" +
-      '<p class="scan-note">点击填入输入框，确认后回车执行。</p>' +
+      '<p class="scan-note">点击端口会填入中栏新建表单。</p>' +
       '<div class="scan-list">' + body + "</div>" +
       '<button class="btn btn-sm ghost" type="button" onclick="scanPorts(\'viz\')">重新扫描</button>';
   } else {
@@ -5748,6 +5756,103 @@ document.addEventListener("keydown", e => {
 });
 applyRailTimeline();
 syncFilterChips();
+
+// ---------- 通知面板：数据来自 /api/history?limit=20，展开时拉一次 ----------
+const NOTIFY_LIMIT = 20;
+let NOTIFY_ROWS = null;
+let NOTIFY_PENDING_ID = 0;
+
+function notifyPanel() { return document.getElementById("bell-panel"); }
+function notifyList() { return document.getElementById("bell-list"); }
+
+function notifyPanelClose() {
+  const panel = notifyPanel();
+  if (!panel || !panel.classList.contains("show")) return;
+  panel.classList.remove("show");
+  NOTIFY_ROWS = null;
+  NOTIFY_PENDING_ID += 1;
+}
+
+function toggleBell(e) {
+  if (e) e.stopPropagation();
+  const panel = notifyPanel();
+  const open = !panel.classList.contains("show");
+  if (!open) { notifyPanelClose(); return; }
+  panel.classList.add("show");
+  checkNotifs();
+  loadNotifyPanel();
+}
+
+async function loadNotifyPanel(force) {
+  if (NOTIFY_ROWS && !force) { renderNotifyPanel(); return; }
+  const token = ++NOTIFY_PENDING_ID;
+  const list = notifyList();
+  if (list) list.innerHTML = '<div class="feed-empty">正在读取最近事件…</div>';
+  const d = await api("/api/history?limit=" + NOTIFY_LIMIT);
+  if (token !== NOTIFY_PENDING_ID) return;
+  if (!d.ok) {
+    if (list) list.innerHTML = '<div class="feed-empty">通知读取失败：' +
+      esc((d.error && d.error.message) || "未知错误") + "</div>";
+    return;
+  }
+  NOTIFY_ROWS = (d.data && d.data.events) || [];
+  renderNotifyPanel();
+}
+
+function notifyLabel(type) {
+  const labels = typeof EVENT_LABELS !== "undefined" ? EVENT_LABELS : {};
+  return labels[type] || type || "事件";
+}
+
+// /api/history 的 ts 是秒级数字；兼容字符串时间戳与毫秒值。
+function notifyTs(ts) {
+  const n = Number(ts);
+  if (Number.isFinite(n) && n > 0) return n > 1e12 ? n : n * 1000;
+  const parsed = new Date(String(ts || "").replace(" ", "T")).getTime();
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+function notifyTime(ts) {
+  const ms = notifyTs(ts);
+  if (!ms) return "";
+  const d = new Date(ms);
+  const p = n => String(n).padStart(2, "0");
+  return p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " +
+    p(d.getHours()) + ":" + p(d.getMinutes());
+}
+
+function renderNotifyPanel() {
+  const list = notifyList();
+  if (!list) return;
+  if (!NOTIFY_ROWS || !NOTIFY_ROWS.length) {
+    list.innerHTML = '<div class="feed-empty">最近没有事件</div>';
+    return;
+  }
+  list.innerHTML = NOTIFY_ROWS.map((ev, i) => {
+    const unread = notifyTs(ev.ts) > readTs ? " bell-item-unread" : "";
+    const canJump = ev.entry_id && typeof findAsset === "function" && findAsset(ev.entry_id);
+    return '<button type="button" class="bell-item' + unread + '" data-i="' + i + '" ' +
+      'onclick="notifyGo(' + i + ')" ' +
+      (canJump ? 'aria-label="跳转到 ' + esc(ev.summary || "") + '"' : 'aria-disabled="true"') + ">" +
+      '<span class="bell-text">' + esc(ev.summary || "") + "</span>" +
+      '<span class="bell-kind">' + esc(notifyLabel(ev.type)) + (canJump ? "" : " · 已不存在") + "</span>" +
+      '<span class="t">' + esc(notifyTime(ev.ts)) + "</span></button>";
+  }).join("");
+}
+
+function notifyGo(i) {
+  const ev = NOTIFY_ROWS && NOTIFY_ROWS[i];
+  if (!ev) return;
+  notifyPanelClose();
+  if (!ev.entry_id || !findAsset(ev.entry_id)) {
+    toast("该条目已不存在，无法跳转", false);
+    return;
+  }
+  if (currentPage !== "apps") switchPage("apps");
+  selectAsset(ev.entry_id);
+  announce("已跳转到 " + (ev.summary || "对应条目"));
+}
+
+function notifyReload() { loadNotifyPanel(true); }
 
 // ---------- 右栏：部署详情（只消费 /api/state 与 /api/history） ----------
 const NODE_DEFAULT = {state: "unknown", detail: "暂无数据"};
@@ -6333,7 +6438,7 @@ async function vizRepublish() {
     endpoint = "/api/publish";
     body.port = snap.port;
   } else {
-    return addError("上次目标缺失", "快照里没有端口或文件夹；请用「高级发布」重新填写。", null);
+    return addError("上次目标缺失", "快照里没有端口或文件夹；请用「新建应用」重新填写。", null);
   }
   setCommandBusy(true);
   addStep("正在用上次配置重新发布" + (pin ? "（带新口令）" : "") + "…");
@@ -6343,7 +6448,7 @@ async function vizRepublish() {
     if (!d.ok) {
       const err = d.error || {};
       return addError(err.message || "重新发布失败", err.hint || "检查目标后重试",
-        null, '<button class="btn btn-sm ghost" onclick="openPublish(\'port\')">高级发布</button>');
+        null, '<button class="btn btn-sm ghost" onclick="openPublish(\'port\')">新建应用</button>');
     }
     if (d.data && d.data.job) return await pollJob(d.data.job, {options: {pin: pin || ""}});
     return await onJobSuccess(d.data, {options: {pin: pin || ""}});
@@ -6387,172 +6492,43 @@ async function vizCheckSource(snap) {
   }
 }
 
-// ---------- 中栏：对话式发布（解析 → 异步 job → 回执/重试） ----------
-let chatInited = false;
+// ---------- 操作结果区：停止 / 自检 / 发布 job 的状态条（不是消息流） ----------
 let commandBusy = false;
-let LAST_PARSED = null;
 
-const HELP_EXAMPLES = [
-  "发布 3000",
-  "发布 /path/to/dist",
-  "发布 3000 pin=1234 有效期=1d 分享=开 名称=演示站",
-  "启动 /path/to/project",
-  "停止 8080", "停止 当前", "停止 全部",
-  "检查 当前", "帮助",
-];
-
-function maskPin(text) {
-  return String(text || "").replace(
-    /(pin)(\s*=\s*|\s+)(?:"[^"]*"|'[^']*'|\S+)/gi, "$1$2****");
+function stageNote(html, tone) {
+  const box = document.getElementById("stage-note");
+  if (!box) return;
+  box.className = "stage-note" + (tone ? " " + tone : "");
+  box.hidden = !html;
+  if (html) box.innerHTML = html;
 }
-function chatScroll() {
-  const log = document.getElementById("chat-log");
-  log.scrollTop = log.scrollHeight;
-}
-function chatMsg(kind, role, html) {
-  const log = document.getElementById("chat-log");
-  const el = document.createElement("div");
-  el.className = "msg " + kind;
-  el.innerHTML = '<div class="msg-role">' + esc(role) + '</div>' +
-    '<div class="bubble">' + html + '</div>';
-  log.appendChild(el);
-  while (log.children.length > 120) log.removeChild(log.firstElementChild);
-  chatScroll();
-  return el;
-}
-function addUser(text) {
-  chatMsg("user", "你", esc(maskPin(text)));
+function noteText(html) {
+  const tmp = document.createElement("div");
+  tmp.innerHTML = html || "";
+  return (tmp.textContent || "").replace(/\s+/g, " ").trim().slice(0, 300);
 }
 function addStep(text) {
-  chatMsg("step", "进程", esc(text));
+  stageNote('<span class="sn-step">◌ ' + esc(text) + "</span>");
+  announce(text);
 }
-function addSystem(html) {
-  chatMsg("system", "系统", html);
-}
-function addHelp(parsed) {
-  const examples = (parsed && parsed.examples) || HELP_EXAMPLES;
-  addSystem("<b>可用指令</b><br>发布 / 启动 / 停止 / 检查 / 帮助，支持 " +
-    "<code>pin=</code>、<code>有效期=1h|1d|7d|永久</code>、<code>分享=开|关</code>、" +
-    "<code>名称=</code>。端口或文件夹省略时沿用上次默认值。" +
-    examplesHtml(examples));
-}
-function examplesHtml(examples) {
-  return '<div class="example-list">' + examples.map(ex =>
-    '<div class="example-row"><button type="button" class="ex" onclick="fillCommand(' +
-    jsq(ex) + ')" title="填入输入框">' + esc(ex) + '</button>' +
-    '<button type="button" class="btn btn-sm ghost" onclick="copyText(' + jsq(ex) +
-    ')">复制</button></div>').join("") + "</div>";
-}
-function addError(message, hint, examples, extraButton, allowRetry) {
-  const retry = allowRetry === false ? "" :
-    '<button class="btn btn-sm ghost" onclick="retryLast()">重试</button>';
-  const msg = chatMsg("error", "失败", "<b>" + esc(message || "执行失败") + "</b>" +
-    (hint ? '<div class="err-hint">' + esc(hint) + "</div>" : "") +
-    (examples && examples.length ? examplesHtml(examples) : "") +
-    '<div class="msg-actions">' + retry + (extraButton || "") + "</div>");
-  return msg;
+function addError(message, hint, examples, extraButton) {
+  const html = '<b class="sn-err">' + esc(message || "执行失败") + "</b>" +
+    (hint ? '<span class="sn-hint">' + esc(hint) + "</span>" : "") +
+    '<span class="sn-acts">' + (extraButton || "") + "</span>";
+  stageNote(html, "bad");
+  announce((message || "执行失败") + (hint ? "。" + hint : ""));
 }
 function addResult(html, actions) {
-  chatMsg("success", "完成", html + '<div class="msg-actions">' + (actions || "") + "</div>");
+  stageNote(html + '<span class="sn-acts">' + (actions || "") + "</span>", "good");
+  announce(noteText(html));
 }
 function setCommandBusy(busy) {
   commandBusy = busy;
-  const input = document.getElementById("cmd-input");
-  const run = document.getElementById("cmd-run");
-  input.disabled = busy;
-  run.disabled = busy;
-  run.textContent = busy ? "执行中…" : "执行";
-}
-function fillCommand(text) {
-  const input = document.getElementById("cmd-input");
-  input.value = text;
-  input.focus();
-  autoGrowCommand();
-  input.dispatchEvent(new Event("input"));
-}
-function autoGrowCommand() {
-  const input = document.getElementById("cmd-input");
-  input.style.height = "auto";
-  input.style.height = Math.min(input.scrollHeight, 128) + "px";
-}
-function initChat() {
-  if (chatInited) return;
-  chatInited = true;
-  addSystem("这里是发布控制台。输入 <b>发布 3000</b> 回车即可；" +
-    "口令只用于当次请求，消息里只显示 <code>pin=****</code>。" + examplesHtml(HELP_EXAMPLES.slice(0, 4)));
-  document.getElementById("cmd-input").addEventListener("input", autoGrowCommand);
-  document.getElementById("cmd-input").addEventListener("keydown", e => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      document.getElementById("cmd-form").requestSubmit();
-    }
-  });
-}
-
-async function submitCommand(event) {
-  if (event) event.preventDefault();
-  if (commandBusy) return;
-  const input = document.getElementById("cmd-input");
-  const text = (input.value || "").trim();
-  if (!text) return;
-  if (typeof rememberCommand === "function") rememberCommand(text);
-  addUser(text);
-  input.value = "";
-  autoGrowCommand();
-  setCommandBusy(true);
-  try {
-    const d = await api("/api/command", {text});
-    if (!d.ok) {
-      const err = d.error || {};
-      addError(err.message || "指令无法解析", err.hint || "换一种写法再试",
-        d.examples || HELP_EXAMPLES.slice(0, 4), null, false);
-      return;
-    }
-    const parsed = d.data;
-    LAST_PARSED = parsed;
-    if (parsed.action === "help") return addHelp(parsed);
-    await executeParsed(parsed);
-  } catch (e) {
-    addError("执行失败", String(e && e.message || e), null);
-  } finally {
-    setCommandBusy(false);
-  }
-}
-
-async function retryLast() {
-  if (commandBusy || !LAST_PARSED) return;
-  addSystem("按上一次的解析结果重试（口令只保留在本次页面内存中）。");
-  setCommandBusy(true);
-  try {
-    await executeParsed(LAST_PARSED);
-  } finally {
-    setCommandBusy(false);
-  }
-}
-
-async function executeParsed(parsed) {
-  if (!parsed || !parsed.ok) return;
-  const options = parsed.options || {};
-  if (parsed.action === "stop") return stopFromCommand(parsed);
-  if (parsed.action === "check") return doCheck(parsed);
-  if (parsed.action === "help") return addHelp(parsed);
-  const endpoint = {publish: "/api/publish", pages: "/api/pages", run: "/api/run"}[parsed.action];
-  if (!endpoint) return addError("暂不支持这个动作", "试试：发布 3000");
-  const body = {
-    async: true, pin: options.pin || null, expires: options.expires || "",
-    name: options.name || null, share: !!options.share,
-  };
-  if (parsed.action === "publish") body.port = parsed.port;
-  if (parsed.folder) body.folder = parsed.folder;
-
-  const d = await api(endpoint, body);
-  if (!d.ok) {
-    const err = d.error || {};
-    return addError(err.message || "发布失败", err.hint || "检查目标后重试",
-      null, '<button class="btn btn-sm ghost" onclick="openPublish(\'port\')">高级发布</button>');
-  }
-  if (d.data && d.data.job) return pollJob(d.data.job, parsed);
-  return onJobSuccess(d.data, parsed);
+  document.querySelectorAll("#stage-quickbar .quick-btn").forEach(b => { b.disabled = busy; });
+  const pub = document.getElementById("pub-btn");
+  if (pub) pub.disabled = busy;
+  const stage = document.getElementById("stage");
+  if (stage) stage.setAttribute("aria-busy", busy ? "true" : "false");
 }
 
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
@@ -6570,8 +6546,8 @@ async function pollJob(jobId, parsed) {
     const d = await api("/api/job?id=" + encodeURIComponent(jobId));
     if (!d.ok) {
       const err = d.error || {};
-      return addError(err.message || "任务读取失败", err.hint || "控制台可能已重启",
-        null, '<button class="btn btn-sm ghost" onclick="refresh(true)">刷新</button>');
+      return addError(err.message || "任务读取失败", err.hint || "控制台可能已重启", null,
+        '<button class="btn btn-sm ghost" onclick="refresh(true)">刷新</button>');
     }
     const job = d.data || {};
     const steps = Array.isArray(job.steps) ? job.steps : [];
@@ -6588,7 +6564,7 @@ async function pollJob(jobId, parsed) {
       if (job.ok) return onJobSuccess(job.result, parsed);
       return addError((job.error && (job.error.message || job.error)) || "发布失败",
         job.error && job.error.hint, null,
-        '<button class="btn btn-sm ghost" onclick="openPublish(\'port\')">高级发布</button>');
+        '<button class="btn btn-sm ghost" onclick="openPublish(\'port\')">重新填写</button>');
     }
   }
   addError("等待超时", "任务仍在后台运行，可刷新状态或重新发布。", null,
@@ -6607,41 +6583,16 @@ async function onJobSuccess(entry, parsed) {
   }
   const url = entry.url || "";
   const share = entry.share_url || "";
-  const qrId = "qr-" + Math.random().toString(36).slice(2);
-  const pinNote = entry.pinned || (parsed.options && parsed.options.pin)
-    ? '<div class="err-hint">已设置访问口令；口令只在你的记忆里，页面不会保存。</div>' : "";
-  const html = '<b>' + esc(entry.name || "发布成功") + " 已上线</b>" +
-    '<div class="receipt"><div class="receipt-url">' + esc(url || "网址待生成") + "</div>" +
-    (share ? '<div class="receipt-url">分享：' + esc(share) + "</div>" : "") +
-    pinNote +
-    '<div class="receipt-qr"><div id="' + qrId + '"></div><div class="qr-note">' +
-    (share ? "扫码打开分享页" : "扫码直接打开应用") + "<br>二维码在本地生成，不走外链。</div></div></div>";
-  const actions = (url ? '<button class="btn btn-sm" onclick="copyText(' + jsq(url) +
-    ')">复制网址</button><button class="btn btn-sm ghost" onclick="window.open(' + jsq(url) +
-    ',\'_blank\')">打开</button>' : "") +
+  const pinNote = entry.pinned || (parsed && parsed.options && parsed.options.pin)
+    ? '<span class="sn-hint">已设置访问口令；口令只在你的记忆里，页面不会保存。</span>' : "";
+  addResult("<b>" + esc(entry.name || "发布成功") + " 已上线</b>" +
+    '<span class="sn-url">' + esc(url || "网址待生成") + "</span>" +
+    pinNote,
+    (url ? '<button class="btn btn-sm" onclick="copyText(' + jsq(url) +
+      ')">复制网址</button><button class="btn btn-sm ghost" onclick="stageOpen()">在预览中打开</button>' : "") +
     (entry.id ? '<button class="btn btn-sm ghost" onclick="openDrawer(' + jsq(entry.id) +
-      ')">详情</button><button class="btn btn-sm ghost" onclick="stopCurrent()">停止</button>' : "");
-  addResult(html, actions);
-  drawQr(qrId, share || url);
-}
-
-function drawQr(holderId, url) {
-  const holder = document.getElementById(holderId);
-  if (!holder || !url) return;
-  if (!window.qrcode) {
-    holder.textContent = "二维码不可用";
-    return;
-  }
-  try {
-    const q = qrcode(0, "M");
-    q.addData(url);
-    q.make();
-    holder.innerHTML = q.createSvgTag({cellSize: 2, margin: 0, scalable: true});
-    holder.firstElementChild.style.width = "92px";
-    holder.firstElementChild.style.height = "92px";
-  } catch (e) {
-    holder.textContent = "二维码生成失败";
-  }
+      ')">详情</button>' : ""));
+  stageAfterPublish(entry.id || null, entry);
 }
 
 function resolveStopTarget(parsed) {
@@ -6665,17 +6616,17 @@ async function stopFromCommand(parsed) {
     return addError(snap ? "当前选中条目已停止" : (parsed.port
       ? "没有发布在端口 " + parsed.port + " 的应用" : "没有选中的应用"),
       snap ? "在右栏点「用同样配置重新发布」，或先选择运行中的条目"
-        : "先从左侧选择资产，或写：停止 8080", null);
+        : "先从左侧选择资产，或到「扫描端口」找可发布的应用");
   }
   const d = await api("/api/stop", {target});
   if (!d.ok) {
     const err = d.error || {};
-    return addError(err.message || "停止失败", err.hint || "稍后重试", null);
+    return addError(err.message || "停止失败", err.hint || "稍后重试");
   }
   const stopped = (d.data && d.data.stopped) || [];
-  if (!stopped.length) return addError("没有可停止的应用", "用「停止 全部」清理全部发布");
+  if (!stopped.length) return addError("没有可停止的应用", "当前选中的条目可能已经停止");
   addResult("<b>已停止 " + stopped.length + " 个应用</b>" +
-    stopped.map(s => '<div class="err-hint">' + esc(s.name || s.id || "") + "</div>").join(""),
+    stopped.map(s => '<span class="sn-hint">' + esc(s.name || s.id || "") + "</span>").join(""),
     '<button class="btn btn-sm ghost" onclick="refresh(true)">刷新状态</button>');
   if (stopped.some(s => s.id === selectedAssetId)) {
     // 停止后会生成只读快照，保留选中，右栏直接切到「上次发布」状态。
@@ -6710,23 +6661,23 @@ async function doCheck(parsed) {
     const snap = typeof currentSnapshot === "function" ? currentSnapshot() : null;
     return addError(snap ? "当前选中条目已停止" : (parsed.port
       ? "没有发布在端口 " + parsed.port + " 的应用" : "没有可检查的应用"),
-      snap ? "在右栏点「检查源状态」确认源端口或文件夹是否还在" :
-        "先从左侧选择资产，或写：检查 8080", null);
+      snap ? "在右栏点「用同样配置重新发布」，或先选择运行中的条目"
+        : "先从左侧选择资产，或到「扫描端口」找可发布的应用");
   }
   addStep("正在从访客视角自检…");
   const d = await api("/api/check", {id});
   if (!d.ok) {
     const err = d.error || {};
-    return addError(err.message || "自检失败", err.hint || "稍后重试", null);
+    return addError(err.message || "自检失败", err.hint || "稍后重试");
   }
   const check = d.data || {};
   const good = check.verdict === "ok" || check.verdict === "healthy";
   const signals = (check.signals || []).map(s => s.detail || s.code || "").filter(Boolean);
   const html = "<b>自检：" + esc(check.summary || check.verdict || "完成") + "</b>" +
-    '<div class="err-hint">' + esc(check.url || "") + "</div>" +
-    (signals.length ? '<div class="err-hint">' + esc(signals.slice(0, 4).join(" · ")) + "</div>" : "") +
-    ((check.fixes || []).length ? '<div class="err-hint">已自动修复：' +
-      esc(check.fixes.join("；")) + "</div>" : "");
+    '<span class="sn-url">' + esc(check.url || "") + "</span>" +
+    (signals.length ? '<span class="sn-hint">' + esc(signals.slice(0, 4).join(" · ")) + "</span>" : "") +
+    ((check.fixes || []).length ? '<span class="sn-hint">已自动修复：' +
+      esc(check.fixes.join("；")) + "</span>" : "");
   if (good) addResult(html, '<button class="btn btn-sm ghost" onclick="openDrawer(' +
     jsq(id) + ')">详情</button>');
   else addError(check.summary || "自检未通过", "打开详情查看信号与修复建议", null,
@@ -6734,129 +6685,306 @@ async function doCheck(parsed) {
   loadAssetTimeline(id, true);
 }
 
-// ---------- 中栏：快捷模板 / 语法提示（复用后端解析）/ ↑↓ 历史（仅内存） ----------
-const CMD_HISTORY = [];
-let cmdHistPos = 0;
-let cmdHistDraft = "";
-let hintTimer = null;
-let hintSeq = 0;
+// ---------- 中栏：本机预览（只消费 /api/preview，不拼任意 URL） ----------
+let PREVIEW_SEQ = 0;
+let PREVIEW_TIMER = null;
+let PREVIEW_TARGET = "";
+let PREVIEW_SIG = "";
 
-// 历史里绝不保留口令：pin=xxx / pin xxx 整段剥离后再入栈。
-function stripPin(text) {
-  return String(text || "")
-    .replace(/(pin)(\s*=\s*|\s+)(?:"[^"]*"|'[^']*'|\S+)/gi, "")
-    .replace(/\s+/g, " ").trim();
+function previewSubject() {
+  const found = findAsset(selectedAssetId);
+  if (!found) return null;
+  return found;
+}
+function subjectOpenUrl(found) {
+  const a = (found && found.a) || {};
+  return a.share_url || a.url || "";
+}
+function clearPreviewWatch() {
+  if (PREVIEW_TIMER) { clearTimeout(PREVIEW_TIMER); PREVIEW_TIMER = null; }
+}
+function previewLoading(text) {
+  return '<div class="pv-loading"><span class="spin" aria-hidden="true"></span>' +
+    esc(text || "正在检查本机预览…") + "</div>";
+}
+function previewDegrade(title, detail, url) {
+  return '<div class="pv-degrade" role="note">' +
+    '<span class="pv-ico" aria-hidden="true">!</span>' +
+    "<b>" + esc(title) + "</b><p>" + esc(detail) + "</p>" +
+    '<div class="pv-actions">' +
+    (url ? '<button class="btn btn-primary" type="button" onclick="openUrl(' + jsq(url) +
+      ')">打开链接</button>' : "") +
+    '<button class="btn btn-sm ghost" type="button" onclick="stageRefresh()">重新检查</button>' +
+    "</div></div>";
 }
 
-function rememberCommand(text) {
-  const clean = stripPin(text);
-  if (!clean) return;
-  if (CMD_HISTORY[CMD_HISTORY.length - 1] !== clean) CMD_HISTORY.push(clean);
-  while (CMD_HISTORY.length > 30) CMD_HISTORY.shift();
-  cmdHistPos = CMD_HISTORY.length;
-  cmdHistDraft = "";
+function showPreviewHtml(html) {
+  const box = document.getElementById("stage-preview");
+  if (box) box.innerHTML = html;
 }
 
-function recallCommand(delta) {
-  if (!CMD_HISTORY.length) return;
-  const input = document.getElementById("cmd-input");
-  if (cmdHistPos === CMD_HISTORY.length) cmdHistDraft = input.value;
-  const next = Math.max(0, Math.min(CMD_HISTORY.length, cmdHistPos + delta));
-  if (next === cmdHistPos) return;
-  cmdHistPos = next;
-  input.value = cmdHistPos === CMD_HISTORY.length
-    ? cmdHistDraft : CMD_HISTORY[cmdHistPos];
-  const end = input.value.length;
-  input.setSelectionRange(end, end);
-  autoGrowCommand();
-  updateCmdHint(input.value);
+function renderFrame(url, seq) {
+  const box = document.getElementById("stage-preview");
+  if (!box) return;
+  PREVIEW_TARGET = url;
+  box.innerHTML = '<div class="pv-frame"><iframe id="stage-frame" title="本机应用预览" ' +
+    'src="' + esc(url) + '" sandbox="allow-scripts allow-same-origin allow-forms allow-popups" ' +
+    'referrerpolicy="no-referrer" onload="onPreviewFrameLoad()"></iframe></div>';
+  PREVIEW_TIMER = setTimeout(() => {
+    if (seq !== PREVIEW_SEQ) return;
+    showPreviewHtml(previewDegrade("本机预览加载超时",
+      "页面在 8 秒内没有响应；可能是应用拒绝内嵌或服务已退出。", ""));
+  }, 8000);
 }
 
-function fillTemplate(text, token) {
-  const input = document.getElementById("cmd-input");
-  input.value = text;
-  input.focus();
-  if (token) {
-    const at = text.indexOf(token);
-    if (at >= 0) input.setSelectionRange(at, at + token.length);
-  }
-  autoGrowCommand();
-  updateCmdHint(text);
+function onPreviewFrameLoad() {
+  clearPreviewWatch();
 }
 
-function setCmdHint(text, kind) {
-  const line = document.getElementById("cmd-hint-line");
-  if (!line) return;
-  line.textContent = text || "";
-  line.className = "cmd-hint-line" + (kind ? " " + kind : "");
-}
-
-function updateCmdHint(value) {
-  clearTimeout(hintTimer);
-  const input = document.getElementById("cmd-input");
-  const text = String(value == null ? input.value : value).trim();
-  if (!text) {
-    hintSeq += 1;
-    setCmdHint("");
+async function renderPreview(force) {
+  const found = previewSubject();
+  const box = document.getElementById("stage-preview");
+  if (!box) return;
+  const sig = found ? [found.id, found.hosted, found.snapshot,
+    found.a && found.a.alive, found.a && found.a.url, found.a && found.a.share_url].join("|") : "";
+  // 4 秒状态刷新不应重载正在看的 iframe；只有选中/状态/地址变化或手动刷新才重建。
+  if (!force && sig === PREVIEW_SIG && box.childElementCount) return;
+  PREVIEW_SIG = sig;
+  clearPreviewWatch();
+  PREVIEW_SEQ += 1;
+  const seq = PREVIEW_SEQ;
+  if (!found) { box.innerHTML = ""; PREVIEW_TARGET = ""; return; }
+  if (found.hosted) {
+    showPreviewHtml(previewDegrade("云端托管不提供本地预览",
+      "这个资产在 GitHub Pages 上，请用「打开」查看。", subjectOpenUrl(found)));
     return;
   }
-  // 快捷模板里的占位符不是真实指令，先提示替换，别让后端的转义错误误导人。
-  if (/<[^>]+>/.test(text)) {
-    hintSeq += 1;
-    setCmdHint("把占位符换成实际值再回车，例如：发布 3000", "");
+  if (found.snapshot) {
+    showPreviewHtml(previewDegrade("已停止 · 右栏可重新发布",
+      "上次链接已经失效。右栏保留上次配置，点击「用同样配置重新发布」即可恢复。",
+      subjectOpenUrl(found)));
     return;
   }
-  hintTimer = setTimeout(() => checkCmdSyntax(text), 400);
-}
-
-async function checkCmdSyntax(text) {
-  const seq = ++hintSeq;
-  const d = await api("/api/command", {text: text});
-  if (seq !== hintSeq) return;
-  if (document.getElementById("cmd-input").value.trim() !== text) return;
+  const a = found.a;
+  if (!a.alive) {
+    showPreviewHtml(previewDegrade("应用已停止",
+      "进程不在运行，无法内嵌预览。可先启动源应用，再重新发布。", subjectOpenUrl(found)));
+    return;
+  }
+  showPreviewHtml(previewLoading());
+  const d = await api("/api/preview?id=" + encodeURIComponent(a.id));
+  if (seq !== PREVIEW_SEQ) return;
   if (!d.ok) {
     const err = d.error || {};
-    return setCmdHint(err.hint || err.message || "语法还不完整", "warn");
+    showPreviewHtml(previewDegrade("无法预览", err.message || "本机预览不可用",
+      subjectOpenUrl(found)));
+    return;
   }
   const data = d.data || {};
-  const action = {publish: "发布端口", pages: "发布文件夹", run: "启动项目",
-    stop: "停止", check: "自检", help: "帮助"}[data.action] || "指令";
-  setCmdHint("语法可执行 · " + action, "ok");
+  if (!data.embeddable) {
+    showPreviewHtml(previewDegrade(data.reason || "该应用禁止内嵌，请用打开",
+      "上游返回了不允许内嵌的响应，预览被拦下。用「打开链接」在新标签页查看。",
+      subjectOpenUrl(found)));
+    return;
+  }
+  if (!data.url) {
+    showPreviewHtml(previewDegrade("无法预览", "没有解析到本机地址。", subjectOpenUrl(found)));
+    return;
+  }
+  renderFrame(data.url, seq);
 }
 
-function initComposer() {
-  const input = document.getElementById("cmd-input");
-  if (!input) return;
-  input.addEventListener("input", () => updateCmdHint(input.value));
-  input.addEventListener("keydown", e => {
-    if (e.key === "ArrowUp") {
-      e.preventDefault();
-      recallCommand(-1);
-    } else if (e.key === "ArrowDown") {
-      e.preventDefault();
-      recallCommand(1);
-    }
-  });
-  input.addEventListener("blur", () => setCmdHint(""));
+function stageRefresh() {
+  renderPreview(true);
+  announce("正在刷新预览");
 }
 
-initComposer();
+// ---------- 中栏 stage：预览 / 新建 / 空态 + 快捷指令带 ----------
+let stageMode = "preview"; // preview | create | empty
 
-// ---------- 发布弹窗 ----------
+function stageSubject() {
+  return typeof findAsset === "function" ? findAsset(selectedAssetId) : null;
+}
+function stageSetHead(kind, name, badge) {
+  document.getElementById("stage-kind").textContent = kind;
+  document.getElementById("stage-name").textContent = name;
+  const b = document.getElementById("stage-badge");
+  if (badge) { b.hidden = false; b.textContent = badge; }
+  else b.hidden = true;
+}
+function stageTool(id, show) {
+  const el = document.getElementById(id);
+  if (el) el.hidden = !show;
+}
+function stageEmptyVisible(show) {
+  const empty = document.getElementById("stage-empty");
+  const preview = document.getElementById("stage-preview");
+  const create = document.getElementById("stage-create");
+  if (empty) empty.hidden = !show;
+  if (preview) preview.hidden = show || stageMode === "create";
+  if (create) create.hidden = stageMode !== "create";
+}
+
+function renderStage() {
+  const stage = document.getElementById("stage");
+  if (!stage) return;
+  if (stageMode === "create") {
+    stage.dataset.mode = "create";
+    stageSetHead("新建", "新建应用", null);
+    stageVisibleTools("create");
+    stageEmptyVisible(false);
+    return;
+  }
+  const found = stageSubject();
+  if (!found) {
+    stage.dataset.mode = "empty";
+    stageSetHead("预览", "还没有可预览的应用", null);
+    stageVisibleTools("empty");
+    stageEmptyVisible(true);
+    return;
+  }
+  stage.dataset.mode = "preview";
+  const a = found.a;
+  stageSetHead(found.snapshot ? "上次发布" : found.hosted ? "云端托管" : "预览",
+    a.title || a.name || "未命名应用",
+    found.hosted ? "云端托管" : found.snapshot ? assetStatusText(found) : statusText(assetStatus(a, false, false)));
+  stageVisibleTools("preview", found);
+  stageEmptyVisible(false);
+  renderPreview();
+}
+
+function assetStatusText(found) {
+  return found.snapshot ? statusText(assetStatus(found.a, false, true)) : "";
+}
+
+function stageVisibleTools(mode, found) {
+  const tools = document.getElementById("stage-tools");
+  if (!tools) return;
+  tools.hidden = mode === "empty";
+  const preview = mode === "preview";
+  stageTool("stage-open", preview);
+  stageTool("stage-copy", preview);
+  stageTool("stage-refresh", preview);
+  stageTool("stage-stop", preview && !!found && !found.snapshot && !found.hosted);
+  stageTool("stage-republish", preview && !!found && !!found.snapshot);
+  stageTool("stage-back", mode === "create");
+  const copy = document.getElementById("stage-copy");
+  const stop = document.getElementById("stage-stop");
+  if (copy) copy.disabled = !preview || !found || !subjectOpenUrl(found);
+  if (stop) stop.disabled = !found || found.snapshot || found.hosted;
+}
+
+function openStageCreate() {
+  stageMode = "create";
+  const stage = document.getElementById("stage");
+  if (stage) {
+    stage.dataset.mode = "create";
+    const body = document.getElementById("stage-body");
+    if (body) body.scrollTop = 0;
+  }
+  stageSetHead("新建", "新建应用", null);
+  stageVisibleTools("create");
+  stageEmptyVisible(false);
+  announce("已进入新建应用表单");
+}
+
+function stageResetToPreview() {
+  if (stageMode === "create") stageMode = "preview";
+}
+
+function stageBack() {
+  if (pubPoll) { clearInterval(pubPoll); pubPoll = null; }
+  stageMode = "preview";
+  resetPubFeedback();
+  renderStage();
+}
+
+async function stageAfterPublish(entryId, entry) {
+  stageMode = "preview";
+  if (entryId) selectedAssetId = entryId;
+  await refresh(true);
+  if (entryId && findAsset(entryId)) selectAsset(entryId);
+  renderStage();
+}
+
+function stageOpen() {
+  const found = stageSubject();
+  const url = subjectOpenUrl(found);
+  if (!url) { toast("当前条目还没有可用链接", false); return; }
+  openUrl(url, found && !found.hosted && !found.snapshot ? found.a.id : null);
+}
+function stageCopy() {
+  const found = stageSubject();
+  const url = subjectOpenUrl(found);
+  if (!url) { toast("当前条目还没有可用链接", false); return; }
+  copyText(url);
+}
+async function stageStop() {
+  const found = stageSubject();
+  if (!found || found.snapshot) {
+    toast("当前条目已停止，可在右栏重新发布", false);
+    return;
+  }
+  if (found.hosted) { toast("云端托管条目请到右栏操作", false); return; }
+  askStop(found.a.id, found.a.name || found.a.title);
+}
+function stageRepublish() {
+  const found = stageSubject();
+  if (found && found.snapshot) { if (typeof vizRepublish === "function") vizRepublish(); return; }
+  toast("只有已停止条目才能用同样配置重新发布", false);
+}
+
+// ---------- 快捷指令带 ----------
+function openPublishPort(port) {
+  openPublish("port");
+  const el = document.getElementById("in-port");
+  if (el) {
+    el.value = String(port || "");
+    el.focus();
+  }
+}
+function quickPublish(tab) {
+  if (commandBusy) return;
+  openPublish(tab || "port");
+}
+function quickStopCurrent() {
+  if (commandBusy) return;
+  const found = stageSubject();
+  if (!found || found.snapshot) {
+    addError("没有可停止的选中应用", "先从左侧选择运行中的条目，或右键栏「重新发布」恢复一个。");
+    return;
+  }
+  stopCurrent();
+}
+function quickCheckCurrent() {
+  if (commandBusy) return;
+  doCheck({scope: "current"});
+}
+async function quickScan() {
+  if (commandBusy) return;
+  setCommandBusy(true);
+  addStep("正在扫描本机监听端口…");
+  const d = await api("/api/discover");
+  setCommandBusy(false);
+  if (!d.ok) {
+    return addError((d.error && d.error.message) || "扫描失败", "稍后再试，或手动输入端口。");
+  }
+  const list = (d.data && d.data.candidates) || [];
+  if (!list.length) {
+    return addResult("<b>没有发现可发布的本机端口</b>",
+      '<button class="btn btn-sm ghost" onclick="openPublish(\'pages\')">改为发布文件夹</button>');
+  }
+  const html = "<b>发现 " + list.length + " 个端口</b>";
+  addResult(html, list.map(c => '<button class="btn btn-sm" type="button" onclick="openPublishPort(' +
+    Number(c.port) + ')">:' + Number(c.port) + " " + esc((c.title || c.process || "").slice(0, 12)) +
+    "</button>").join(" ") +
+    '<button class="btn btn-sm ghost" type="button" onclick="quickScan()">重新扫描</button>');
+}
+
+// ---------- 新建应用：中栏就地表单（不再弹独立模态） ----------
 let pubTab = "port";
 let pubDefaults = null;
 let pubPoll = null;
-const PUB_PIN_KEY = "panweb.pin";
-
-function storedPin() {
-  try { return sessionStorage.getItem(PUB_PIN_KEY) || ""; } catch (e) { return ""; }
-}
-function rememberPin(pin) {
-  try {
-    if (pin) sessionStorage.setItem(PUB_PIN_KEY, pin);
-    else sessionStorage.removeItem(PUB_PIN_KEY);
-  } catch (e) { /* 隐私模式禁用存储也不影响发布 */ }
-}
 
 function openPublish(tab) {
   if (STATE && STATE.license && STATE.license.activation_required) {
@@ -6872,7 +7000,7 @@ function openPublish(tab) {
   document.getElementById("in-port").value = "";
   document.getElementById("in-folder").value = "";
   document.getElementById("in-project").value = "";
-  document.getElementById("in-pin").value = storedPin();
+  document.getElementById("in-pin").value = "";
   document.getElementById("in-share").checked = true;
   document.getElementById("in-exp").value = "";
   document.getElementById("in-files").value = "";
@@ -6881,17 +7009,18 @@ function openPublish(tab) {
   selPort = null; selPortRisky = null; detected = null;
   resetPubFeedback();
   updateRisk();
-  document.getElementById("pub-overlay").classList.add("show");
+  openStageCreate(pubTab);
   loadPublishOptions();
   setTimeout(() => {
     const el = pubTab === "port" ? "in-port" : pubTab === "pages" ? "in-folder"
       : pubTab === "cloud" ? "in-cloudfolder" : "in-project";
-    document.getElementById(el).focus();
+    const input = document.getElementById(el);
+    if (input) input.focus();
   }, 120);
 }
 function closePublish() {
-  document.getElementById("pub-overlay").classList.remove("show");
   if (pubPoll) { clearInterval(pubPoll); pubPoll = null; }
+  stageBack();
 }
 function resetPubFeedback() {
   const btn = document.getElementById("pub-btn");
@@ -6958,7 +7087,6 @@ function applyStoredDefaults(d) {
   const bits = [];
   if (pubDefaults.last_port) bits.push("上次端口 " + pubDefaults.last_port);
   if (pubDefaults.expires) bits.push("上次有效期 " + pubDefaults.expires);
-  if (storedPin()) bits.push("口令沿用本标签页");
   const note = document.getElementById("pub-smart");
   if (bits.length) {
     note.textContent = "已按上次设置预填：" + bits.join(" · ") + "（可随时改）";
@@ -7155,10 +7283,13 @@ function pubFail(err) {
 }
 function pubDone(data) {
   if (pubPoll) { clearInterval(pubPoll); pubPoll = null; }
-  rememberPin(document.getElementById("in-pin").value.trim());
-  closePublish();
+  // 口令只作为当次请求参数，成功后立即清空表单字段
+  const pinEl = document.getElementById("in-pin");
+  if (pinEl) pinEl.value = "";
+  const entryId = data && (data.id || (data.entry && data.entry.id)) || null;
+  stageBack();
   toast("已发布：" + (data.share_url || data.url));
-  refresh();
+  stageAfterPublish(entryId, data);
 }
 function pollPublish(jobId, btn, spin) {
   return new Promise(resolve => {
@@ -7772,7 +7903,10 @@ function switchPage(page) {
   if (page === "agents") loadAgents();
   if (page === "term") tmEnterPage(); else tmLeavePage();
   if (page === "system") { loadSystem(); loadDomain(); }
-  if (page === "apps" && typeof renderViz === "function") renderViz();
+  if (page === "apps") {
+    if (typeof renderViz === "function") renderViz();
+    if (typeof renderStage === "function") renderStage();
+  }
 }
 
 // ---------- 系统与数据页 ----------
@@ -8011,10 +8145,10 @@ document.addEventListener("keydown", e => {
     const page = document.getElementById("page-apps");
     if (page && page.classList.contains("show")) {
       e.preventDefault();
-      const input = document.getElementById("cmd-input");
-      if (input) {
-        input.focus();
-        input.setSelectionRange(input.value.length, input.value.length);
+      const first = document.querySelector("#stage-quickbar .quick-btn:not([disabled])");
+      if (first) {
+        first.focus();
+        announce("已聚焦快捷指令区");
       }
       return;
     }
@@ -8024,6 +8158,7 @@ document.addEventListener("keydown", e => {
   }
   if (e.key === "Escape") {
     document.querySelectorAll(".overlay.show").forEach(o => o.classList.remove("show"));
+    if (typeof notifyPanelClose === "function") notifyPanelClose();
     if (typeof closeDrawer === "function") closeDrawer();
     if (typeof closeDrawers === "function") closeDrawers();
   }
@@ -8797,7 +8932,7 @@ const PAGES = ["apps", "feed", "agents", "term", "system"];
 initTheme();
 if (typeof initDepGroups === "function") initDepGroups();
 switchPage(PAGES.includes(currentPage) ? currentPage : "apps");
-initChat();
+renderStage();
 refresh();
 const refreshTimer = setInterval(() => { if (!document.hidden) refresh(); }, 4000);
 
